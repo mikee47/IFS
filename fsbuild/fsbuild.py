@@ -10,9 +10,6 @@ from util import _BV
 from FWFS import FwObt
 from compress import CompressionType
 
-# Touch to ensure newly generated bin gets included in compile
-APP_FILESYS = "app/filesys.s"
-
 if len(sys.argv) > 1:
     configFile = sys.argv[1]
 else:
@@ -141,6 +138,3 @@ print fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", "")
 print fmtstr.format(str(img.root().fileCount(True)) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", "")
 
 print "Image contains {} objects".format(img.objectCount())
-
-util.touch(APP_FILESYS)
-
