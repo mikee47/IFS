@@ -229,7 +229,7 @@ class AceObject(Object8):
             self.__role = s
         else:
             self.__role = UserRole.__dict__[s]
-        print "Adding ACE {}, {}, {}".format(obt, s, self.toString())
+#        print "Adding ACE {}, {}, {}".format(obt, s, self.toString())
 
     def content(self):
         return struct.pack("<B", self.__role)
