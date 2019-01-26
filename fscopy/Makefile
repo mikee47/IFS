@@ -9,8 +9,7 @@ LD := gcc
 CFLAGS :=	-O2 -Wall -Wno-unused-value \
 			-DSDK_INTERNAL \
 			-D__ets__ \
-			-DARDUINO=106 \
-			-DSPIFFS_OBJ_META_LEN=16
+			-DARDUINO=106
 
 CXXFLAGS := $(CFLAGS)
 

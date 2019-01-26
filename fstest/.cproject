@@ -53,7 +53,6 @@
 									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2112880315" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="SPIFFS_OBJ_META_LEN=16"/>
 									<listOptionValue builtIn="false" value="ARDUINO"/>
 									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
 									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
@@ -79,7 +78,6 @@
 									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1046855149" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="SPIFFS_OBJ_META_LEN=16"/>
 									<listOptionValue builtIn="false" value="ARDUINO"/>
 									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
 									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
@@ -172,7 +170,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.535079356" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="SPIFFS_OBJ_META_LEN=16"/>
 									<listOptionValue builtIn="false" value="ARDUINO"/>
 									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
 									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
@@ -198,7 +195,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1888912484" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="SPIFFS_OBJ_META_LEN=16"/>
 									<listOptionValue builtIn="false" value="ARDUINO"/>
 									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
 									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
