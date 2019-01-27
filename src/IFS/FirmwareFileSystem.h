@@ -99,9 +99,8 @@ public:
 	 */
 	int setVolume(uint8_t num, IFSObjectStore* store);
 
-	int mount();
-
 	// IFileSystem methods
+	virtual int mount();
 	virtual int getinfo(FileSystemInfo& info);
 	virtual int opendir(const char* path, filedir_t* dir);
 	virtual int readdir(filedir_t dir, FileStat* stat);

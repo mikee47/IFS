@@ -184,6 +184,11 @@ public:
 	{
 	}
 
+	/** @brief Mount file system, performing any required initialisation
+	 *  @retval error code
+	 */
+	virtual int mount() = 0;
+
 	/** @brief get filing system information
      *  @param info structure to read information into
      *  @retval int error code

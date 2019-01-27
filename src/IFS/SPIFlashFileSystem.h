@@ -72,7 +72,7 @@ public:
 
 	virtual ~SPIFlashFileSystem();
 
-	int mount();
+	virtual int mount();
 	virtual int getinfo(FileSystemInfo& info);
 	virtual int geterrortext(int err, char* buffer, size_t size);
 	virtual int opendir(const char* path, filedir_t* dir);
