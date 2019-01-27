@@ -10,8 +10,8 @@
 #ifndef __IFSTYPES_H
 #define __IFSTYPES_H
 
+#include "user_config.h"
 #include <time.h>
-#include "c_types.h"
 #include "FakePgmSpace.h"
 #include "WVector.h"
 
