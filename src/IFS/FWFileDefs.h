@@ -10,10 +10,10 @@
  *
  * 	uint32_t START_MARKER;
  * 	FSFW_Object Objects[];
- * 	FWFW_Object EndObject;
+ * 	FWFS_Object EndObject;
  * 	uint32_t END_MARKER;
  *
- * The FWFW_Object is a variable-length structure which can be read as either 1 or 2 words,
+ * The FWFS_Object is a variable-length structure which can be read as either 1 or 2 words,
  * depending on the type.
  * Objects always start on a word boundary.
  * File and directory objects are both emitted as 'named' objects which contain a list of
@@ -27,11 +27,8 @@
  * This is usually found following the file object, but it doesn't have to be.
  * Any object may be referenced by zero or more named object(s). For example, file links/aliases
  * can contain references to the same file data.
- * At present, a file object contains at most one data object; any additional data objects are
- * ignored. Note that data objects are un-named.
- *
- * It might be useful to concatenate multiple data objects, for example as a form of compression.
- * The file system builder would identify common file blocks and place these in shared data objects.
+ * A file object may contain multiple data objects. These are treated as a contiguous block for file operations.
+ * This would potentially allow a file system builder to place common file blocks into shared data objects.
  *
  * Object names are from 0 to 255 characters, inclusive. The root directory has a zero-length name.
  * Paths lengths are unlimited.

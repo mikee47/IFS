@@ -486,12 +486,12 @@ int SPIFFSObjectStore::mount()
 	 * If we specify fh_ix_offset then the range can be determined to allow the owning filesystem
 	 * to be determined from its handle.
 	 */
-	cfg.fh_ix_offset = ...
+	// cfg.fh_ix_offset = ...
 #endif
 
-		//  debug_i("FFS offset: 0x%08x, size: %u Kb, \n", cfg.phys_addr, cfg.phys_size / 1024);
+	//  debug_i("FFS offset: 0x%08x, size: %u Kb, \n", cfg.phys_addr, cfg.phys_size / 1024);
 
-		_work_buf = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
+	_work_buf = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
 	_fds = new uint8_t[FDS_BUF_SIZE(FFS_MAX_FILEDESC)];
 	_cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
 

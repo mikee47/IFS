@@ -163,12 +163,12 @@ int SPIFlashFileSystem::mount()
 	 * If we specify fh_ix_offset then the range can be determined to allow the owning filesystem
 	 * to be determined from its handle.
 	 */
-	cfg.fh_ix_offset = ...
+	// cfg.fh_ix_offset = ...
 #endif
 
-		//  debug_i("FFS offset: 0x%08x, size: %u Kb, \n", cfg.phys_addr, cfg.phys_size / 1024);
+	//  debug_i("FFS offset: 0x%08x, size: %u Kb, \n", cfg.phys_addr, cfg.phys_size / 1024);
 
-		_work_buf = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
+	_work_buf = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
 	_fds = new uint8_t[FDS_BUF_SIZE(FFS_MAX_FILEDESC)];
 	_cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
 
@@ -370,14 +370,32 @@ int32_t SPIFlashFileSystem::tell(file_t file)
 }
 
 /*
- * @todo this method is provided by SPIFFS, but would be fairly easy to implement
- * See https://github.com/pellepl/spiffs/pull/218 for an example, though that
- * operates using a filename. Using a file handle would be even simpler.
+ * Truncate SPIFFS file at current file position.
+ * This method is not provided by SPIFFS hydrogen so included here.
  */
+static s32_t SPIFFS_truncate(spiffs* fs, spiffs_file fh)
+{
+	SPIFFS_API_CHECK_CFG(fs);
+	SPIFFS_API_CHECK_MOUNT(fs);
+	SPIFFS_LOCK(fs);
+
+	spiffs_fd* fd;
+	s32_t res;
+
+	fh = SPIFFS_FH_UNOFFS(fs, fh);
+	res = spiffs_fd_get(fs, fh, &fd);
+	SPIFFS_API_CHECK_RES_UNLOCK(fs, res);
+
+	res = spiffs_object_truncate(fd, fd->fdoffset, 0);
+	SPIFFS_API_CHECK_RES_UNLOCK(fs, res);
+
+	SPIFFS_UNLOCK(fs);
+	return 0;
+}
+
 int SPIFlashFileSystem::truncate(file_t file)
 {
-	//	return SPIFFS_truncate(handle(), file);
-	return FSERR_NotImplemented;
+	return SPIFFS_truncate(handle(), file);
 }
 
 int SPIFlashFileSystem::flush(file_t file)

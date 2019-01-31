@@ -6,10 +6,24 @@
  *
  * Provides an IFS FileSystem implementation for SPIFFS.
  *
- * This is pretty much a straightforward wrapper around SPIFFS, with the
- * addition of metadata caching. Metadata can be updated multiple
- * times while a file is open so for efficiency it is kept in RAM and
- * only written to SPIFFS on close or flush.
+ * This is mostly a straightforward wrapper around SPIFFS, with a few enhancements:
+ *
+ *	Metadata caching
+ *
+ *		Metadata can be updated multiple times while a file is open so
+ * 		for efficiency it is kept in RAM and only written to SPIFFS on close or flush.
+ *
+ *	Directory emulation
+ *
+ *		SPIFFS stores all files in a flat format, so directory behaviour is emulated
+ *		including opendir() and readdir() operations. Overall path length is fixed
+ *		according to SPIFFS_OBJ_NAME_LEN.
+ *
+ *  File truncation
+ *
+ *  	Standard IFS truncate() method allows file size to be reduced; the regular SPIFFS
+ *  	API provides no way to do this.
+ *
  *
  */
 
@@ -26,7 +40,7 @@
  */
 #define FFS_MAX_FILEDESC 8
 
-/** @brief Underlying file system stores information in meta area laid out in this structure.
+/** @brief Content of SPIFFS metadata area
  */
 struct __packed FileMeta {
 	// Modification time

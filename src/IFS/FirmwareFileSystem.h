@@ -25,12 +25,12 @@
 #include "IFSObjectStore.h"
 
 // File handles start at this value
-#ifndef FWFILE_HANDLE_MIN
+#ifndef FWFS_HANDLE_MIN
 #define FWFS_HANDLE_MIN 100
 #endif
 
 // Maximum number of file descriptors
-#ifndef FWFILE_MAX_FDS
+#ifndef FWFS_MAX_FDS
 #define FWFS_MAX_FDS 8
 #endif
 

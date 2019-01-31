@@ -4,6 +4,8 @@
 
 ### SpiFlashFileSystem V2
 
+[31/1/19 in progress]
+
 FWFS can be implemented using SPIFFS files. A SPIFFS file contains a directory or file object. Content is stored in separate file(s). File references are SPIFFS object IDs.
 
 Instead of implementing IFS all over again, we can take FWFS and split it into an IFS layer and an Object layer. The object layer provides an interface for enumerating named object contents and for reading/writing them. This can be another virtual base class, or maybe the SPIFFS one can just inherite from FirmwareFileSystem.
@@ -102,14 +104,12 @@ Let's have an example...
 
 ### fopen
 
-Change this to use a fileid_t instead of a FileStat structure.
+Perhaps change this to use a fileid_t instead of a FileStat structure.
 
 
 ### FWFS Image creation
 
-Consider adding image writing capability so allow streaming archives to be created; header would be at the end, but the initial header could have a marker to indicate it's a streaming version.
-
-The other application for this is to pull files from SPIFFS into an area of flash so the SPIFFS partition can be formatted, for example.
+Add image writing capability so allow streaming archives to be created. Use cases include backup, defragmentation or rebuilding of a SPIFFS volume by archiving files into an area of flash, reformatting the SPIFFS volume then writing the content back in.
 
 ### Directories vs. files
 
@@ -173,11 +173,11 @@ What if we could access files using paths like 'file://index.html' or 'localhost
 
 etc.
 
- Sming has redirectors for HTTP using HttpResource objects. 
+Sming has redirectors for HTTP using HttpResource objects. 
 
 ### FWFS extension
 
-By inheriting from the FirmwareFileSystem class we should be able to add folder redirection for other filesystems. For example, mounting a SPIFFS filesystem under 'config/'. This would be considerably simpler than the Hybrid implementation. It would also improve file open performance; tests on real hardware show that fileOpen operations take around 20x longer on SPIFFS than on FWFS (e.g. 5ms vs 200us), so HFS is similarly hindered. There's no significant difference for read operations.
+By inheriting from the FirmwareFileSystem class we should be able to add folder redirection for other filesystems. For example, mounting a SPIFFS filesystem under 'config/'. This would be simpler than the Hybrid implementation. It would also improve file open performance; tests on real hardware show that fileOpen operations take around 20x longer on SPIFFS than on FWFS (e.g. 5ms vs 200us) [31/1/19 not sure how current these figures are], so HFS is similarly hindered. There's no significant difference for read operations.
 
 ### readMemoryBlock
 
@@ -185,14 +185,13 @@ Add readblock method to support IDataSourceStream.readMemoryBlock more efficient
 
 ### File system construction
 
-Firmware Filesystme images are build using a python script. Support is included for JSON/js minification, GZIP compression, access control and directories (although FW doesn't actually support directories per-se). A configuration file is used to drive the script. The output is a compact image which can be linked into firmware. Multiple images could be used if required.
+Firmware Filesystem images are build using a python script. Support is included for JSON/js minification, GZIP compression, access control and directories. A configuration file is used to drive the script. The output is a compact image which can be linked into firmware. Multiple images may be used.
 
-The simplest way then to create a similar SPIFFS image is to build the FWFS image first, then copy it into a SPIFFS filesystem. This will be the role of the **fscopy** program, written in C++ and using the IFS API with SPIFFS.
+One way to create a similar SPIFFS image is to build the FWFS image first, then copy it into a SPIFFS filesystem. This will be the role of the **fscopy** program, written in C++ and using the IFS API with SPIFFS.
 
 	* Image size: Specify directly, or the amount of free space required; the program will then calculate the appropriate image size.
 	* Metadata size: How much space to allocate for user metadata.
-	* Maximum filename length. Bear in mind SPIFFS doesn't implement directories so, like FWFS, the full (relative) path needs to be accounted for. If this limit is exceeded the program will fail.
-	
+	* Maximum filename length. Bear in mind SPIFFS doesn't implement directories so, like FWFS, the full (relative) path needs to be accounted for. If this limit is exceeded the program will fail.	
 
 We need a tool (in C++) which python can use to actually fabricate the images for any supported filing system.
 
