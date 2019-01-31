@@ -1,7 +1,7 @@
 /****
  * IFS Error codes and related stuff
  *
- * Created for Sming Framework Project August 2018 by mikee471
+ * Created August 2018 by mikee471
  *
  ****/
 

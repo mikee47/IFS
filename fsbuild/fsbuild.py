@@ -92,7 +92,14 @@ def createFsObject(parent, target, source):
         pc = 0
     else:
         pc = 100 * (ol - il) / il
-    print fmtstr.format(obj.path(), len(obj.name), obj.childCount(), il, ol, ol - il, pc, 
+
+    # Put long filenames on their own line
+    objpath = obj.path()
+    if len(objpath) > 40:
+        print objpath
+        objpath = ''
+
+    print fmtstr.format(objpath, len(obj.name), obj.childCount(), il, ol, ol - il, pc, 
                         obj.readACE().toString() + ', ' + obj.writeACE().toString(),
                         obj.attr().toString(), obj.compression().toString())
 

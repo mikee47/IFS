@@ -51,7 +51,7 @@ public:
 		if(ref.id && (ref.id & FWFS_CACHE_MASK) == 0) {
 			auto po = getOffset(ref.id);
 			if(po) {
-				debug_fwfs("Caching #%u @ 0x%08X", ref.id, ref.offset);
+				debug_d("Caching #%u @ 0x%08X", ref.id, ref.offset);
 				*po = ref.offset;
 			}
 		}
@@ -76,7 +76,7 @@ public:
 
 		auto po = getOffset(cachedIndex);
 		if(po) {
-			debug_fwfs("Cache hit #%u @ 0x%08X (for #%u)", cachedIndex, *po, objID);
+			debug_d("Cache hit #%u @ 0x%08X (for #%u)", cachedIndex, *po, objID);
 			ref.id = cachedIndex;
 			ref.offset = *po;
 		}

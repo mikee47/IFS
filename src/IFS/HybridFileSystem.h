@@ -28,7 +28,13 @@
 #include "SPIFlashFileSystem.h"
 #include "ifstypes.h"
 
-#define HFS_HIDE_FLAGS
+#ifndef HYFS_HIDE_FLAGS
+#define HYFS_HIDE_FLAGS 1
+#endif
+
+#if HYFS_HIDE_FLAGS == 1
+#include "WVector.h"
+#endif
 
 class HybridFileSystem : public IFileSystem
 {
@@ -83,7 +89,7 @@ private:
 private:
 	FirmwareFileSystem _fw;
 	SPIFlashFileSystem _ffs;
-#ifdef HFS_HIDE_FLAGS
+#if HYFS_HIDE_FLAGS == 1
 	Vector<fileid_t> m_hiddenFWFiles;
 #endif
 };

@@ -22,10 +22,8 @@ Two tools are used for manipulating filesystem images:
 
 Two additional IFS implementations are provided:
 
-** To be revised; with object stores the other systems become redundant.
-
-	* ISpiFlashFileSystem. A SPIFFS wrapper, using file metadata to support the extended attributes
-	* IHybridFileSystem. Layers SPIFFS over FWFS, devised to allow deployment of a standard setup which can be modified in-situ and reverted to 'factory defaults' by just running a format.
+	* SpiFlashFileSystem. A SPIFFS wrapper, using file metadata to support the extended attributes
+	* HybridFileSystem. Layers SPIFFS over FWFS, devised to allow deployment of a standard setup which can be modified in-situ and reverted to 'factory defaults' by just running a format.
 
 IFS has the following features:
 
@@ -61,10 +59,6 @@ File content is stored in un-named data objects. A named object can have any num
 
 Named objects can be enumerated using readdir(). Internally, FWFS uses handles to access any named object. Handles are allocated from a static pool, so no dynamic (heap) allocation is required. Users can attach their own data to any named object using custom object types.
 
-### Redirection
-
-FWFS incorporates a redirector. This works by creating a mount point (a named object), which looks like a directory. When accessed, this get redirected to the root of another volume. The maximum number of mount points is fixed at compile time, but volumes can be mounted and dismounted at any time.
-
 ### Object stores
 
 FWFS uses a mid-level layer to deal with reading and writing objects. It is at a slightly higher level than media, which allows efficient use of flash storage for direct read-only access, or SPIFFS as a read/write layer. Each object store provides access to a single volume.
@@ -73,6 +67,9 @@ When implemented on SPIFFS, a named object is stored as a file. So a directory i
 
 Be aware, therefore, that any change to an object will involve rewriting the underlying file. The SPIFFS object store can probably be improved. For example, as FWFS doesn't require file content to be in a single object, appending to a file can be done by creating new data objects and appending them to the file object. SPIFFS will do this sort of thing anyway, so there should be a way to combine the two.
 
+### Redirection
+
+FWFS incorporates a redirector. This works by creating a mount point (a named object), which looks like a directory. When accessed, this get redirected to the root of another object store. The maximum number of mount points is fixed at compile time, but stores can be mounted and dismounted at any time.
 
 ### Archival
 
@@ -102,7 +99,7 @@ This was added as a standardised HAL for filing systems to use, if they choose. 
 	* IFSFlashMedia - provides configurable access to a flash memory region
 	* StdFileMedia - allows tools to be built working directly on file images
 
-FWFS was originally written to operate using memory buffers, so all accesses went through the hardware caching system. If some files were accessed frequently this might be an advantage; in fact, a Media object could be devised to take advantage of this for certain files. In general, however, using the cache is undesirable because it will degrade code execution performance.
+FWFS was originally written to operate using memory buffers, so all accesses went through the hardware caching system. If some files were accessed frequently this might be an advantage; in fact, a Media object could be written to take advantage of this for certain files. In general, however, using the cache is undesirable because it will degrade code execution performance.
 
 FatFS provides disk_xxx function prototypes in diskio.h which the SDCard library provides. As a legacy filesystem it's unlikely we'll need FAT on any other media, so a IFS implementation could just wrap both SDCard + FatFS. It would probably require a little modification to the SDCard/FatFS library to implement a Media object.
 
@@ -116,18 +113,17 @@ At present IFS is not suitable for slow devices - see discussion of asynchronous
 
 Presents a 'SPIFFS-over-Firmware' system. A freshly 'formatted' system will present only the firmware files. When a file is written, deleted or otherwise modified (including metadata) it is transparently copied into SPIFFS. The original layout is restored using format().
 
-
 ## Configuration filesystem @todo
 
 If an application only requires write access for configuration files, SPIFFS is overkill. These files would be updated very infrequently, so wear-levelling would be un-necessary. The names and number of files would probably also be known at build time, and an individual file could be limited to a fixed size, for example one or two flash sectors. A ConfigFileSystem implementation would not need to support file creation or deletion. Such a system would require almost no static RAM allocation and code size would be tiny.
 
 ## Code dependencies
 
-String object is used sparingly where necessary but C nul-terminated strings are used predominantly. Porting to other platforms should be straightforward, similarly adopting new filing system should be relatively easy.
+Written initially for Sming, the library is portable to other systems.
 
-No definitions are used from SPIFFS or any other modules. Applications should avoid using filesystem-dependent calls, structures or error codes. Such code, if necessary, should be placed into a separate module.
+No definitions from SPIFFS or other modules should be used in the public interface; such dependencies should be managed internally. This means that for Sming, it would be preferable to incorporate SPIFFS into the IFS library so applications don't 'see' it.
 
-## Sming
+Applications should avoid using filesystem-dependent calls, structures or error codes. Such code, if necessary, should be placed into a separate module.
 
 SmingCore/FileSystem has been modified to use these IFS but the API remains largely unchanged, although somewhat expanded. The basic type definitions were moved into this header file. Access functions are now mainly just wrappers around filing system calls. A single global IFileSystem instance is used.
 
@@ -135,13 +131,7 @@ Applications may still call spiffs_mount() and spiffs_unmount(). These are defin
 
 This does not depend on SPIFFS or any other filesystem definitions. An IFS implementation provides a wrapper for such a system.
 
-At the time of writing we have 3 systems:
-
-	1. SPIFFS - SPI Flash File System
-	2. FWFS - Firmware File System
-		A read-only layout which uses an image baked into the firmware.
-	3. HFS - Hybrid File System
-		Uses SPIFFS on top of FWFS. Modified files are written to SPIFFS.
+## Implementation details
 
 The traditional way to implement installable filing systems is using function tables, such as you'll see in Linux. One reasons is because the Linux kernel is written in C, not C++. For Sming, a virtual class seems the obvious choice, however there are some pros and cons.
 
@@ -154,12 +144,12 @@ The traditional way to implement installable filing systems is using function ta
 
 ### Function table
 
-Advantages:
-	* We can place the tables directly into PROGMEM to minimise RAM usage.
-	* Portable to C applications (although with some fudging so are VMTs).
+	* Advantages
+		We can place the tables directly into PROGMEM to minimise RAM usage.
+		Portable to C applications (although with some fudging so are VMTs).
 
-Disadvantages
-	* Care required to keep function order and parameters correct. Very likely we'd use a bunch of macros to deal with this.
+	* Disadvantages
+		Care required to keep function order and parameters correct. Very likely we'd use a bunch of macros to deal with this.
 
 ### Macros
 

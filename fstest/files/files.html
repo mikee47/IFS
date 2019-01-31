@@ -1,0 +1,18 @@
+<html>
+<select id="filelist" name="filelist" size="16" multiple="true"></select>
+<button id="listfiles" onclick="files.listFiles()" style="padding:2px 2px;">&#8635;</button>
+<br>
+<button id="load" onclick="files.loadFile()">Load</button>
+<button id="check" onclick="files.checkFile()">Check</button>
+<button id="save" onclick="files.saveFile()">Save</button>
+<button id="deletefiles" onclick="files.deleteFiles()">Delete Files</button>
+<br>
+<input id="uploadfiles" type="file" accept=".gz,.html,.ico,.js,.css,.json" multiple="true"></input>
+<button id="upload" onclick="files.uploadFiles()">Upload</button>
+<br>
+<textarea id="editor" rows="25" style="width:100%; height:100%"></textarea>
+<br>
+<button id="info" onclick="files.getInfo()">Info</button>
+<button id="check" onclick="files.check()">Check</button>
+<button id="format" onclick="files.format()">Format</button>
+</html>

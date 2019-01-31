@@ -5,12 +5,7 @@
  *      Author: mikee47
  */
 
-#define DEBUG_BUILD 1
-#undef DEBUG_VERBOSE_LEVEL
-#define DEBUG_VERBOSE_LEVEL 3
-
 #include "SPIFFSObjectStore.h"
-#include "spiffs_sming.h"
 
 /*
  * Number of pages to cache

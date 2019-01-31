@@ -8,7 +8,6 @@ Support is included for JSON/js minification, GZIP compression, access control a
 
 A configuration file is used to drive the script. The output is a compact image which can be linked into firmware. Multiple images could be used if required.
 
-
 ## Usage
 
 This script should be run from the development directory. Parameters are read from the fsbuild.ini file located in the same folder.
@@ -34,4 +33,3 @@ The file tree is read in its entirety, including sub-folders. File modification 
 GZIP compression is attempted for those files indicate by config rules. If this does not result in a size reduction then the file is left uncompressed. The file attributes indicate if compression has been applied; the file name is not changed.
 
 Compression should not be used for any files which the firmware needs to process internally, as this would require GZIP decompression in the firmware. For the ESP8266 this is not practical, however other platforms may consider this useful.
-

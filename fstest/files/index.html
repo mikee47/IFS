@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<title>Sming IFS Demo</title>
+
+<link rel="stylesheet" href="styles.css"/>
+<script src="stswsio.js"></script>
+<script src="index.js"></script>
+
+</head>
+
+<body onload="initialise()">
+ 
+<noscript>Javascript required - please enable</noscript>
+
+<h2>
+<div id="menu" class="menu" onclick="openNav();">
+<div class="bar"></div>
+<div class="bar"></div>
+<div class="bar"></div>
+</div>
+Sming IFS Demo</h2>
+
+
+<div id="sidenav" class="sidenav" onclick="closeNav()">
+  <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+  <div id="pages"></div>
+</div>
+
+<div id="main">
+  <label for="username"><b>Username</b></label>
+  <input autocomplete="on" id="username" type="text" placeholder="Enter Username">
+  <label for="password"><b>Password</b></label>
+  <input autocomplete="on" id="password" type="password" placeholder="Enter Password">
+  <button id="connect" onclick="wsconn.connect()">Connect</button>
+  <button id="disconnect" onclick="wsconn.disconnect()">Disconnect</button>
+ </div>
+
+<div id="content" class="panel content"></div>
+
+<div id="status"><!-- status goes here --></div>
+<div id="message"><!-- message goes here --></div>
+
+<div id="scripts"></div>
+
+</body>
+</html>

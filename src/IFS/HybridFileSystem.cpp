@@ -129,7 +129,7 @@ int HybridFileSystem::geterrortext(int err, char* buffer, size_t size)
 int HybridFileSystem::_hideFWFile(const char* path, bool hide)
 {
 	int res = FS_OK;
-#ifdef HFS_HIDE_FLAGS
+#if HYFS_HIDE_FLAGS == 1
 	FileStat stat;
 	res = _fw.stat(path, &stat);
 	if(res >= 0) {
@@ -145,7 +145,7 @@ int HybridFileSystem::_hideFWFile(const char* path, bool hide)
 
 bool HybridFileSystem::_isFWFileHidden(const FileStat& fwstat)
 {
-#ifdef HFS_HIDE_FLAGS
+#if HYFS_HIDE_FLAGS == 1
 	return m_hiddenFWFiles.contains(fwstat.id);
 #else
 	return _ffs.stat(fwstat.name, nullptr) >= 0;
@@ -378,7 +378,7 @@ int HybridFileSystem::remove(const char* path)
 
 int HybridFileSystem::format()
 {
-#ifdef HFS_HIDE_FLAGS
+#if HYFS_HIDE_FLAGS == 1
 	m_hiddenFWFiles.removeAllElements();
 #endif
 

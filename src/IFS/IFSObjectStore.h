@@ -9,9 +9,6 @@
 #ifndef __IFS_OBJECT_STORE_H
 #define __IFS_OBJECT_STORE_H
 
-#define debug_fwfs debug_i
-//#define debug_fwfs debug_none
-
 #include "ifstypes.h"
 #include "FWFileDefs.h"
 #include "IFSMedia.h"

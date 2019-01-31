@@ -3,7 +3,6 @@
 	<name>fstest</name>
 	<comment></comment>
 	<projects>
-		<project>smingw</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

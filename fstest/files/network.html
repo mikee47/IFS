@@ -1,0 +1,12 @@
+<html>
+<button id="networkinfo" onclick="network.scan(true)" style="padding:2px 2px;">&#8635;</button>
+<select id="networks" onchange="network.selchange()"></select>
+
+<br>
+
+<div id="nwset">
+  Password: <input id="appwd" type="password"></input>
+  <input id="showPassword" type="checkbox" defaultChecked="false" onclick="network.showPassword()">Show</input>
+  <button id="configure" onclick="network.configure()">Set</button>
+</div>
+</html>

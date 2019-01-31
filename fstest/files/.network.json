@@ -1,0 +1,12 @@
+{
+  "hostname":"Sming-IFS",
+  "server-port":80,
+  "accesspoint": {
+    "ssid":"Sming IFS",
+    "password":"welcome"
+  },
+  "station XX": {
+    "ssid":"SSID",
+    "password":"PASSWORD"
+  }
+}

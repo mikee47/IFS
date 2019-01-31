@@ -106,7 +106,7 @@ int FWObjectStore::close(FWObjDesc& od)
 
 int FWObjectStore::readHeader(FWObjDesc& od)
 {
-	//	debug_fwfs("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
+	//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
 	assert(sizeof(od.obj) == 8);
 	++od.ref.readCount;
 	// First object ID is 1

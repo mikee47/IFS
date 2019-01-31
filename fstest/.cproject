@@ -1,104 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
-		<cconfiguration id="cdt.managedbuild.config.gnu.mingw.exe.debug.465088315">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.mingw.exe.debug.465088315" moduleId="org.eclipse.cdt.core.settings" name="Debug">
-				<macros>
-					<stringMacro name="SDK_BASE" type="VALUE_PATH_ANY" value="${SMING_HOME}\third-party\ESP8266_NONOS_SDK"/>
-				</macros>
+		<cconfiguration id="cdt.managedbuild.toolchain.gnu.mingw.base.213652906">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.mingw.base.213652906" moduleId="org.eclipse.cdt.core.settings" name="Default">
 				<externalSettings/>
 				<extensions>
 					<extension id="org.eclipse.cdt.core.PE" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.mingw.exe.debug.465088315" name="Debug" parent="cdt.managedbuild.config.gnu.mingw.exe.debug">
-					<folderInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.465088315." name="/" resourcePath="">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.exe.debug.1311647216" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.exe.debug">
-							<targetPlatform id="cdt.managedbuild.target.gnu.platform.mingw.exe.debug.787076096" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.mingw.exe.debug"/>
-							<builder buildPath="${workspace_loc:/fstest}/Debug" id="cdt.managedbuild.tool.gnu.builder.mingw.base.241757666" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" parallelBuildOn="true" parallelizationNumber="unlimited" superClass="cdt.managedbuild.tool.gnu.builder.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.exe.debug.1375716509" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.exe.debug">
-								<option id="gnu.both.asm.option.include.paths.2125867838" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/Services&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw}&quot;"/>
-								</option>
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.918014210" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+				<configuration artifactName="${ProjName}" buildProperties="" description="" id="cdt.managedbuild.toolchain.gnu.mingw.base.213652906" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
+					<folderInfo id="cdt.managedbuild.toolchain.gnu.mingw.base.213652906.244569982" name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.base.2051510416" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.base">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.PE" id="cdt.managedbuild.target.gnu.platform.mingw.base.2051877254" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.mingw.base"/>
+							<builder id="cdt.managedbuild.builder.gnu.cross.1251577206" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="unlimited" superClass="cdt.managedbuild.builder.gnu.cross"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.base.1821076058" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.base">
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1987531510" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.186057926" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.debug.39907974" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.debug">
-								<option id="gnu.cpp.compiler.mingw.exe.debug.option.optimization.level.1785106291" name="Optimization Level" superClass="gnu.cpp.compiler.mingw.exe.debug.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.mingw.exe.debug.option.debugging.level.1326360096" name="Debug Level" superClass="gnu.cpp.compiler.mingw.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.include.paths.794922991" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lightcon/lib}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lightcon/lib/core}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/Wiring}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/system/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/SmingCore}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/system/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/wiring&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/SmingCore&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/Services/SpifFS&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/spiffs/src&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/http-parser&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/ws-parser&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/esp-open-lwip/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
-								</option>
-								<option id="gnu.cpp.compiler.option.preprocessor.def.2112880315" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="ARDUINO"/>
-									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
-									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
-									<listOptionValue builtIn="false" value="SDK_INTERNAL"/>
-								</option>
-								<option id="gnu.cpp.compiler.option.other.other.2058362776" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 " valueType="string"/>
-								<option id="gnu.cpp.compiler.option.dialect.std.1096339548" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1871750658" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.1107982398" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.826150219" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base">
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1185192512" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.1796591059" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug">
-								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.mingw.exe.debug.option.optimization.level.121239518" name="Optimization Level" superClass="gnu.c.compiler.mingw.exe.debug.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
-								<option id="gnu.c.compiler.mingw.exe.debug.option.debugging.level.1574510316" name="Debug Level" superClass="gnu.c.compiler.mingw.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.default" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.include.paths.169659262" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/system/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/system/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/wiring&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/Services/SpifFS&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/esp-open-lwip/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
-								</option>
-								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1046855149" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="ARDUINO"/>
-									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
-									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
-									<listOptionValue builtIn="false" value="SDK_INTERNAL"/>
-								</option>
-								<option id="gnu.c.compiler.option.dialect.std.1628253669" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.misc.other.567245631" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -fstack-check" valueType="string"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1109176226" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1884912633" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.base">
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.21011781" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.debug.279929742" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.debug"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.debug.1285920269" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.debug">
-								<option id="gnu.cpp.link.option.paths.835249594" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/Debug}&quot;"/>
-								</option>
-								<option id="gnu.cpp.link.option.libs.1218455846" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="smingw"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="ssp"/>
-								</option>
-								<option id="gnu.cpp.link.option.flags.2017039136" name="Linker flags" superClass="gnu.cpp.link.option.flags" useByScannerDiscovery="false" value="-fmerge-constants" valueType="string"/>
-								<option id="gnu.cpp.link.option.strip.2058273131" name="Omit all symbol information (-s)" superClass="gnu.cpp.link.option.strip" useByScannerDiscovery="false" value="false" valueType="boolean"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1087222452" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.base.244578981" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.1144396672" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base">
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1175252976" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
 								</inputType>
@@ -107,157 +40,21 @@
 					</folderInfo>
 				</configuration>
 			</storageModule>
-			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
-				<externalSettings containerId="smingw;cdt.managedbuild.config.gnu.mingw.lib.debug.1926919830" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier">
-					<externalSetting>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/smingw"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/smingw/Debug"/>
-						<entry flags="RESOLVED" kind="libraryFile" name="smingw" srcPrefixMapping="" srcRootPath=""/>
-					</externalSetting>
-				</externalSettings>
-			</storageModule>
-		</cconfiguration>
-		<cconfiguration id="cdt.managedbuild.config.gnu.mingw.exe.release.169300940">
-			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.mingw.exe.release.169300940" moduleId="org.eclipse.cdt.core.settings" name="Release">
-				<macros>
-					<stringMacro name="SDK_BASE" type="VALUE_PATH_ANY" value="${SMING_HOME}\third-party\ESP8266_NONOS_SDK"/>
-				</macros>
-				<externalSettings/>
-				<extensions>
-					<extension id="org.eclipse.cdt.core.PE" point="org.eclipse.cdt.core.BinaryParser"/>
-					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-				</extensions>
-			</storageModule>
-			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.mingw.exe.release.169300940" name="Release" parent="cdt.managedbuild.config.gnu.mingw.exe.release">
-					<folderInfo id="cdt.managedbuild.config.gnu.mingw.exe.release.169300940." name="/" resourcePath="">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.exe.release.1197341350" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.exe.release">
-							<targetPlatform id="cdt.managedbuild.target.gnu.platform.mingw.exe.release.1334766512" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.mingw.exe.release"/>
-							<builder buildPath="${workspace_loc:/fstest}/Release" id="cdt.managedbuild.tool.gnu.builder.mingw.base.379942654" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" superClass="cdt.managedbuild.tool.gnu.builder.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.exe.release.1564521461" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.exe.release">
-								<option id="gnu.both.asm.option.include.paths.428509561" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/Services&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw}&quot;"/>
-								</option>
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1635822116" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.379379578" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release.1396121575" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release">
-								<option id="gnu.cpp.compiler.mingw.exe.release.option.optimization.level.429661410" name="Optimization Level" superClass="gnu.cpp.compiler.mingw.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.size" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.mingw.exe.release.option.debugging.level.793327843" name="Debug Level" superClass="gnu.cpp.compiler.mingw.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.include.paths.708461084" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lightcon/lib}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lightcon/lib/core}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/Wiring}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/system/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/SmingCore}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/system/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/wiring&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/SmingCore&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/Services/SpifFS&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/spiffs/src&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/http-parser&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/ws-parser&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/esp-open-lwip/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw}&quot;"/>
-								</option>
-								<option id="gnu.cpp.compiler.option.preprocessor.def.535079356" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="ARDUINO"/>
-									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
-									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
-									<listOptionValue builtIn="false" value="SDK_INTERNAL"/>
-								</option>
-								<option id="gnu.cpp.compiler.option.dialect.std.1358469184" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.169021305" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.release.1047225347" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.release">
-								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.mingw.exe.release.option.optimization.level.736875293" name="Optimization Level" superClass="gnu.c.compiler.mingw.exe.release.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
-								<option id="gnu.c.compiler.mingw.exe.release.option.debugging.level.1602894823" name="Debug Level" superClass="gnu.c.compiler.mingw.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.include.paths.856493867" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/mingw/system/include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/system/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/wiring&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/Services/SpifFS&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SMING_HOME}/third-party/esp-open-lwip/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${SDK_BASE}/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw}&quot;"/>
-								</option>
-								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1888912484" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="ARDUINO"/>
-									<listOptionValue builtIn="false" value="DEBUG_VERBOSE_LEVEL=3"/>
-									<listOptionValue builtIn="false" value="DEBUG_BUILD=1"/>
-									<listOptionValue builtIn="false" value="SDK_INTERNAL"/>
-								</option>
-								<option id="gnu.c.compiler.option.dialect.std.832623831" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.280369782" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.release.1835357757" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.release"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.release.54345719" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.release">
-								<option id="gnu.cpp.link.option.paths.1766178255" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/smingw/Release}&quot;"/>
-								</option>
-								<option id="gnu.cpp.link.option.libs.1399214260" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="smingw"/>
-								</option>
-								<option id="gnu.cpp.link.option.flags.2025918497" name="Linker flags" superClass="gnu.cpp.link.option.flags" useByScannerDiscovery="false" value="-fmerge-constants" valueType="string"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.423287755" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
-									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
-									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
-								</inputType>
-							</tool>
-						</toolChain>
-					</folderInfo>
-				</configuration>
-			</storageModule>
-			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
-				<externalSettings containerId="smingw;cdt.managedbuild.config.gnu.mingw.lib.release.190093368" factoryId="org.eclipse.cdt.core.cfg.export.settings.sipplier">
-					<externalSetting>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/smingw"/>
-						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/smingw/Release"/>
-						<entry flags="RESOLVED" kind="libraryFile" name="smingw" srcPrefixMapping="" srcRootPath=""/>
-					</externalSetting>
-				</externalSettings>
-			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-		<project id="fstest.cdt.managedbuild.target.gnu.mingw.exe.144307615" name="Executable" projectType="cdt.managedbuild.target.gnu.mingw.exe"/>
+		<project id="fstest.null.432667363" name="fstest"/>
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.release.169300940;cdt.managedbuild.config.gnu.mingw.exe.release.169300940.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release.1396121575;cdt.managedbuild.tool.gnu.cpp.compiler.input.169021305">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.release.169300940;cdt.managedbuild.config.gnu.mingw.exe.release.169300940.;cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.release.1047225347;cdt.managedbuild.tool.gnu.c.compiler.input.280369782">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.465088315;cdt.managedbuild.config.gnu.mingw.exe.debug.465088315.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.debug.39907974;cdt.managedbuild.tool.gnu.cpp.compiler.input.1871750658">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.465088315;cdt.managedbuild.config.gnu.mingw.exe.debug.465088315.;cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.1796591059;cdt.managedbuild.tool.gnu.c.compiler.input.1109176226">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Debug">
-			<resource resourceType="PROJECT" workspacePath="/fstest"/>
-		</configuration>
-		<configuration configurationName="Release">
+		<configuration configurationName="Default">
 			<resource resourceType="PROJECT" workspacePath="/fstest"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

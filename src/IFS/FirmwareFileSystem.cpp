@@ -11,8 +11,6 @@
 #include "IFSFlashMedia.h"
 #include "IFSUtil.h"
 
-#include "HardwareTimer.h"
-
 /*
  * Macros to perform standard checks
  */
@@ -49,7 +47,7 @@ void FirmwareFileSystem::printObject(const FWObjDesc& od)
 		name[3 + namelen] = '\0';
 	} else
 		name[0] = '\0';
-	debug_i("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj._type, od.obj.size(), idstr,
+	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj._type, od.obj.size(), idstr,
 			name);
 	//	if (od.obj.size() <= 4)
 	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());
@@ -186,7 +184,7 @@ int FirmwareFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 	else if(origin == eSO_FileEnd)
 		newOffset += (int)fd.dataSize;
 
-	debug_fwfs("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
+	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
 
 	if((uint32_t)newOffset > fd.dataSize)
 		return FSERR_SeekBounds;
@@ -256,8 +254,8 @@ int FirmwareFileSystem::mountVolume(FWVolume& volume)
 		od.next();
 	}
 
-	debug_fwfs("Ended @ 0x%08X (#%u), %u objects, volume @ 0x%08X, od @ 0x%08X", od.ref.offset, od.ref.id, objectCount,
-			   volume.ref.offset);
+	debug_d("Ended @ 0x%08X (#%u), %u objects, volume @ 0x%08X, od @ 0x%08X", od.ref.offset, od.ref.offset, od.ref.id,
+			objectCount, volume.ref.offset);
 
 	if(res < 0)
 		return res;
@@ -461,7 +459,7 @@ file_t FirmwareFileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 	// We now own the descriptor
 	odFile.ref.refCount = 0;
 
-	debug_i("Descriptor #%u allocated", descriptorIndex);
+	debug_d("Descriptor #%u allocated", descriptorIndex);
 
 	bitSet(fd.attr, fwfda_Allocated);
 	return FWFS_HANDLE_MIN + descriptorIndex;
@@ -534,7 +532,7 @@ int FirmwareFileSystem::readdir(filedir_t dir, FileStat* stat)
 	if(fd.odFile.obj.isMountPoint())
 		closeObject(odDir);
 
-	//	debug_fwfs("readdir(), res = %d, od.seekCount = %u", res, od.ref.readCount);
+	//	debug_d("readdir(), res = %d, od.seekCount = %u", res, od.ref.readCount);
 
 	return res == FSERR_EndOfObjects ? FSERR_NoMoreFiles : res;
 }
@@ -554,7 +552,9 @@ int FirmwareFileSystem::closedir(filedir_t dir)
  */
 int FirmwareFileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 {
-	auto start = NOW();
+#ifdef DEBUG_FWFS
+	ElapseTimer timer;
+#endif
 
 	// Start with the root directory object
 	int res = openRootObject(_volumes[0], od);
@@ -587,10 +587,10 @@ int FirmwareFileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 		tail += namelen + 1;
 	} while(sep);
 
-	auto elapsed = timerTicksToUs(NOW() - start);
-
-	m_printf(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
-			 elapsed);
+#ifdef DEBUG_FWFS
+	debug_d(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
+			timer.elapsed());
+#endif
 
 	return res;
 }
@@ -616,7 +616,7 @@ file_t FirmwareFileSystem::open(const char* path, FileOpenFlags flags)
 {
 	CHECK_MOUNTED();
 
-	debug_fwfs("open('%s', 0x%02X)", path, flags);
+	debug_d("open('%s', 0x%02X)", path, flags);
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
@@ -633,7 +633,7 @@ int FirmwareFileSystem::close(file_t file)
 {
 	GET_FD();
 
-	debug_i("descriptor #%u close, refCount = %u", file - FWFS_HANDLE_MIN, fd.odFile.ref.refCount);
+	debug_d("descriptor #%u close, refCount = %u", file - FWFS_HANDLE_MIN, fd.odFile.ref.refCount);
 	assert(fd.odFile.ref.refCount == 1);
 
 	closeObject(fd.odFile);
@@ -712,7 +712,7 @@ int FirmwareFileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
 	if(res >= 0 && path.overflow())
 		res = FSERR_BufferTooSmall;
 
-	debug_i("getFilePath(%u) returned %d, '%s'", fileid, res, path.buffer);
+	debug_d("getFilePath(%u) returned %d, '%s'", fileid, res, path.buffer);
 
 	return res;
 }
@@ -749,7 +749,7 @@ int FirmwareFileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuf
 		if(res < 0)
 			continue;
 
-		//		debug_i("obj #%u, type = %u, namelen = %u", od.ref.id, od.obj.type(), od.obj.data16.named.namelen);
+		//		debug_d("obj #%u, type = %u, namelen = %u", od.ref.id, od.obj.type(), od.obj.data16.named.namelen);
 
 		if(od.ref.fileID() == fileid) {
 			// Success!
