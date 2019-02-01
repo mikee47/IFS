@@ -9,23 +9,23 @@
 
 #include "Access.h"
 
-#define XX(_tag, _char, _comment) static DEFINE_PSTR(__str##_tag, #_tag)
+#define XX(_tag, _char, _comment) static DEFINE_PSTR(accstr_##_tag, #_tag)
 USER_ROLE_MAP(XX)
 #undef XX
 
-#define XX(_tag, _char, _comment) __str##_tag,
-static PGM_P const __strings[] PROGMEM = {USER_ROLE_MAP(XX)};
+#define XX(_tag, _char, _comment) accstr_##_tag,
+static PGM_P const accessStrings[] PROGMEM = {USER_ROLE_MAP(XX)};
 #undef XX
 
 #define XX(_tag, _char, _comment) _char,
-static DEFINE_PSTR(__chars, {USER_ROLE_MAP(XX)})
+static DEFINE_PSTR(accessChars, {USER_ROLE_MAP(XX)})
 #undef XX
 
 	char* userRoleToStr(UserRole role, char* buf, size_t bufSize)
 {
 	if(buf && bufSize) {
 		if(role < UserRole::MAX) {
-			strncpy_P(buf, __strings[(unsigned)role], bufSize);
+			strncpy_P(buf, accessStrings[(unsigned)role], bufSize);
 			buf[bufSize - 1] = '\0';
 		} else
 			buf[0] = '\0';
@@ -35,16 +35,18 @@ static DEFINE_PSTR(__chars, {USER_ROLE_MAP(XX)})
 
 UserRole getUserRole(const char* str, UserRole _default)
 {
-	for(unsigned i = 0; i < ARRAY_SIZE(__strings); ++i)
-		if(strcasecmp_P(str, __strings[i]) == 0)
-			return (UserRole)i;
+	for(unsigned i = 0; i < ARRAY_SIZE(accessStrings); ++i) {
+		if(strcasecmp_P(str, accessStrings[i]) == 0) {
+			return UserRole(i);
+		}
+	}
 
 	return _default;
 }
 
 char userRoleChar(UserRole role)
 {
-	LOAD_PSTR(chars, __chars);
+	LOAD_PSTR(chars, accessChars);
 	// Return 'x' if unknown
 	return (role < UserRole::MAX) ? chars[(unsigned)role] : 'x';
 }

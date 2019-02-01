@@ -71,24 +71,25 @@ struct spiffs_error_t {
 	PGM_P tag;
 };
 
-#define XX(_tag, _value) static DEFINE_PSTR(__str_##_tag, #_tag)
+#define XX(_tag, _value) static DEFINE_PSTR(errstr_##_tag, #_tag)
 SPIFFS_ERROR_MAP(XX)
 #undef XX
 
-static const spiffs_error_t __strings[] PROGMEM = {
-#define XX(_tag, _value) {_value, __str_##_tag},
+static const spiffs_error_t errorStrings[] PROGMEM = {
+#define XX(_tag, _value) {_value, errstr_##_tag},
 	SPIFFS_ERROR_MAP(XX)
 #undef XX
 };
 
 int spiffsErrorToStr(int err, char* buffer, unsigned size)
 {
-	if(buffer && size)
-		for(auto& e : __strings)
+	if(buffer != nullptr && size != 0) {
+		for(auto& e : errorStrings)
 			if(e.err == err) {
 				strncpy_P(buffer, e.tag, size);
 				return strlen(buffer);
 			}
+	}
 
 	return 0;
 }

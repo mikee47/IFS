@@ -76,9 +76,11 @@ int IFSFlashMedia::erase(uint32_t offset, uint32_t size)
 
 	uint32_t sect_first = flashmem_get_sector_of_address(_startAddress + offset);
 	uint32_t sect_last = sect_first;
-	while(sect_first <= sect_last)
-		if(!flashmem_erase_sector(sect_first++))
+	while(sect_first <= sect_last) {
+		if(!flashmem_erase_sector(sect_first++)) {
 			return FSERR_EraseFailure;
+		}
+	}
 
 	return FS_OK;
 }

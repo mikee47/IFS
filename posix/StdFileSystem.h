@@ -24,73 +24,73 @@ public:
 	{
 	}
 
-	virtual ~StdFileSystem()
+	~StdFileSystem() override
 	{
 	}
 
 	// IFileSystem methods
-	virtual int getinfo(FileSystemInfo& info);
-	virtual int geterrortext(int err, char* buffer, size_t size);
-	virtual int opendir(const char* path, filedir_t* dir);
-	virtual int readdir(filedir_t dir, FileStat* stat);
-	virtual int closedir(filedir_t dir);
-	virtual int stat(const char* path, FileStat* stat);
-	virtual int fstat(file_t file, FileStat* stat);
-	virtual int setacl(file_t file, FileACL* acl)
+	int getinfo(FileSystemInfo& info) override;
+	int geterrortext(int err, char* buffer, size_t size) override;
+	int opendir(const char* path, filedir_t* dir) override;
+	int readdir(filedir_t dir, FileStat* stat) override;
+	int closedir(filedir_t dir) override;
+	int stat(const char* path, FileStat* stat) override;
+	int fstat(file_t file, FileStat* stat) override;
+	int setacl(file_t file, FileACL* acl) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int setattr(file_t file, FileAttributes attr)
+	int setattr(file_t file, FileAttributes attr) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int settime(file_t file, time_t mtime)
+	int settime(file_t file, time_t mtime) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual file_t open(const char* path, FileOpenFlags flags);
-	virtual file_t fopen(const FileStat& stat, FileOpenFlags flags);
-	virtual int close(file_t file);
-	virtual int read(file_t file, void* data, size_t size);
-	virtual int write(file_t file, const void* data, size_t size)
+	file_t open(const char* path, FileOpenFlags flags) override;
+	file_t fopen(const FileStat& stat, FileOpenFlags flags) override;
+	int close(file_t file) override;
+	int read(file_t file, void* data, size_t size) override;
+	int write(file_t file, const void* data, size_t size) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int lseek(file_t file, int offset, SeekOriginFlags origin);
-	virtual int eof(file_t file);
-	virtual int32_t tell(file_t file);
-	virtual int truncate(file_t file)
+	int lseek(file_t file, int offset, SeekOriginFlags origin) override;
+	int eof(file_t file) override;
+	int32_t tell(file_t file) override;
+	int truncate(file_t file) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int flush(file_t file)
+	int flush(file_t file) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int rename(const char* oldpath, const char* newpath)
+	int rename(const char* oldpath, const char* newpath) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int remove(const char* path)
+	int remove(const char* path) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int fremove(file_t file)
+	int fremove(file_t file) override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int format()
+	int format() override
 	{
 		return FSERR_ReadOnly;
 	}
-	virtual int check()
+	int check() override
 	{
 		/* We could implement this, but since problems would indicate corrupted firmware
     	 * there isn't much we can do other than suggest a re-flashing. This sort of issue
     	 * is better resolved externally using a hash of the entire firmware image. */
 		return FSERR_NotImplemented;
 	}
-	virtual int isfile(file_t file);
+	int isfile(file_t file) override;
 
 	/** @brief get the full path of a file from its ID
 	 *  @param fileid

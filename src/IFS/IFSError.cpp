@@ -15,7 +15,7 @@
 FSERROR_MAP(XX)
 #undef XX
 
-static PGM_P const __strings[] PROGMEM = {
+static PGM_P const errorStrings[] PROGMEM = {
 #define XX(_tag, _text) FSES_##_tag,
 	FSERROR_MAP(XX)
 #undef XX
@@ -23,18 +23,21 @@ static PGM_P const __strings[] PROGMEM = {
 
 int fsGetErrorText(int err, char* buffer, unsigned size)
 {
-	if(!buffer || !size)
+	if(buffer == nullptr || size == 0) {
 		return FSERR_BadParam;
+	}
 
-	if(err > 0)
+	if(err > 0) {
 		err = 0;
-	else
+	} else {
 		err = -err;
+	}
 
-	if(err >= eFSERR_MAX)
+	if(err >= eFSERR_MAX) {
 		return snprintf(buffer, size, "FSERR #%u", err);
+	}
 
-	strncpy_P(buffer, __strings[err], size);
+	strncpy_P(buffer, errorStrings[err], size);
 	buffer[size - 1] = '\0';
 	return strlen(buffer);
 }

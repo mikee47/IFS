@@ -14,8 +14,9 @@ FWFS_OBJTYPE_MAP(XX)
 
 char* fwfsObjectTypeName(FWFS_ObjectType obt, char* buffer, size_t bufSize)
 {
-	if(!buffer || !bufSize)
+	if(buffer == nullptr || bufSize == 0) {
 		return buffer;
+	}
 
 #define XX(_value, _tag, _text)                                                                                        \
 	if(obt == fwobt_##_tag)                                                                                            \

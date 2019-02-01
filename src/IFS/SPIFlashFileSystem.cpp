@@ -222,8 +222,9 @@ int SPIFlashFileSystem::format()
 
 static void check_callback(spiffs* fs, spiffs_check_type type, spiffs_check_report report, u32_t arg1, u32_t arg2)
 {
-	if(report > SPIFFS_CHECK_PROGRESS)
+	if(report > SPIFFS_CHECK_PROGRESS) {
 		debug_i("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
+	}
 }
 
 int SPIFlashFileSystem::check()
@@ -245,10 +246,11 @@ int SPIFlashFileSystem::getinfo(FileSystemInfo& info)
 		SPIFFS_info(handle(), &total, &used);
 		info.volumeSize = total;
 		// As per SPIFFS spec
-		if(used >= total)
+		if(used >= total) {
 			bitSet(info.attr, FileSystemAttr::Check);
-		else
+		} else {
 			info.freeSpace = total - used;
+		}
 	}
 
 	return FS_OK;
@@ -257,8 +259,9 @@ int SPIFlashFileSystem::getinfo(FileSystemInfo& info)
 int SPIFlashFileSystem::geterrortext(int err, char* buffer, size_t size)
 {
 	int res = spiffsErrorToStr(err, buffer, size);
-	if(res == 0)
+	if(res == 0) {
 		res = IFileSystem::geterrortext(err, buffer, size);
+	}
 
 	return res;
 }
@@ -270,16 +273,18 @@ static spiffs_file SPIFFS_open_by_id(spiffs* fs, spiffs_obj_id obj_id, spiffs_fl
 	SPIFFS_CHECK_RES(res);
 
 	res = spiffs_object_open_by_id(fs, obj_id, fd, flags, mode);
-	if(res < SPIFFS_OK)
+	if(res < SPIFFS_OK) {
 		spiffs_fd_return(fs, fd->file_nbr);
+	}
 
 	SPIFFS_CHECK_RES(res);
 
 #if !SPIFFS_READ_ONLY
 	if(flags & SPIFFS_O_TRUNC) {
 		res = spiffs_object_truncate(fd, 0, 0);
-		if(res < SPIFFS_OK)
+		if(res < SPIFFS_OK) {
 			spiffs_fd_return(fs, fd->file_nbr);
+		}
 
 		SPIFFS_CHECK_RES(res);
 	}
@@ -298,21 +303,24 @@ file_t SPIFlashFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	 * a mechanism for an application to circumvent this flag if it becomes
 	 * necessary to change  a file.
 	 */
-	if(bitRead(stat.attr, FileAttr::ReadOnly))
+	if(bitRead(stat.attr, FileAttr::ReadOnly)) {
 		return FSERR_ReadOnly;
+	}
 
 	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags, sflags) != 0)
+	if(mapFileOpenFlags(flags, sflags) != 0) {
 		return (file_t)FSERR_NotSupported;
+	}
 
 	auto file = SPIFFS_open_by_id(handle(), stat.id, sflags, 0);
-	if(file < 0)
+	if(file < 0) {
 		debug_ifserr(file, "fopen('%s')", stat.name);
-	else {
+	} else {
 		cacheMeta(file);
 		// File affected without write so update timestamp
-		if(flags & eFO_Truncate)
+		if(flags & eFO_Truncate) {
 			touch(file);
+		}
 	}
 
 	return file;
@@ -321,19 +329,21 @@ file_t SPIFlashFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 file_t SPIFlashFileSystem::open(const char* path, FileOpenFlags flags)
 {
 	FS_CHECK_PATH(path);
-	if(!path)
+	if(path == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	//  debug_i("%s('%s', %s)", __FUNCTION__, fileName.c_str(), fileOpenFlagsToStr(flags).c_str());
 
 	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags, sflags) != 0)
+	if(mapFileOpenFlags(flags, sflags) != 0) {
 		return (file_t)FSERR_NotSupported;
+	}
 
 	auto file = SPIFFS_open(handle(), path, sflags, 0);
-	if(file < 0)
+	if(file < 0) {
 		debug_ifserr(file, "open('%s')", path);
-	else {
+	} else {
 		auto smb = cacheMeta(file);
 		// If file is marked read-only, fail write requests !!! @todo bit late if we've got a truncate flag...
 		if(smb && bitRead(smb->meta.attr, FileSystemAttr::ReadOnly) && (flags & ~eFO_ReadOnly)) {
@@ -342,8 +352,9 @@ file_t SPIFlashFileSystem::open(const char* path, FileOpenFlags flags)
 		}
 
 		// File affected without write so update timestamp
-		if(flags & eFO_Truncate)
+		if(flags & eFO_Truncate) {
 			touch(file);
+		}
 	}
 
 	return file;
@@ -351,8 +362,9 @@ file_t SPIFlashFileSystem::open(const char* path, FileOpenFlags flags)
 
 int SPIFlashFileSystem::close(file_t file)
 {
-	if(file < 0)
+	if(file < 0) {
 		return FSERR_FileNotOpen;
+	}
 
 	//    debug_i("%s(%d, '%s')", __FUNCTION__, m_fd, name().c_str());
 	flushMeta(file);
@@ -407,8 +419,9 @@ int SPIFlashFileSystem::flush(file_t file)
 int SPIFlashFileSystem::read(file_t file, void* data, size_t size)
 {
 	int res = SPIFFS_read(handle(), file, data, size);
-	if(res < 0)
+	if(res < 0) {
 		debug_ifserr(res, "read()");
+	}
 
 	//  debug_i("read(%d): %d", bufSize, res);
 	return res;
@@ -437,8 +450,9 @@ int SPIFlashFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 SpiffsMetaBuffer* SPIFlashFileSystem::cacheMeta(file_t file)
 {
 	SpiffsMetaBuffer* smb;
-	if(getMeta(file, smb) < 0)
+	if(getMeta(file, smb) < 0) {
 		return nullptr;
+	}
 
 	memset(smb, 0xFF, sizeof(SpiffsMetaBuffer));
 
@@ -446,8 +460,9 @@ SpiffsMetaBuffer* SPIFlashFileSystem::cacheMeta(file_t file)
 	int res = SPIFFS_fstat(handle(), file, &stat);
 	//    debug_hex(DBG, "Meta", stat.meta, SPIFFS_OBJ_META_LEN);
 
-	if(res >= 0)
+	if(res >= 0) {
 		memcpy(smb, stat.meta, sizeof(stat.meta));
+	}
 
 	checkMeta(smb->meta);
 
@@ -472,16 +487,18 @@ int SPIFlashFileSystem::flushMeta(file_t file)
 {
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	// Changed ?
 	if(smb->meta.isDirty()) {
 		debug_i("Flushing Metadata to disk");
 		smb->meta.clearDirty();
 		int res = SPIFFS_fupdate_meta(handle(), file, smb);
-		if(res < 0)
+		if(res < 0) {
 			debug_ifserr(res, "fupdate_meta()");
+		}
 	}
 
 	return res;
@@ -491,8 +508,9 @@ int SPIFlashFileSystem::stat(const char* path, FileStat* stat)
 {
 	spiffs_stat ss;
 	int res = SPIFFS_stat(handle(), path, &ss);
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	if(stat) {
 		stat->clear();
@@ -513,13 +531,15 @@ int SPIFlashFileSystem::fstat(file_t file, FileStat* stat)
 {
 	spiffs_stat ss;
 	int res = SPIFFS_fstat(handle(), file, &ss);
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	SpiffsMetaBuffer* smb;
 	res = getMeta(file, smb);
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	memcpy(smb, ss.meta, sizeof(SpiffsMetaBuffer));
 	checkMeta(smb->meta);
@@ -538,8 +558,9 @@ int SPIFlashFileSystem::fstat(file_t file, FileStat* stat)
 
 int SPIFlashFileSystem::setacl(file_t file, FileACL* acl)
 {
-	if(!acl)
+	if(acl == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
@@ -554,8 +575,9 @@ int SPIFlashFileSystem::setattr(file_t file, FileAttributes attr)
 {
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
-	if(res >= 0 && smb->meta.attr != attr)
+	if(res >= 0 && smb->meta.attr != attr) {
 		smb->meta.setDirty();
+	}
 	return res;
 }
 
@@ -572,20 +594,23 @@ int SPIFlashFileSystem::settime(file_t file, time_t mtime)
 
 int SPIFlashFileSystem::opendir(const char* path, filedir_t* dir)
 {
-	if(!dir)
+	if(dir == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	FS_CHECK_PATH(path);
 	unsigned pathlen = 0;
-	if(path) {
+	if(path != nullptr) {
 		pathlen = strlen(path);
-		if(pathlen >= sizeof(FileDir::path))
+		if(pathlen >= sizeof(FileDir::path)) {
 			return FSERR_NameTooLong;
+		}
 	}
 
 	auto d = new FileDir;
-	if(!d)
+	if(d == nullptr) {
 		return FSERR_NoMem;
+	}
 
 	if(SPIFFS_opendir(handle(), nullptr, &d->d) == nullptr) {
 		debug_ifserr(SPIFFS_errno(handle()), "opendir");
@@ -593,8 +618,9 @@ int SPIFlashFileSystem::opendir(const char* path, filedir_t* dir)
 		return SPIFFS_errno(handle());
 	}
 
-	if(pathlen)
+	if(pathlen != 0) {
 		memcpy(d->path, path, pathlen);
+	}
 	d->path[pathlen] = '\0';
 	d->pathlen = pathlen;
 
@@ -604,13 +630,15 @@ int SPIFlashFileSystem::opendir(const char* path, filedir_t* dir)
 
 int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 {
-	if(!dir)
+	if(dir == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	spiffs_dirent e;
 	for(;;) {
-		if(SPIFFS_readdir(&dir->d, &e) == nullptr)
+		if(SPIFFS_readdir(&dir->d, &e) == nullptr) {
 			return SPIFFS_errno(handle());
+		}
 
 		/* The volume doesn't contain directory objects, so at each level we need
 		 * to identify sub-folders and insert a virtual 'directory' object.
@@ -620,14 +648,14 @@ int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 		char* lastSep = strrchr(name, '/');
 
 		// For root directory, include only root objects
-		if(dir->pathlen == 0 && lastSep) {
+		if(dir->pathlen == 0 && lastSep != nullptr) {
 			//			debug_i("Ignoring '%s' - root only", name);
 			continue;
 		}
 
 		// For sub-directories, match the parsing path
 		auto len = strlen(name);
-		if(dir->pathlen) {
+		if(dir->pathlen != 0) {
 			if(len <= dir->pathlen) {
 				//				debug_i("Ignoring '%s' - too short for '%s'", name, dir->path);
 				continue;
@@ -638,7 +666,7 @@ int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 				continue;
 			}
 
-			if(memcmp(dir->path, name, dir->pathlen)) {
+			if(memcmp(dir->path, name, dir->pathlen) != 0) {
 				//				debug_i("Ignoring '%s' - doesn't match '%s'", name, dir->path);
 				continue;
 			}
@@ -648,14 +676,15 @@ int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 
 		// This is a child directory
 		char* nextSep = strchr(name, '/');
-		if(nextSep)
+		if(nextSep != nullptr) {
 			*nextSep = '\0';
+		}
 
 		if(stat) {
 			stat->clear();
 			stat->fs = this;
 			stat->name.copy(name);
-			if(nextSep) {
+			if(nextSep != nullptr) {
 				bitSet(stat->attr, FileAttr::Directory);
 			} else {
 				stat->size = e.size;
@@ -673,8 +702,9 @@ int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 
 int SPIFlashFileSystem::closedir(filedir_t dir)
 {
-	if(!dir)
+	if(dir == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	int res = SPIFFS_closedir(&dir->d);
 	delete dir;
@@ -685,8 +715,9 @@ int SPIFlashFileSystem::rename(const char* oldpath, const char* newpath)
 {
 	FS_CHECK_PATH(oldpath);
 	FS_CHECK_PATH(newpath);
-	if(!oldpath || !newpath)
+	if(oldpath == nullptr || newpath == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	return SPIFFS_rename(handle(), oldpath, newpath);
 }
@@ -694,8 +725,9 @@ int SPIFlashFileSystem::rename(const char* oldpath, const char* newpath)
 int SPIFlashFileSystem::remove(const char* path)
 {
 	FS_CHECK_PATH(path);
-	if(!path)
+	if(path == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	auto res = SPIFFS_remove(handle(), path);
 	debug_ifserr(res, "remove('%s')", path);
@@ -724,8 +756,9 @@ int SPIFlashFileSystem::getFilePath(fileid_t fileid, NameBuffer& buffer)
 		spiffs_page_ix pix = SPIFFS_OBJ_LOOKUP_ENTRY_TO_PIX(fs, block_ix, lu_entry);
 		res = _spiffs_rd(fs, SPIFFS_OP_T_OBJ_LU2 | SPIFFS_OP_C_READ, 0, SPIFFS_PAGE_TO_PADDR(fs, pix),
 						 sizeof(objix_hdr), reinterpret_cast<u8_t*>(&objix_hdr));
-		if(res == SPIFFS_OK)
+		if(res == SPIFFS_OK) {
 			res = buffer.copy(reinterpret_cast<const char*>(objix_hdr.name));
+		}
 	}
 
 	return res;

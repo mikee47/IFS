@@ -10,8 +10,9 @@
 
 int IFSMedia::readname(char* buffer, unsigned bufsize, uint32_t offset, unsigned len)
 {
-	if(!buffer || bufsize == 0)
+	if(buffer == nullptr || bufsize == 0) {
 		return FSERR_BadParam;
+	}
 
 	int err = FS_OK;
 	if(len >= bufsize) {

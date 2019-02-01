@@ -17,11 +17,11 @@ class StdFileMedia : public IFSMedia
 {
 public:
 	StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, FSMediaAttributes attr);
-	virtual ~StdFileMedia();
-	virtual FSMediaInfo getinfo() const;
-	virtual int read(uint32_t offset, uint32_t size, void* buffer);
-	virtual int write(uint32_t offset, uint32_t size, const void* data);
-	virtual int erase(uint32_t offset, uint32_t size);
+	~StdFileMedia() override;
+	FSMediaInfo getinfo() const override;
+	int read(uint32_t offset, uint32_t size, void* buffer) override;
+	int write(uint32_t offset, uint32_t size, const void* data) override;
+	int erase(uint32_t offset, uint32_t size) override;
 
 private:
 	int _file = -1;

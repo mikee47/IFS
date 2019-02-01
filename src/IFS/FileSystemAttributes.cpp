@@ -8,15 +8,15 @@
 #include "FileSystemAttributes.h"
 #include "flags.h"
 
-#define XX(_tag, _comment) static DEFINE_PSTR(__str_##_tag, #_tag)
+#define XX(_tag, _comment) static DEFINE_PSTR(attrstr_##_tag, #_tag)
 FILE_SYSTEM_ATTR_MAP(XX)
 #undef XX
 
-#define XX(_tag, _comment) __str_##_tag,
-static PGM_P const __strings[] PROGMEM = {FILE_SYSTEM_ATTR_MAP(XX)};
+#define XX(_tag, _comment) attrstr_##_tag,
+static PGM_P const attributeStrings[] PROGMEM = {FILE_SYSTEM_ATTR_MAP(XX)};
 #undef XX
 
 char* fileSystemAttrToStr(FileSystemAttributes attr, char* buf, size_t bufSize)
 {
-	return flagsToStr(attr, __strings, ARRAY_SIZE(__strings), buf, bufSize);
+	return flagsToStr(attr, attributeStrings, ARRAY_SIZE(attributeStrings), buf, bufSize);
 }
