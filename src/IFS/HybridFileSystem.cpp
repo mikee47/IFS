@@ -66,13 +66,15 @@
 #include "HybridFileSystem.h"
 
 #define GET_FS(__file)                                                                                                 \
-	if(__file < 0)                                                                                                     \
+	if(__file < 0) {                                                                                                   \
 		return __file;                                                                                                 \
+	}                                                                                                                  \
 	IFileSystem* fs;                                                                                                   \
-	if(_fw.isfile(file) == FS_OK)                                                                                      \
+	if(_fw.isfile(file) == FS_OK) {                                                                                    \
 		fs = &_fw;                                                                                                     \
-	else                                                                                                               \
-		fs = &_ffs;
+	} else {                                                                                                           \
+		fs = &_ffs;                                                                                                    \
+	}
 
 // opendir() uses this structure to track file listing
 struct FileDir {
@@ -89,8 +91,9 @@ int HybridFileSystem::mount()
 {
 	// Mount both filesystems so they take ownership of the media objects
 	int res = _fw.mount();
-	if(res >= 0)
+	if(res >= 0) {
 		res = _ffs.mount();
+	}
 	return res;
 }
 
@@ -100,8 +103,9 @@ int HybridFileSystem::getinfo(FileSystemInfo& info)
 	ffsinfo.name = info.name;
 	_ffs.getinfo(ffsinfo);
 	FileSystemInfo fwinfo;
-	if(info.name.length == 0)
+	if(info.name.length == 0) {
 		fwinfo.name = info.name;
+	}
 	_fw.getinfo(fwinfo);
 
 	info.type = FileSystemType::Hybrid;
@@ -121,8 +125,9 @@ int HybridFileSystem::getinfo(FileSystemInfo& info)
 int HybridFileSystem::geterrortext(int err, char* buffer, size_t size)
 {
 	int ret = _ffs.geterrortext(err, buffer, size);
-	if(ret < 0)
+	if(ret < 0) {
 		ret = _fw.geterrortext(err, buffer, size);
+	}
 	return ret;
 }
 
@@ -134,10 +139,12 @@ int HybridFileSystem::_hideFWFile(const char* path, bool hide)
 	res = _fw.stat(path, &stat);
 	if(res >= 0) {
 		if(hide) {
-			if(!m_hiddenFWFiles.contains(stat.id))
+			if(!m_hiddenFWFiles.contains(stat.id)) {
 				m_hiddenFWFiles.add(stat.id);
-		} else
+			}
+		} else {
 			m_hiddenFWFiles.removeElement(stat.id);
+		}
 	}
 #endif
 	return res;
@@ -161,20 +168,22 @@ bool HybridFileSystem::_isFWFileHidden(const FileStat& fwstat)
 int HybridFileSystem::opendir(const char* path, filedir_t* dir)
 {
 	auto d = new FileDir;
-	if(!d)
+	if(d == nullptr) {
 		return FSERR_NoMem;
+	}
 
 	// Open directories on both filing systems
 	int res = _ffs.opendir(path, &d->ffs);
 	if(res >= 0) {
 		res = _fw.opendir(path, &d->fw);
-		if(res < 0)
+		if(res < 0) {
 			_ffs.closedir(d->ffs);
+		}
 	}
 
-	if(res < 0)
+	if(res < 0) {
 		delete d;
-	else {
+	} else {
 		d->fs = &_ffs;
 		*dir = d;
 	}
@@ -184,8 +193,9 @@ int HybridFileSystem::opendir(const char* path, filedir_t* dir)
 
 int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
 {
-	if(!dir)
+	if(dir == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	int res;
 
@@ -193,33 +203,37 @@ int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
 	if(dir->fs == &_ffs) {
 		// Use a temporary stat in case it's not provided
 		FileStat tmp;
-		if(stat)
+		if(stat != nullptr) {
 			tmp.name = stat->name;
+		}
 		res = _ffs.readdir(dir->ffs, &tmp);
 		if(res >= 0) {
 			char buf[SPIFFS_OBJ_NAME_LEN];
 			NameBuffer name(buf, sizeof(buf));
 			int err = _ffs.getFilePath(tmp.id, name);
-			if(err < 0)
+			if(err < 0) {
 				debug_e("getFilePath(%u) error %d", tmp.id, err);
-			else {
+			} else {
 				debug_i("getFilePath(%u) - '%s'", tmp.id, buf);
 				_hideFWFile(name, true);
 			}
-			if(stat)
+			if(stat != nullptr) {
 				*stat = tmp;
+			}
 			return res;
 		}
 
 		// End of FFS files
 		dir->fs = &_fw;
-	} else if(dir->fs != &_fw)
+	} else if(dir->fs != &_fw) {
 		return FSERR_BadParam;
+	}
 
 	do {
 		res = _fw.readdir(dir->fw, stat);
-		if(res < 0)
+		if(res < 0) {
 			break;
+		}
 	} while(_isFWFileHidden(*stat));
 
 	return res;
@@ -227,8 +241,9 @@ int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
 
 int HybridFileSystem::closedir(filedir_t dir)
 {
-	if(!dir)
+	if(dir == nullptr) {
 		return FSERR_BadParam;
+	}
 
 	_fw.closedir(dir->fw);
 	_ffs.closedir(dir->ffs);
@@ -261,21 +276,24 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 	// If file exists on FFS then open it and return
 	FileStat stat;
 	int res = _ffs.stat(path, &stat);
-	if(res >= 0)
+	if(res >= 0) {
 		return _ffs.fopen(stat, flags);
+	}
 
 	// OK, so no FFS file exists. Get the FW file.
 	file_t fwfile = _fw.open(path, eFO_ReadOnly);
 
 	// If we're only reading the file then return FW file directly
-	if((flags & ~eFO_ReadOnly) == 0)
+	if((flags & ~eFO_ReadOnly) == 0) {
 		return fwfile;
+	}
 
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
 		int err = _fw.fstat(fwfile, &stat);
-		if(err >= 0 && bitRead(stat.attr, FileAttr::ReadOnly))
+		if(err >= 0 && bitRead(stat.attr, FileAttr::ReadOnly)) {
 			err = FSERR_ReadOnly;
+		}
 		if(err < 0) {
 			_fw.close(fwfile);
 			return err;
@@ -283,13 +301,15 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 	}
 
 	// Now copy FW file to FFS
-	if(fwfile >= 0)
+	if(fwfile >= 0) {
 		flags = flags | eFO_CreateIfNotExist | eFO_ReadWrite;
+	}
 	file_t ffsfile = _ffs.open(path, flags);
 
 	// If there's no FW file, nothing further to do so return FFS result (success or failure)
-	if(fwfile < 0)
+	if(fwfile < 0) {
 		return ffsfile;
+	}
 
 	// If FFS file creation failed then fail
 	if(ffsfile < 0) {
@@ -311,8 +331,9 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 		while(_fw.eof(fwfile) == 0) {
 			int len = _fw.read(fwfile, buffer, sizeof(buffer));
 			//      debug_i("m_fw.read: %d", len);
-			if(len <= 0)
+			if(len <= 0) {
 				break;
+			}
 			len = _ffs.write(ffsfile, buffer, len);
 			//      debug_i("m_ffs.write: %d", len);
 			if(len < 0) {
@@ -323,8 +344,9 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 			}
 		}
 		// Move back to beginning if we're not appending
-		if(!(flags & eFO_Append))
+		if((flags & eFO_Append) == 0) {
 			_ffs.lseek(ffsfile, 0, eSO_FileStart);
+		}
 	}
 
 	_fw.close(fwfile);
@@ -339,15 +361,18 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
  */
 file_t HybridFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
-	if(!stat.fs)
+	if(stat.fs == nullptr) {
 		return FSERR_BadParam;
+	}
 
-	if(stat.fs == &_ffs)
+	if(stat.fs == &_ffs) {
 		return _ffs.fopen(stat, flags);
+	}
 
 	// If we're only reading the file then return FW file directly
-	if((flags & ~eFO_ReadOnly) == 0)
+	if((flags & ~eFO_ReadOnly) == 0) {
 		return _fw.fopen(stat, flags);
+	}
 
 	// Otherwise it'll involve some work...
 	char buf[SPIFFS_OBJ_NAME_LEN];
@@ -370,9 +395,11 @@ int HybridFileSystem::close(file_t file)
 int HybridFileSystem::remove(const char* path)
 {
 	int res = _ffs.remove(path);
-	if(_hideFWFile(path, false) == FS_OK)
-		if(res == SPIFFS_ERR_NOT_FOUND)
+	if(_hideFWFile(path, false) == FS_OK) {
+		if(res == SPIFFS_ERR_NOT_FOUND) {
 			res = FSERR_ReadOnly;
+		}
+	}
 	return res;
 }
 
@@ -393,8 +420,9 @@ int HybridFileSystem::check()
 int HybridFileSystem::stat(const char* path, FileStat* stat)
 {
 	int res = _ffs.stat(path, stat);
-	if(res < 0)
+	if(res < 0) {
 		res = _fw.stat(path, stat);
+	}
 	return res;
 }
 
@@ -476,8 +504,9 @@ int HybridFileSystem::rename(const char* oldpath, const char* newpath)
 {
 	// Make sure file exists on FFS
 	auto file = open(oldpath, eFO_ReadWrite);
-	if(file < 0)
+	if(file < 0) {
 		return file;
+	}
 
 	// Close the file and rename it
 	close(file);

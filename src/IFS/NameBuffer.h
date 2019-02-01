@@ -77,8 +77,9 @@ struct NameBuffer {
 	int addSep()
 	{
 		// No separator required if path is empty
-		if(length == 0)
+		if(length == 0) {
 			return FS_OK;
+		}
 
 		if(length + 1 < size) {
 			buffer[length++] = '/';
@@ -113,10 +114,11 @@ struct NameBuffer {
 	 */
 	void terminate()
 	{
-		if(length < size)
+		if(length < size) {
 			buffer[length] = '\0';
-		else if(size)
+		} else if(size != 0) {
 			buffer[size - 1] = '\0';
+		}
 	}
 
 	/** @brief determine if name buffer overflowed

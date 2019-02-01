@@ -17,10 +17,12 @@
  */
 #define FS_CHECK_PATH(_path)                                                                                           \
 	if(_path) {                                                                                                        \
-		if(*_path == '/')                                                                                              \
+		if(*_path == '/') {                                                                                            \
 			++_path;                                                                                                   \
-		if(*_path == '\0')                                                                                             \
+		}                                                                                                              \
+		if(*_path == '\0') {                                                                                           \
 			_path = nullptr;                                                                                           \
+		}                                                                                                              \
 	}
 
 #endif // __IFS_UTIL_H_

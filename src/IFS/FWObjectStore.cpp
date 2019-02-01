@@ -17,8 +17,9 @@ int FWObjectStore::initialise()
 
 	uint32_t marker;
 	int res = _media->read(0, sizeof(marker), &marker);
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	if(marker != FWFILESYS_START_MARKER) {
 		debug_e("Filesys start marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_START_MARKER);
@@ -60,17 +61,20 @@ int FWObjectStore::open(FWObjDesc& od)
 	od.ref.offset = 0;
 	od.ref.id = 1; // We don't use id #0
 
-	if(objId > _lastFound.id && _lastFound.id > od.ref.id)
+	if(objId > _lastFound.id && _lastFound.id > od.ref.id) {
 		od.ref = _lastFound;
+	}
 
 	int res;
-	while((res = readHeader(od)) >= 0 && od.ref.id != objId)
+	while((res = readHeader(od)) >= 0 && od.ref.id != objId) {
 		od.next();
+	}
 
-	if(res >= 0)
+	if(res >= 0) {
 		_lastFound = od.ref;
-	else if(res == FSERR_NoMoreFiles)
+	} else if(res == FSERR_NoMoreFiles) {
 		res = FSERR_NotFound;
+	}
 
 	return res;
 }
@@ -87,12 +91,13 @@ int FWObjectStore::openChild(const FWObjDesc& parent, const FWObjDesc& child, FW
 
 	int res = open(od);
 	if(res >= 0) {
-		// Reference must point to object of same type
-		if(od.obj.type() != child.obj.type())
+		if(od.obj.type() != child.obj.type()) {
+			// Reference must point to object of same type
 			res = FSERR_BadObject;
-		// Reference must point to an actual object, not another reference
-		else if(od.obj.isRef())
+		} else if(od.obj.isRef()) {
+			// Reference must point to an actual object, not another reference
 			res = FSERR_BadObject;
+		}
 	}
 
 	return res;
@@ -110,8 +115,9 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 	assert(sizeof(od.obj) == 8);
 	++od.ref.readCount;
 	// First object ID is 1
-	if(od.ref.offset == 0)
+	if(od.ref.offset == 0) {
 		od.ref.id = 1;
+	}
 	int res = _media->read(FWFS_BASE_OFFSET + od.ref.offset, sizeof(od.obj), &od.obj);
 
 	/*
@@ -133,10 +139,11 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 
 #ifdef FWFS_OBJECT_CACHE
 	if(res >= 0) {
-		if(_mounted)
+		if(_mounted) {
 			_cache.improve(od.ref, objIndex);
-		else
+		} else {
 			_cache.add(od.ref);
+		}
 	}
 #endif
 
@@ -145,8 +152,9 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 
 int FWObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
 {
-	if(child.ref.offset >= parent.obj.childTableSize())
+	if(child.ref.offset >= parent.obj.childTableSize()) {
 		return FSERR_EndOfObjects;
+	}
 
 	// Get the absolute offset for the child object
 	uint32_t tableOffset = parent.childTableOffset();

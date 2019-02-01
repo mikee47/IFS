@@ -31,12 +31,14 @@ public:
 	void initialise(FWObjectID objectCount)
 	{
 		clear();
-		if(objectCount < FWFS_CACHE_SPACING)
+		if(objectCount < FWFS_CACHE_SPACING) {
 			return;
+		}
 		_offsetCount = (objectCount / FWFS_CACHE_SPACING) - 1;
 		_offsets = new uint32_t[_offsetCount];
-		if(!_offsets)
+		if(_offsets == nullptr) {
 			_offsetCount = 0;
+		}
 	}
 
 	void clear()
@@ -50,7 +52,7 @@ public:
 	{
 		if(ref.id && (ref.id & FWFS_CACHE_MASK) == 0) {
 			auto po = getOffset(ref.id);
-			if(po) {
+			if(po != 0) {
 				debug_d("Caching #%u @ 0x%08X", ref.id, ref.offset);
 				*po = ref.offset;
 			}
@@ -71,11 +73,12 @@ public:
 	void improve(FWObjRef& ref, FWObjectID objID)
 	{
 		FWObjectID cachedIndex = objID & ~FWFS_CACHE_MASK;
-		if(cachedIndex <= ref.id)
+		if(cachedIndex <= ref.id) {
 			return;
+		}
 
 		auto po = getOffset(cachedIndex);
-		if(po) {
+		if(po != 0) {
 			debug_d("Cache hit #%u @ 0x%08X (for #%u)", cachedIndex, *po, objID);
 			ref.id = cachedIndex;
 			ref.offset = *po;

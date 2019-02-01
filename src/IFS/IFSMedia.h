@@ -89,8 +89,9 @@ struct FSExtent {
 	}
 
 #define FS_CHECK_WRITEABLE()                                                                                           \
-	if(_attr & eFMA_ReadOnly)                                                                                          \
-		return FSERR_ReadOnly;
+	if(_attr & eFMA_ReadOnly) {                                                                                        \
+		return FSERR_ReadOnly;                                                                                         \
+	}
 
 /** @brief virtual base class to access physical filesystem media
  *  @note this is typically flash memory, hence a separate erase method.
@@ -118,8 +119,9 @@ public:
 	 */
 	virtual int setExtent(uint32_t size)
 	{
-		if(size > _size)
+		if(size > _size) {
 			return FSERR_BadExtent;
+		}
 
 		_size = size;
 		return FS_OK;

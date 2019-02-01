@@ -183,8 +183,9 @@ private:
 	 *  @param ref .store field must be valid */
 	int getStore(const FWObjRef& ref, IFSObjectStore*& store)
 	{
-		if(ref.storenum >= FWFS_MAX_VOLUMES)
+		if(ref.storenum >= FWFS_MAX_VOLUMES) {
 			return FSERR_BadStore;
+		}
 		store = _volumes[ref.storenum].store;
 		return store ? FS_OK : FSERR_NotMounted;
 	}
@@ -204,8 +205,9 @@ private:
 		int res = getStore(od.ref, store);
 		if(res >= 0) {
 			res = store->open(od);
-			if(res >= 0)
+			if(res >= 0) {
 				++od.ref.refCount;
+			}
 		}
 
 		return res;
@@ -219,8 +221,9 @@ private:
 		int res = getStore(parent.ref, store);
 		if(res >= 0) {
 			res = store->openChild(parent, child, od);
-			if(res >= 0)
+			if(res >= 0) {
 				++od.ref.refCount;
+			}
 		}
 
 		return res;
@@ -234,8 +237,9 @@ private:
 		int res = getStore(od.ref, store);
 		if(res >= 0) {
 			res = store->close(od);
-			if(res >= 0)
+			if(res >= 0) {
 				--od.ref.refCount;
+			}
 		}
 
 		return res;

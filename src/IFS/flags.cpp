@@ -11,8 +11,9 @@ char* flagsToStr(uint32_t flags, PGM_P const* strings, unsigned flagCount, char*
 {
 	size_t off = 0;
 	for(unsigned f = 0; f < flagCount; ++f) {
-		if(!bitRead(flags, f))
+		if(!bitRead(flags, f)) {
 			continue;
+		}
 
 		if(off && (off + 2) < bufSize) {
 			buf[off++] = ',';
@@ -21,8 +22,9 @@ char* flagsToStr(uint32_t flags, PGM_P const* strings, unsigned flagCount, char*
 
 		PGM_P pstr = strings[f];
 		int len = strlen_P(pstr);
-		if(off + len > bufSize)
+		if(off + len > bufSize) {
 			len = bufSize - off;
+		}
 		memcpy_P(&buf[off], pstr, len);
 		off += len;
 	}

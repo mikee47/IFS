@@ -28,8 +28,9 @@ static inline uint32_t Align(uint32_t value, uint32_t gran)
 {
 	if(gran) {
 		uint32_t rem = value % gran;
-		if(rem)
+		if(rem != 0) {
 			value += gran - rem;
+		}
 	}
 	return value;
 }
@@ -80,8 +81,9 @@ SPIFFSObjectStore::~SPIFFSObjectStore()
 int SPIFFSObjectStore::initialise()
 {
 	int res = mount();
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	//	enumObjects();
 
@@ -148,8 +150,9 @@ int SPIFFSObjectStore::open(FWObjDesc& od)
 		}
 	}
 
-	if(res < 0)
+	if(res < 0) {
 		spiffs_fd_return(fs(), fd->file_nbr);
+	}
 
 	return res;
 
@@ -191,8 +194,9 @@ int SPIFFSObjectStore::close(FWObjDesc& od)
 static s32_t readObject_v(spiffs* fs, spiffs_obj_id obj_id, spiffs_block_ix bix, int ix_entry, const void* user_const_p,
 						  void* user_var_p)
 {
-	if(obj_id == SPIFFS_OBJ_ID_FREE || obj_id == SPIFFS_OBJ_ID_DELETED || (obj_id & SPIFFS_OBJ_ID_IX_FLAG) == 0)
+	if(obj_id == SPIFFS_OBJ_ID_FREE || obj_id == SPIFFS_OBJ_ID_DELETED || (obj_id & SPIFFS_OBJ_ID_IX_FLAG) == 0) {
 		return SPIFFS_VIS_COUNTINUE;
+	}
 
 	return SPIFFS_OK;
 }
@@ -213,8 +217,9 @@ int SPIFFSObjectStore::readIndexHeader(const FWObjDesc& od, spiffs_page_object_i
 						 reinterpret_cast<u8_t*>(&objix_hdr));
 
 	// We get this value if file hasn't been written yet
-	if(objix_hdr.size == SPIFFS_UNDEFINED_LEN)
+	if(objix_hdr.size == SPIFFS_UNDEFINED_LEN) {
 		objix_hdr.size = 0;
+	}
 
 	/*
 	if (res >= 0) {
@@ -245,9 +250,9 @@ int SPIFFSObjectStore::findIndexHeader(FWObjDesc& od, spiffs_page_object_ix_head
 	int res = spiffs_obj_lu_find_entry_visitor(fs(), bix, ix_entry, SPIFFS_VIS_NO_WRAP, 0, readObject_v, 0, nullptr,
 											   &bix, &ix_entry);
 
-	if(res == SPIFFS_VIS_END)
+	if(res == SPIFFS_VIS_END) {
 		res = FSERR_EndOfObjects;
-	else if(res >= 0) {
+	} else if(res >= 0) {
 		// Update the descriptor offset to the actual entry position
 		od.ref.offset = (bix * SPIFFS_CFG_LOG_BLOCK_SZ(fs())) + (ix_entry * SPIFFS_CFG_LOG_PAGE_SZ(fs()));
 
@@ -313,8 +318,9 @@ int SPIFFSObjectStore::readHeader(FWObjDesc& od)
 		return FS_OK;
 	}
 
-	if(res >= 0)
+	if(res >= 0) {
 		fillHeader(od, objix_hdr);
+	}
 
 	return res;
 }
@@ -336,8 +342,9 @@ int SPIFFSObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child
 		if(parent.ref.id == spiffsos_Root) {
 			spiffs_page_object_ix_header objix_hdr;
 			res = findIndexHeader(child, objix_hdr);
-			if(res >= 0)
+			if(res >= 0) {
 				fillHeader(child, objix_hdr);
+			}
 			return res;
 		}
 
@@ -376,8 +383,9 @@ int SPIFFSObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child
 		child.obj._type = fwobt_Data24;
 		child.obj.data24.setContentSize(fd->size);
 		child.ref.id = 0;
-	} else
+	} else {
 		res = FSERR_EndOfObjects;
+	}
 
 	return res;
 }
@@ -410,7 +418,7 @@ int SPIFFSObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_
 			 * 	We only need the parent if we haven't got a file handle, so perhaps it's a dual-use field?
 			 */
 
-			// Child objects...
+			// @todo Child objects...
 			return FSERR_NotImplemented;
 		}
 	}
@@ -424,8 +432,9 @@ int SPIFFSObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_
 	*/
 
 	int res = SPIFFS_lseek(fs(), od.ref.handle, offset, SPIFFS_SEEK_SET);
-	if(res >= 0)
+	if(res >= 0) {
 		res = SPIFFS_read(fs(), od.ref.handle, buffer, size);
+	}
 
 	return res;
 }
@@ -457,12 +466,14 @@ int SPIFFSObjectStore::writeContent(const FWObjDesc& od, uint32_t offset, uint32
 
 int SPIFFSObjectStore::mount()
 {
-	if(!_media)
+	if(_media == nullptr) {
 		return FSERR_NoMedia;
+	}
 
 	uint32_t blockSize = _media->blockSize();
-	if(blockSize < MIN_BLOCKSIZE)
+	if(blockSize < MIN_BLOCKSIZE) {
 		blockSize = Align(MIN_BLOCKSIZE, blockSize);
+	}
 
 	_fs.user_data = _media;
 	spiffs_config cfg;
@@ -490,7 +501,7 @@ int SPIFFSObjectStore::mount()
 	_fds = new uint8_t[FDS_BUF_SIZE(FFS_MAX_FILEDESC)];
 	_cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
 
-	if(!_work_buf || !_fds || !_cache) {
+	if(_work_buf == nullptr || _fds == nullptr || _cache == nullptr) {
 		return FSERR_NoMem;
 	}
 
@@ -507,8 +518,9 @@ int SPIFFSObjectStore::mount()
 	}
 
 #if SPIFFS_TEST_VISUALISATION
-	if(res == SPIFFS_OK)
+	if(res == SPIFFS_OK) {
 		SPIFFS_vis(&_fs);
+	}
 #endif
 
 	return res;
@@ -530,8 +542,9 @@ int SPIFFSObjectStore::format()
 	// Must be unmounted before format is called - see API
 	SPIFFS_unmount(fs());
 	int res = SPIFFS_format(fs());
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	// Re-mount
 	return _mount(cfg);
@@ -557,8 +570,9 @@ static s32_t enumObject_v(spiffs* fs, spiffs_obj_id obj_id, spiffs_block_ix bix,
 						  void* user_var_p)
 {
 	spiffs_page_object_ix_header objix_hdr;
-	if(obj_id == SPIFFS_OBJ_ID_FREE || obj_id == SPIFFS_OBJ_ID_DELETED || (obj_id & SPIFFS_OBJ_ID_IX_FLAG) == 0)
+	if(obj_id == SPIFFS_OBJ_ID_FREE || obj_id == SPIFFS_OBJ_ID_DELETED || (obj_id & SPIFFS_OBJ_ID_IX_FLAG) == 0) {
 		return SPIFFS_VIS_COUNTINUE;
+	}
 
 	auto objectCount = reinterpret_cast<spiffs_page_ix*>(user_var_p);
 	++(*objectCount);
@@ -566,8 +580,9 @@ static s32_t enumObject_v(spiffs* fs, spiffs_obj_id obj_id, spiffs_block_ix bix,
 	spiffs_page_ix pix = SPIFFS_OBJ_LOOKUP_ENTRY_TO_PIX(fs, bix, ix_entry);
 	int res = _spiffs_rd(fs, SPIFFS_OP_T_OBJ_LU2 | SPIFFS_OP_C_READ, 0, SPIFFS_PAGE_TO_PADDR(fs, pix),
 						 sizeof(objix_hdr), reinterpret_cast<u8_t*>(&objix_hdr));
-	if(res < 0)
+	if(res < 0) {
 		return res;
+	}
 
 	debug_i("SPIFFS 0x%08X, id = %u, bix = %u, entry = %u, type = %u, flags = 0x%02x, size = %d, name = %s",
 			SPIFFS_OBJ_LOOKUP_ENTRY_TO_PADDR(fs, bix, ix_entry), obj_id & ~SPIFFS_OBJ_ID_IX_FLAG, bix, ix_entry,
@@ -579,8 +594,9 @@ static s32_t enumObject_v(spiffs* fs, spiffs_obj_id obj_id, spiffs_block_ix bix,
 int SPIFFSObjectStore::enumObjects()
 {
 	SPIFFS_API_DBG("%s\n", __func__);
-	if(!SPIFFS_CHECK_MOUNT(fs()))
+	if(!SPIFFS_CHECK_MOUNT(fs())) {
 		return SPIFFS_ERR_NOT_MOUNTED;
+	}
 
 	_objectCount = 0;
 	spiffs_block_ix bix = 0;
