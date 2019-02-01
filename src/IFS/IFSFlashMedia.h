@@ -44,11 +44,11 @@ public:
 	 */
 	IFSFlashMedia(const void* startPtr, FSMediaAttributes attr);
 
-	virtual int setExtent(uint32_t size);
-	virtual FSMediaInfo getinfo() const;
-	virtual int read(uint32_t offset, uint32_t size, void* buffer);
-	virtual int write(uint32_t offset, uint32_t size, const void* data);
-	virtual int erase(uint32_t offset, uint32_t size);
+	int setExtent(uint32_t size) override;
+	FSMediaInfo getinfo() const override;
+	int read(uint32_t offset, uint32_t size, void* buffer) override;
+	int write(uint32_t offset, uint32_t size, const void* data) override;
+	int erase(uint32_t offset, uint32_t size) override;
 
 private:
 	uint32_t _startAddress;

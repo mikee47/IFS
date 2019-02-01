@@ -26,25 +26,27 @@ public:
 	{
 	}
 
-	virtual ~FWObjectStore()
+	~FWObjectStore() override
 	{
 		delete _media;
 	}
 
-	virtual int initialise();
-	virtual int mounted(const FWObjDesc& od);
-	virtual bool isMounted()
+	int initialise() override;
+	int mounted(const FWObjDesc& od) override;
+
+	bool isMounted() override
 	{
 		return _mounted;
 	}
-	virtual int open(FWObjDesc& od);
-	virtual int openChild(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od);
-	virtual int readHeader(FWObjDesc& od);
-	virtual int readChildHeader(const FWObjDesc& parent, FWObjDesc& child);
-	virtual int readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer);
-	virtual int close(FWObjDesc& od);
 
-	virtual IFSMedia* getMedia()
+	int open(FWObjDesc& od) override;
+	int openChild(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od) override;
+	int readHeader(FWObjDesc& od) override;
+	int readChildHeader(const FWObjDesc& parent, FWObjDesc& child) override;
+	int readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer) override;
+	int close(FWObjDesc& od) override;
+
+	IFSMedia* getMedia() override
 	{
 		return _media;
 	}

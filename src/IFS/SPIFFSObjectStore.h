@@ -42,27 +42,29 @@ public:
 	{
 	}
 
-	virtual ~SPIFFSObjectStore();
+	~SPIFFSObjectStore() override;
 
-	virtual int initialise();
-	virtual int mounted(const FWObjDesc& od);
-	virtual bool isMounted()
+	int initialise() override;
+	int mounted(const FWObjDesc& od) override;
+	bool isMounted() override
 	{
 		return SPIFFS_mounted(fs());
 	}
-	virtual int open(FWObjDesc& od);
-	virtual int openChild(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od);
-	virtual int readHeader(FWObjDesc& od);
-	virtual int readChildHeader(const FWObjDesc& parent, FWObjDesc& child);
-	virtual int readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer);
-	virtual int writeHeader(FWObjDesc& od);
-	virtual int writeContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer);
-	virtual int close(FWObjDesc& od);
+	int open(FWObjDesc& od) override;
+	int openChild(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od) override;
+	int readHeader(FWObjDesc& od) override;
+	int readChildHeader(const FWObjDesc& parent, FWObjDesc& child) override;
+	int readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer) override;
+	int close(FWObjDesc& od) override;
 
-	virtual IFSMedia* getMedia()
+	IFSMedia* getMedia() override
 	{
 		return _media;
 	}
+
+	// These methods will override IFSObjectStore methods when working
+	virtual int writeHeader(FWObjDesc& od);
+	virtual int writeContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer);
 
 private:
 	spiffs* fs()
