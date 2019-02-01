@@ -10,6 +10,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #define CHECK_FILE()                                                                                                   \
 	if(_file < 0)                                                                                                      \
 		return FSERR_NoMedia;

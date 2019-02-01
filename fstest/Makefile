@@ -1,9 +1,9 @@
 
-Q = @
+Q ?= @
 HOST_CC = gcc
 HOST_CXX = g++
 HOST_LD = g++
-CFLAGS = -Wall -D_POSIX_C_SOURCE=200809L -O0 -g3
+CFLAGS = -Wall -D_POSIX_C_SOURCE=200809L -O0 -g3 -m32
 CXXFLAGS = $(CFLAGS) -std=c++11
 
 INCDIR := ../src ../posix ../../spiffs/src
@@ -24,10 +24,13 @@ FWFILES = $(OUT_DIR)\fwfiles.bin
 
 all: $(FWFILES) bin
 
-$(FWFILES):
+$(FWFILES): $(OUT_DIR)
 	python ../fsbuild/fsbuild.py
 
-bin: $(OUT_DIRS) fstest
+bin: $(OUT_DIR) $(OUT_DIRS) fstest
+
+$(OUT_DIR):
+	$(Q) mkdir -p $@
 
 $(OUT_DIRS):
 	$(Q) mkdir -p $@
@@ -39,8 +42,8 @@ $(OUT_DIR)/spiffs/%.o: ../../spiffs/src/%.c
 	$(Q) $(HOST_CC) $(INCDIR) $(CFLAGS) -c $< -o $@
 
 fstest: $(OBJ_FILES)
-	$(Q) $(HOST_LD) -o $@ $^
+	$(Q) $(HOST_LD) -m32 -o $@ $^
 
 clean:
-	$(Q) rm -rf $(OUT_DIR)/*.o
+	$(Q) rm -rf $(OUT_DIR)
 

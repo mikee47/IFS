@@ -26,7 +26,7 @@
 #include "IFS/FWObjectStore.h"
 #include "IFS/SPIFFSObjectStore.h"
 
-#include <String>
+#include <string>
 using String = std::string;
 
 #define LOG_PAGE_SIZE 256
@@ -35,10 +35,11 @@ const char* FLASHMEM_DMP = "flashmem.dmp";
 
 IFileSystem* g_filesys;
 
-// @todo bung this somewhere handy
-// @todo perhaps declare this using an appropriate struct containing (ptr, length)
+//
+#ifdef __WIN32
+
 #define INCBIN(_name, _file)                                                                                           \
-	__asm__(".section .irom.text\n"                                                                                    \
+	__asm__(".section .rodata\n"                                                                                    \
 			".global _" #_name "\n"                                                                                    \
 			".def _" #_name "; .scl 2; .type 32; .endef\n"                                                             \
 			".align 4\n"                                                                                               \
@@ -52,6 +53,21 @@ IFileSystem* g_filesys;
 	extern const __attribute__((aligned(4))) uint8_t _name[];                                                          \
 	extern const __attribute__((aligned(4))) uint8_t _name##_end[];                                                    \
 	const uint32_t _name##_len = _name##_end - _name;
+
+#else
+
+#define INCBIN(_name, _file)                                                                                        \
+	__asm__(".section .rodata\n"                                                                                    \
+			".global " #_name "\n"                                                                                      \
+			".type " #_name ", @object\n"                                                                               \
+			".align 4\n" #_name ":\n"                                                                                   \
+			".incbin \"" _file "\"\n"                                                                                   \
+			#_name "_end:\n");                                                                                      \
+	extern const __attribute__((aligned(4))) uint8_t _name[];                                                          \
+	extern const __attribute__((aligned(4))) uint8_t _name##_end[];                                                    \
+	const uint32_t _name##_len = _name##_end - _name;
+
+#endif
 
 INCBIN(_fwfiles_data, "out/fwfiles.bin")
 //INCBIN(_fwfiles_data1, "out/fwfiles1.bin")
@@ -157,7 +173,7 @@ bool fsInit(const char* imgfile)
 		   _fwfiles_data_len);
 
 	IFSMedia* fwMedia;
-	if(imgfile) {
+	if(imgfile != nullptr) {
 		fwMedia = new StdFileMedia(imgfile, FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadOnly);
 	} else {
 		flashmem_write(_fwfiles_data, 0, _fwfiles_data_len);
