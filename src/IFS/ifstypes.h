@@ -19,7 +19,7 @@
 
 #define snprintf(_buf, _length, _fmt, ...) m_snprintf(_buf, _length, _fmt, ##__VA_ARGS__)
 
-#elif defined(__WIN32)
+#else
 
 #include <stdint.h>
 #include <assert.h>
@@ -75,10 +75,6 @@ inline time_t fsGetTimeUTC()
 {
 	return time(nullptr);
 }
-
-#else
-
-#error "ifstypes.h requires updating for this platform"
 
 #endif
 

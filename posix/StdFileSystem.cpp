@@ -7,13 +7,16 @@
 
 #include "StdFileSystem.h"
 
-#include <io.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
+#ifndef PATH_MAX
 #define PATH_MAX 255
+#endif
 
 struct FileDir {
 	char path[PATH_MAX];
@@ -32,7 +35,8 @@ int StdFileSystem::getinfo(FileSystemInfo& info)
 
 int StdFileSystem::geterrortext(int err, char* buffer, size_t size)
 {
-	return strerror_r(err, buffer, size);
+	strerror_r(err, buffer, size);
+	return strlen(buffer);
 }
 
 int StdFileSystem::opendir(const char* path, filedir_t* dir)
@@ -55,20 +59,22 @@ int StdFileSystem::readdir(filedir_t dir, FileStat* stat)
 {
 	int res;
 	dirent* e = ::readdir(dir->d);
-	if(!e)
+	if(!e) {
 		res = syserr();
-	else if(stat) {
+	} else if(stat) {
 		char path[PATH_MAX];
 		strcpy(path, dir->path);
 		strcat(path, "/");
 		strcat(path, e->d_name);
 		res = this->stat(path, stat);
+#ifdef __WIN32
 		if(e->d_type & _A_SUBDIR)
 			bitSet(stat->attr, FileAttr::Directory);
 		if(e->d_type & _A_RDONLY)
 			bitSet(stat->attr, FileAttr::ReadOnly);
 		if(e->d_type & _A_ARCH)
 			bitSet(stat->attr, FileAttr::Archive);
+#endif
 		//		stat->name.copy(e->d_name, e->d_namlen);
 	}
 
@@ -86,8 +92,9 @@ void StdFileSystem::fillStat(const struct stat& s, FileStat& stat)
 {
 	stat.clear();
 	stat.fs = this;
-	if(S_ISDIR(s.st_mode))
+	if(S_ISDIR(s.st_mode)) {
 		bitSet(stat.attr, FileAttr::Directory);
+	}
 	stat.mtime = s.st_mtime;
 }
 
@@ -159,20 +166,23 @@ int StdFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 
 int StdFileSystem::eof(file_t file)
 {
-	return ::eof(file);
+	// POSIX doesn't appear to have eof()
+
+	int pos = tell(file);
+	if(pos < 0) {
+		return pos;
+	}
+
+	struct stat stat;
+	int err = ::fstat(file, &stat);
+	if(err < 0) {
+		return err;
+	}
+
+	return (pos >= stat.st_size) ? 1 : 0;
 }
 
 int32_t StdFileSystem::tell(file_t file)
 {
-	return ::tell(file);
-}
-
-int StdFileSystem::isfile(file_t file)
-{
-	return file >= 0;
-}
-
-int StdFileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
-{
-	return FSERR_NotImplemented;
+	return ::lseek(file, 0, SEEK_CUR);
 }

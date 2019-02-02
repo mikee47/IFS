@@ -85,19 +85,12 @@ public:
 	}
 	int check() override
 	{
-		/* We could implement this, but since problems would indicate corrupted firmware
-    	 * there isn't much we can do other than suggest a re-flashing. This sort of issue
-    	 * is better resolved externally using a hash of the entire firmware image. */
 		return FSERR_NotImplemented;
 	}
-	int isfile(file_t file) override;
-
-	/** @brief get the full path of a file from its ID
-	 *  @param fileid
-	 *  @param path
-	 *  @retval int error code
-	 */
-	int getFilePath(fileid_t fileid, NameBuffer& path);
+	int isfile(file_t file) override
+	{
+		return file >= 0;
+	}
 
 private:
 	void fillStat(const struct stat& s, FileStat& stat);
