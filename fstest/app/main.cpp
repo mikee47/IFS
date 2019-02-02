@@ -29,49 +29,49 @@
 #include <string>
 using String = std::string;
 
-#define LOG_PAGE_SIZE 256
-
+// We mount SPIFFS on a file so we can inspect if necessary
 const char* FLASHMEM_DMP = "flashmem.dmp";
 
-IFileSystem* g_filesys;
+// Global filesystem instance
+static IFileSystem* g_filesys;
 
 //
 #ifdef __WIN32
 
-#define INCBIN(_name, _file)                                                                                           \
-	__asm__(".section .rodata\n"                                                                                    \
-			".global _" #_name "\n"                                                                                    \
-			".def _" #_name "; .scl 2; .type 32; .endef\n"                                                             \
+#define INCBIN(name, file)                                                                                             \
+	__asm__(".section .rodata\n"                                                                                       \
+			".global _" #name "\n"                                                                                     \
+			".def _" #name "; .scl 2; .type 32; .endef\n"                                                              \
 			".align 4\n"                                                                                               \
-			"_" #_name ":\n"                                                                                           \
-			".incbin \"" _file "\"\n"                                                                                  \
-			".global _" #_name "_end\n"                                                                                \
-			".def _" #_name "_end; .scl 2; .type 32; .endef\n"                                                         \
+			"_" #name ":\n"                                                                                            \
+			".incbin \"" file "\"\n"                                                                                   \
+			".global _" #name "_end\n"                                                                                 \
+			".def _" #name "_end; .scl 2; .type 32; .endef\n"                                                          \
 			".align 4\n"                                                                                               \
-			"_" #_name "_end:\n"                                                                                       \
+			"_" #name "_end:\n"                                                                                        \
 			".byte 0\n");                                                                                              \
-	extern const __attribute__((aligned(4))) uint8_t _name[];                                                          \
-	extern const __attribute__((aligned(4))) uint8_t _name##_end[];                                                    \
-	const uint32_t _name##_len = _name##_end - _name;
+	extern const __attribute__((aligned(4))) uint8_t name[];                                                           \
+	extern const __attribute__((aligned(4))) uint8_t name##_end[];                                                     \
+	const uint32_t name##_len = name##_end - name;
 
 #else
 
-#define INCBIN(_name, _file)                                                                                        \
-	__asm__(".section .rodata\n"                                                                                    \
-			".global " #_name "\n"                                                                                      \
-			".type " #_name ", @object\n"                                                                               \
-			".align 4\n" #_name ":\n"                                                                                   \
-			".incbin \"" _file "\"\n"                                                                                   \
-			#_name "_end:\n");                                                                                      \
-	extern const __attribute__((aligned(4))) uint8_t _name[];                                                          \
-	extern const __attribute__((aligned(4))) uint8_t _name##_end[];                                                    \
-	const uint32_t _name##_len = _name##_end - _name;
+#define INCBIN(name, file)                                                                                             \
+	__asm__(".section .rodata\n"                                                                                       \
+			".global " #name "\n"                                                                                      \
+			".type " #name ", @object\n"                                                                               \
+			".align 4\n" #name ":\n"                                                                                   \
+			".incbin \"" file "\"\n" #name "_end:\n");                                                                 \
+	extern const __attribute__((aligned(4))) uint8_t name[];                                                           \
+	extern const __attribute__((aligned(4))) uint8_t name##_end[];                                                     \
+	const uint32_t name##_len = name##_end - name;
 
 #endif
 
 INCBIN(_fwfiles_data, "out/fwfiles.bin")
 //INCBIN(_fwfiles_data1, "out/fwfiles1.bin")
 
+// Flash Filesystem parameters
 #define FFS_SECTOR_COUNT 128
 #define FFS_FLASH_SIZE (FFS_SECTOR_COUNT * INTERNAL_FLASH_SECTOR_SIZE)
 
@@ -109,13 +109,15 @@ int copyfile(IFileSystem& dst, IFileSystem& src, const FileStat& stat)
 			uint8_t buffer[512];
 			for(;;) {
 				res = src.read(srcfile, buffer, sizeof(buffer));
-				if(res <= 0)
+				if(res <= 0) {
 					break;
+				}
 				int nread = res;
 
 				res = dst.write(dstfile, buffer, nread);
-				if(res < 0)
+				if(res < 0) {
 					break;
+				}
 			}
 			dst.close(dstfile);
 		}
@@ -197,9 +199,12 @@ bool fsInit(const char* imgfile)
 	auto store1 = new FWObjectStore(fwMedia1);
 */
 
-	//	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, FLASH_SECTOR_SIZE, eFMA_ReadWrite);
-	//	auto store1 = new SPIFFSObjectStore(ffsMedia);
-	//	hfs->setVolume(1, store1);
+	/*
+ * Test SPIFFS object store
+		auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+		auto store1 = new SPIFFSObjectStore(ffsMedia);
+		hfs->setVolume(1, store1);
+*/
 
 #endif
 
@@ -245,6 +250,53 @@ const char* timeToStr(char* buffer, time_t t, const char* dtsep)
 	return buffer;
 }
 
+bool readFileTest(const FileStat& stat)
+{
+	int result = true;
+
+#ifdef READ_FILE_TEST
+
+	file_t file = g_filesys->fopen(stat, eFO_ReadOnly);
+
+	if(file < 0) {
+		debug_w("fopen(): %s", getErrorText(file));
+		return false;
+	}
+
+	{
+		FileStat stat2;
+		int res = g_filesys->fstat(file, &stat2);
+		if(res < 0) {
+			debug_w("fstat(): %s", getErrorText(res));
+		}
+	}
+
+	char buf[1024];
+	uint32_t total = 0;
+	while(!g_filesys->eof(file)) {
+		int len = g_filesys->read(file, buf, sizeof(buf));
+		if(len <= 0) {
+			if(len < 0) {
+				debug_e("Error! %s", getErrorText(len));
+				result = false;
+			}
+			break;
+		}
+		//			if(total == 0)
+		//			m_printHex("data", buf, len); //std::min(len, 32));
+		total += len;
+	}
+	g_filesys->close(file);
+
+	if(total != stat.size) {
+		debug_e("Size mismatch: stat reports %u bytes, read %u bytes", stat.size, total);
+		result = false;
+	}
+#endif
+
+	return result;
+}
+
 int scandir(const String& path)
 {
 	debugf("Scanning '%s'", path.c_str());
@@ -272,42 +324,7 @@ int scandir(const String& path)
 		debugf("%-50s %6u %s #0x%04x %s %s %s %s", (const char*)stat.name, stat.size, typestr, stat.id, aclstr, attrstr,
 			   cmpstr, timestr);
 
-#ifdef READ_FILE_TEST
-
-		file_t file = g_filesys->fopen(stat, eFO_ReadOnly);
-
-		if(file < 0) {
-			debug_w("fopen(): %s", getErrorText(file));
-			continue;
-		}
-
-		{
-			FileStat stat2;
-			int res = g_filesys->fstat(file, &stat2);
-			if(res < 0)
-				debug_w("fstat(): %s", getErrorText(res));
-		}
-
-		char buf[1024];
-		uint32_t total = 0;
-		while(!g_filesys->eof(file)) {
-			int len = g_filesys->read(file, buf, sizeof(buf));
-			if(len <= 0) {
-				if(len < 0) {
-					debug_e("Error! %s", getErrorText(len));
-				}
-				break;
-			}
-			//			if(total == 0)
-			//			m_printHex("data", buf, len); //std::min(len, 32));
-			total += len;
-		}
-		g_filesys->close(file);
-
-		if(total != stat.size) {
-			debug_e("Size mismatch: stat reports %u bytes, read %u bytes", stat.size, total);
-		}
-#endif
+		readFileTest(stat);
 
 		if(bitRead(stat.attr, FileAttr::Directory)) {
 			if(path.empty()) {

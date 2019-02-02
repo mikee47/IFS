@@ -14,14 +14,15 @@ static uint8_t g_flashmem[INTERNAL_FLASH_SIZE];
 
 #define CHECK_ALIGNMENT(_x) assert((reinterpret_cast<uint32_t>(_x) & 0x00000003) == 0)
 
-#define CHECK_RANGE(_addr, _size) { \
-	uint32_t __addr = _addr; \
-	uint32_t __size = _size; \
-	if(__addr + __size > INTERNAL_FLASH_SIZE) { \
-		debug_e("Out of range: 0x%08x, %u", __addr, __size); \
-		assert(false); \
-	} \
-}
+#define CHECK_RANGE(_addr, _size)                                                                                      \
+	{                                                                                                                  \
+		uint32_t __addr = _addr;                                                                                       \
+		uint32_t __size = _size;                                                                                       \
+		if(__addr + __size > INTERNAL_FLASH_SIZE) {                                                                    \
+			debug_e("Out of range: 0x%08x, %u", __addr, __size);                                                       \
+			assert(false);                                                                                             \
+		}                                                                                                              \
+	}
 
 uint32_t flashmem_get_size_bytes()
 {
@@ -82,4 +83,3 @@ bool flashmem_erase_sector(uint32_t sector_id)
 	memset(&g_flashmem[addr], 0xFF, INTERNAL_FLASH_SECTOR_SIZE);
 	return true;
 }
-

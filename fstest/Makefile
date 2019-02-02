@@ -22,12 +22,12 @@ OUT_DIRS += $(OUT_DIR)/spiffs
 
 FWFILES = $(OUT_DIR)\fwfiles.bin
 
-all: $(FWFILES) bin
+all: $(OUT_DIR) $(FWFILES) bin
 
-$(FWFILES): $(OUT_DIR)
+$(FWFILES):
 	python ../fsbuild/fsbuild.py
 
-bin: $(OUT_DIR) $(OUT_DIRS) fstest
+bin: $(OUT_DIRS) fstest
 
 $(OUT_DIR):
 	$(Q) mkdir -p $@
@@ -36,12 +36,15 @@ $(OUT_DIRS):
 	$(Q) mkdir -p $@
 
 $(OUT_DIR)/%.o: ../%.cpp
+	@echo "C++ $<"
 	$(Q) $(HOST_CXX) $(INCDIR) $(CXXFLAGS) -c $< -o $@
 
 $(OUT_DIR)/spiffs/%.o: ../../spiffs/src/%.c
+	@echo "CC $<"
 	$(Q) $(HOST_CC) $(INCDIR) $(CFLAGS) -c $< -o $@
 
 fstest: $(OBJ_FILES)
+	@echo "LD $@"
 	$(Q) $(HOST_LD) -m32 -o $@ $^
 
 clean:

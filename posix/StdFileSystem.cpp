@@ -167,9 +167,8 @@ int StdFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 int StdFileSystem::eof(file_t file)
 {
 	// POSIX doesn't appear to have eof()
-	//	return ::eof(file);
 
-	int pos = ::lseek(file, 0, SEEK_CUR);
+	int pos = tell(file);
 	if(pos < 0) {
 		return pos;
 	}
@@ -186,14 +185,4 @@ int StdFileSystem::eof(file_t file)
 int32_t StdFileSystem::tell(file_t file)
 {
 	return ::lseek(file, 0, SEEK_CUR);
-}
-
-int StdFileSystem::isfile(file_t file)
-{
-	return file >= 0;
-}
-
-int StdFileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
-{
-	return FSERR_NotImplemented;
 }

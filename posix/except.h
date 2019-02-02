@@ -10,5 +10,4 @@
 
 void trap_exceptions();
 
-
 #endif /* MINGW_EXCEPT_H_ */
