@@ -18,10 +18,10 @@ static PGM_P const accessStrings[] PROGMEM = {USER_ROLE_MAP(XX)};
 #undef XX
 
 #define XX(_tag, _char, _comment) _char,
-static DEFINE_PSTR(accessChars, {USER_ROLE_MAP(XX)})
+static DEFINE_PSTR(accessChars, {USER_ROLE_MAP(XX)});
 #undef XX
 
-	char* userRoleToStr(UserRole role, char* buf, size_t bufSize)
+char* userRoleToStr(UserRole role, char* buf, size_t bufSize)
 {
 	if(buf && bufSize) {
 		if(role < UserRole::MAX) {

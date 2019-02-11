@@ -34,7 +34,7 @@ int fsGetErrorText(int err, char* buffer, unsigned size)
 	}
 
 	if(err >= eFSERR_MAX) {
-		return snprintf(buffer, size, "FSERR #%u", err);
+		return snprintf(buffer, size, _F("FSERR #%u"), err);
 	}
 
 	strncpy_P(buffer, errorStrings[err], size);
