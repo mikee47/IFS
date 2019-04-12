@@ -15,6 +15,7 @@
 #include "user_config.h"
 #include <time.h>
 #include "FakePgmSpace.h"
+#include "BitManipulations.h"
 #include "../Services/Profiling/ElapseTimer.h"
 
 #define snprintf(_buf, _length, _fmt, ...) m_snprintf(_buf, _length, _fmt, ##__VA_ARGS__)

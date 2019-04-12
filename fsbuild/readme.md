@@ -10,11 +10,11 @@ A configuration file is used to drive the script. The output is a compact image 
 
 ## Usage
 
-This script should be run from the development directory. Parameters are read from the fsbuild.ini file located in the same folder.
+This script should be run from the development directory. Parameters are read from the fsbuild.ini file located in the same folder. An example is provided.
 
-Source files should be placed into a sub-folder; default is 'Files'. Sub-directories are supported, however this simply results in a filename which includes directories. Names should therefore be kept short and consideration given to the total (relative path) length.
+Source files should be placed into a sub-folder; default is 'Files'. Sub-directories are fully supported.
 
-The generated image file is intended to be linked into the firmware as a blob; default is 'out/fwfile.bin'.
+The generated image file is intended to be linked into the firmware as a blob; default is 'out/fwfiles.bin'.
 
 For debugging purposes a copy of the generated files can be written into another location. By default this is disabled, but a suggested folder might be 'out/files'.
 
