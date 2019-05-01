@@ -103,6 +103,7 @@ public:
 	int mount() override;
 	int getinfo(FileSystemInfo& info) override;
 	int opendir(const char* path, filedir_t* dir) override;
+	int fopendir(const FileStat* stat, filedir_t* dir) override;
 	int readdir(filedir_t dir, FileStat* stat) override;
 	int closedir(filedir_t dir) override;
 	int stat(const char* path, FileStat* stat) override;
