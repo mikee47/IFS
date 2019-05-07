@@ -116,15 +116,6 @@ class Config:
         """Mount points create a virtual folder which is redirected to another object store"""
         return self.__file.items("mountpoints")
 
-    # Generated image file
-    def imageFilePath(self):
-        return util.ospath(self.__readConfig('image', 'out/fwfiles.bin'))
-
-    # folder to write generated files (optional)
-    def destPath(self):
-        tmp = util.ospath(self.__readConfig('dest', ''))
-        return os.path.expandvars(tmp)
-    
     def volumeName(self):
         return self.__readConfig('volumeName', 'FWFS')
 
