@@ -7,7 +7,7 @@
 
 #include "FileSystemType.h"
 
-#define XX(_name, _tag, _desc) static DEFINE_PSTR(typestr_##_name, #_tag)
+#define XX(_name, _tag, _desc) DEFINE_PSTR_LOCAL(typestr_##_name, #_tag)
 FILESYSTEM_TYPE_MAP(XX)
 #undef XX
 

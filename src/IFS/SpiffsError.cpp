@@ -71,7 +71,7 @@ struct spiffs_error_t {
 	PGM_P tag;
 };
 
-#define XX(_tag, _value) static DEFINE_PSTR(errstr_##_tag, #_tag)
+#define XX(_tag, _value) DEFINE_PSTR_LOCAL(errstr_##_tag, #_tag)
 SPIFFS_ERROR_MAP(XX)
 #undef XX
 

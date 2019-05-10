@@ -8,7 +8,7 @@
 #include "FileSystemAttributes.h"
 #include "flags.h"
 
-#define XX(_tag, _comment) static DEFINE_PSTR(attrstr_##_tag, #_tag)
+#define XX(_tag, _comment) DEFINE_PSTR_LOCAL(attrstr_##_tag, #_tag)
 FILE_SYSTEM_ATTR_MAP(XX)
 #undef XX
 

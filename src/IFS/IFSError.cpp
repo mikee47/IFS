@@ -11,7 +11,7 @@
 /* @brief Define string table for standard IFS error codes
  *
  */
-#define XX(_tag, _text) static DEFINE_PSTR(FSES_##_tag, #_tag)
+#define XX(_tag, _text) DEFINE_PSTR_LOCAL(FSES_##_tag, #_tag)
 FSERROR_MAP(XX)
 #undef XX
 

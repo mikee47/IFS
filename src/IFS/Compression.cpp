@@ -8,7 +8,7 @@
 #include "Compression.h"
 #include "ifstypes.h"
 
-#define XX(_tag, _comment) static DEFINE_PSTR(__str_##_tag, #_tag)
+#define XX(_tag, _comment) DEFINE_PSTR_LOCAL(__str_##_tag, #_tag)
 COMPRESSION_TYPE_MAP(XX)
 #undef XX
 

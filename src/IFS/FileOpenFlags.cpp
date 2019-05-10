@@ -8,7 +8,7 @@
 #include "FileOpenFlags.h"
 #include "flags.h"
 
-#define XX(_tag, _comment) static DEFINE_PSTR(flagstr_##_tag, #_tag)
+#define XX(_tag, _comment) DEFINE_PSTR_LOCAL(flagstr_##_tag, #_tag)
 FILE_OPEN_FLAG_MAP(XX)
 #undef XX
 

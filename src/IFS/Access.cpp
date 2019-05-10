@@ -9,7 +9,7 @@
 
 #include "Access.h"
 
-#define XX(_tag, _char, _comment) static DEFINE_PSTR(accstr_##_tag, #_tag)
+#define XX(_tag, _char, _comment) DEFINE_PSTR_LOCAL(accstr_##_tag, #_tag)
 USER_ROLE_MAP(XX)
 #undef XX
 
