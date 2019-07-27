@@ -4,7 +4,7 @@
 # Defines all options for the build
 #
 
-import ConfigParser, sys, util, os
+import configparser, sys, util, os
 from fnmatch import fnmatch
 from FWFS import ObjectAttr
 
@@ -18,10 +18,10 @@ class FieldSpec:
         pair = spec.split('=')
         self.__field = pair[0].strip()
         self.__value = pair[1].strip().lower()
-#        print "    " + self.__field + " = " + self.__value
+#        print("    " + self.__field + " = " + self.__value)
 
     def apply(self, named):
-#        print "apply to '{}': {} = {}".format(named.path, self.__field, self.__value)
+#        print("apply to '{}': {} = {}".format(named.path, self.__field, self.__value))
         if self.__field == 'readonly':
             named.setAttr(ObjectAttr.ReadOnly, self.__value)
         elif self.__field == 'compress':
@@ -31,7 +31,7 @@ class FieldSpec:
         elif self.__field == 'write':
             named.appendWriteACE(self.__value)
         else:
-            print "Unknown field '{}' in rule".format(self.__field)
+            print("Unknown field '{}' in rule".format(self.__field))
             sys.exit(1)
         
     def toString(self):
@@ -56,7 +56,7 @@ class Rule:
 #    __specs = []  # The field specs
 
     def __init__(self, strPathMasks, strFieldSpecs):
-#        print "Rule: {} : {}".format(strPathMasks, strFieldSpecs)
+#        print("Rule: {} : {}".format(strPathMasks, strFieldSpecs))
 
         self.__masks = []
         masks = strPathMasks.split(',')
@@ -71,7 +71,7 @@ class Rule:
     def match(self, named):
         for mask in self.__masks:
             if fnmatch(named.path(), mask):
-#                print "'{}' matches '{}'".format(named.path(), mask)
+#                print("'{}' matches '{}'".format(named.path(), mask))
                 return True
         return False
 
@@ -87,11 +87,11 @@ class Rule:
 
 
 class Config:
-#    __file = ConfigParser.RawConfigParser()
+#    __file = configparser.RawConfigParser()
 #    __rules = []
 
     def __init__(self, filename):
-        self.__file = ConfigParser.RawConfigParser()
+        self.__file = configparser.ConfigParser()
         self.__file.readfp(open(filename))
         
         # Pull rule specifications into objects for efficient parsing
@@ -102,7 +102,7 @@ class Config:
             self.__rules.append(rule)
             
 #         for rule in self.__rules:
-#             print rule.toString()
+#             print(rule.toString())
             
 
     def sourceMap(self):

@@ -25,7 +25,7 @@ FWFILES = $(OUT_DIR)\fwfiles.bin
 all: $(OUT_DIR) $(FWFILES) bin
 
 $(FWFILES):
-	python ../fsbuild/fsbuild.py
+	python ../fsbuild/fsbuild.py -i fsbuild.ini -o $@
 
 bin: $(OUT_DIRS) fstest
 

@@ -34,7 +34,7 @@ img = FWFS.Image(cfg.volumeName(), cfg.volumeID())
 
 outFilePath = args.files
 if outFilePath:
-    print "Writing copy of generated files to '" + outFilePath + '"'
+    print("Writing copy of generated files to '" + outFilePath + '"')
     util.mkdir(outFilePath)
     util.cleandir(outFilePath)
 
@@ -51,7 +51,7 @@ else:
 
 # Create a file object, add it to the parent
 def addFile(parent, name, sourcePath):
-#    print "'{}' -> '{}'".format(targetPath, sourcePath)
+#    print("'{}' -> '{}'".format(targetPath, sourcePath))
     
     fileObj = FWFS.File(parent, name)
     cfg.applyRules(fileObj)
@@ -72,7 +72,7 @@ def addFile(parent, name, sourcePath):
     cmp = fileObj.findObject(FwObt.Compression)
     if not cmp is None:
         if cmp.compressionType() == CompressionType.gzip:
-#             print "compressing '" + f.path + '"'
+#             print("compressing '" + f.path + '"')
             dcmp = util.compress(dout)
             if len(dcmp) < len(dout):
                 dout = dcmp
@@ -80,7 +80,7 @@ def addFile(parent, name, sourcePath):
                 # File is bigger, leave uncompressed
                 fileObj.removeObject(cmp)
         else:
-            print "Unsupported compression type: " + cmp.toString()
+            print("Unsupported compression type: " + cmp.toString())
             sys.exit(1)
 
     fileObj.appendData(dout, len(din))
@@ -110,7 +110,7 @@ def createFsObject(parent, target, source):
     if il == 0:
         pc = 0
     else:
-        pc = 100 * ol / il
+        pc = round(100 * ol / il)
 
     if logfile:
         # Put long filenames on their own line
@@ -132,7 +132,7 @@ def addDirectory(parent, name, sourcePath):
         dirObj = FWFS.Directory(parent, name)
         cfg.applyRules(dirObj)
 
-#        print "parsedir('{}', '{}')".format(target, source)
+#        print("parsedir('{}', '{}')".format(target, source))
     for item in os.listdir(sourcePath):
         createFsObject(dirObj, item, os.path.join(sourcePath, item))
 
@@ -152,7 +152,7 @@ for target, store in cfg.mountPoints():
 
 # Emit the image
 imgFilePath = util.ospath(args.output)
-print "Writing image to '" + imgFilePath + "'"
+print("Writing image to '" + imgFilePath + "'")
 img.writeToFile(imgFilePath)
 
 totalDataSize = img.root().totalDataSize()
@@ -160,10 +160,10 @@ totalOriginalDataSize = img.root().totalOriginalDataSize()
 if totalOriginalDataSize == 0:
     pc = 0
 else:
-    pc = 100 * totalDataSize / totalOriginalDataSize
+    pc = round(100 * totalDataSize / totalOriginalDataSize)
 fileCount = img.root().fileCount(True)
 if logfile:
     logfile.write(fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", ""))
     logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", ""))
 
-print "Image contains {} objects, {} bytes in {} files ({}% of source data size)".format(img.objectCount(), totalDataSize, fileCount, pc)
+print("Image contains {} objects, {} bytes in {} files ({}% of source data size)".format(img.objectCount(), totalDataSize, fileCount, pc))

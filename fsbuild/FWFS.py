@@ -2,12 +2,14 @@
 # Firmware Filesystem support
 #
 
-import struct, sys, util, time
-from enum import enum
+import struct, sys, util, time, numbers
+from enum import IntEnum
 from util import _BV
 from access import UserRole
 from compress import CompressionType
-from operator import isNumberType
+
+def isNumberType(obj):
+    return isinstance(obj, numbers.Number)
 
 # Images start with a single word to identify this as a Firmware Filesystem image
 SYS_START_MARKER = 0x53465746  # "FWFS"
@@ -19,7 +21,7 @@ SYS_END_MARKER = 0x46574653  # "SFWF"
 FWOBT_REF = 0x80
 
 # Object types
-FwObt = enum(
+class FwObt(IntEnum):
     # 1-byte sized
     End = 0,  # The system image footer
     Data8 = 1,
@@ -38,14 +40,12 @@ FwObt = enum(
     File = 36,  # File entry
     # 3-byte sized
     Data24 = 64
-)
 
 FwObt_Named = FwObt.Volume
 
-ObjectAttr = enum(
+class ObjectAttr(IntEnum):
     ReadOnly = 0,
     Archive = 1
-)
 
 ObjectAttrChars = {
     ObjectAttr.ReadOnly: 'R',
@@ -68,17 +68,20 @@ def objectAttrFromChar(c):
     for a in ObjectAttrChars:
         if c.upper() == ObjectAttrChars[a]:
             return a
-    print "Unknown object attribute '{}'".format(c)
+    print("Unknown object attribute '{}'".format(c))
     sys.exit(1)
 
 
 
 class Object(object):
-    def __init__(self, parent, obt, content = ""):
+    def __init__(self, parent, obt, content = ''):
         self.__parent = parent
         self.__obt = obt
         self.__offset = 0
-        self.__content = content
+        if isinstance(content, bytes):
+            self.__content = content
+        else:
+            self.__content = content.encode('utf-8')
         self.isRef = True
         if parent is not None:
             parent.appendObject(self)
@@ -116,10 +119,10 @@ class Object(object):
         # Check we haven't already been emitted
         if self.__offset != 0:
             return
-#        print "emit " + FwObt.strings[self.obt()];
+#        print("emit " + FwObt.strings[self.obt()])
         contentSize = self.contentSize()
         if contentSize > self.maxContentSize():
-            print "Content too big: object is {} bytes, maximum is {}".format(contentSize, self.maxContentSize())
+            print("Content too big: object is {} bytes, maximum is {}".format(contentSize, self.maxContentSize()))
         self.__offset = image.offset()
         self.__id = image.writeObject(self.header(), self.content())
 
@@ -177,7 +180,7 @@ class AttrObject(Object8):
                 bset = False
             else:
                 self.set(objectAttrFromChar(c), bset)
-    #                print "setAttr({}, {})".format(attr, bset)
+    #                print("setAttr({}, {})".format(attr, bset))
                 bset = True
 
         
@@ -210,7 +213,7 @@ class CompressionObject(Object8):
         if isNumberType(s):
             self.__compressionType = s
         else:
-            self.__compressionType = CompressionType.__dict__[s]
+            self.__compressionType = CompressionType.__members__[s]
 
     def content(self):
         return struct.pack("<B", self.__compressionType)
@@ -219,7 +222,7 @@ class CompressionObject(Object8):
         return self.__compressionType
 
     def toString(self):
-        return CompressionType.strings[self.__compressionType]
+        return self.__compressionType.name
 
 
 class AceObject(Object8):
@@ -228,7 +231,7 @@ class AceObject(Object8):
         if isNumberType(s):
             self.__role = s
         else:
-            self.__role = UserRole.__dict__[s]
+            self.__role = UserRole.__members__[s]
 #        print "Adding ACE {}, {}, {}".format(obt, s, self.toString())
 
     def content(self):
@@ -238,7 +241,7 @@ class AceObject(Object8):
         return self.__role
 
     def toString(self):
-        return UserRole.strings[self.__role]
+        return self.__role.name
 
 
 class ObjectStoreObject(Object8):
@@ -330,7 +333,7 @@ class NamedObject(Object16):
         return size
 
     def childTable(self):
-        table = ''
+        table = b''
         for obj in self.__children:
             if obj.isRef:
                 table += obj.refHeader()
@@ -338,7 +341,7 @@ class NamedObject(Object16):
                 table += util.pad(obj.header() + obj.content())
         cts = self.childTableSize()
         if len(table) != cts:
-            print "len(table) = {}, cts = {}".format(len(table), cts)
+            print("len(table) = {}, cts = {}".format(len(table), cts))
             assert(False)
         return table
 
@@ -348,8 +351,8 @@ class NamedObject(Object16):
         
     # Fetch the content - must be called after object indices have been assigned
     def content(self):
-        s = struct.pack("<BL", len(self.name), self.mtime);
-        s += util.pad(self.name)
+        s = struct.pack("<BL", len(self.name), round(self.mtime))
+        s += util.pad(self.name.encode())
         s += self.childTable()
         return s;
 
@@ -369,7 +372,7 @@ class NamedObject(Object16):
 
     def appendACE(self, obt, role):
         if not isNumberType(role):
-            role = UserRole.__dict__[role]
+            role = UserRole.__members__[role]
         ace = self.findInheritableObject(obt)
         if ace is None or ace.role() != role:
             AceObject(self, obt, role)
@@ -411,7 +414,7 @@ class NamedObject(Object16):
         elif length <= 0xffffff:
             Object24(self, FwObt.Data24, content)
         else:
-            print "Object data too large"
+            print("Object data too large")
             exit(1)
 
         self.__originalDataSize += originalSize;
@@ -545,7 +548,7 @@ class Image:
         self.__fout.write(header)
         self.__fout.write(content)
         size = len(header) + len(content)
-        self.__fout.write("".ljust(util.alignUp(size) - size, '\0'))
+        self.__fout.write(b''.ljust(util.alignUp(size) - size, b'\0'))
         self.__objectCount += 1
         objID = self.__objectCount
         return objID

@@ -10,7 +10,7 @@ def alignUp(n):
     return (n + 3) & ~0x00000003
 
 def pad(x):
-    return x.ljust(alignUp(len(x)), '\0')
+    return x.ljust(alignUp(len(x)), b'\0')
 
 def _BV(x):
     return 1 << x
