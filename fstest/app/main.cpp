@@ -21,7 +21,7 @@
 #include "except.h"
 #include "flashmem.h"
 #include "IFS/HybridFileSystem.h"
-#include "StdFileMedia.h"
+#include "../../ifs-host/StdFileMedia.h"
 #include "IFS/IFSFlashMedia.h"
 #include "IFS/FWObjectStore.h"
 #include "IFS/SPIFFSObjectStore.h"
