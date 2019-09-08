@@ -196,7 +196,7 @@ int FirmwareFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 		newOffset += (int)fd.dataSize;
 	}
 
-	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
+//	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
 
 	if((uint32_t)newOffset > fd.dataSize) {
 		return FSERR_SeekBounds;
