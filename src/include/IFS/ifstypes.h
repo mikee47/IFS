@@ -9,10 +9,11 @@
 
 #pragma once
 
-#include <user_config.h>
+#include <assert.h>
 #include <time.h>
-#include <FakePgmSpace.h>
+#include <debug_progmem.h>
 #include <BitManipulations.h>
-#include <Services/Profiling/ElapseTimer.h>
+#include <stringutil.h>
+#include <sming_attr.h>
 
 #define snprintf(_buf, _length, _fmt, ...) m_snprintf(_buf, _length, _fmt, ##__VA_ARGS__)
