@@ -454,7 +454,7 @@ SpiffsMetaBuffer* SPIFlashFileSystem::cacheMeta(file_t file)
 		return nullptr;
 	}
 
-	memset(smb, 0xFF, sizeof(SpiffsMetaBuffer));
+	memset(smb->buffer, 0xFF, sizeof(SpiffsMetaBuffer));
 
 	spiffs_stat stat;
 	int res = SPIFFS_fstat(handle(), file, &stat);

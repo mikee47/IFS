@@ -53,8 +53,8 @@ UserRole getUserRole(char c, UserRole _default);
  */
 struct FileACL {
 	/* Minimum access permissions */
-	UserRole readAccess;
-	UserRole writeAccess;
+	UserRole readAccess : 8;
+	UserRole writeAccess : 8;
 };
 
 char* fileAclToStr(FileACL acl, char* buf, size_t bufSize);

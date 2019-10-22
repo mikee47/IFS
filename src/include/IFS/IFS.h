@@ -61,8 +61,8 @@ struct FileStat {
 	fileid_t id = 0;		   ///< Internal file identifier
 	CompressionType compression = CompressionType::None;
 	FileAttributes attr = 0;
-	FileACL acl;	  ///< Access Control
-	time_t mtime = 0; ///< File modification time
+	FileACL acl = {UserRole::None, UserRole::None}; ///< Access Control
+	time_t mtime = 0;								///< File modification time
 
 	FileStat()
 	{
@@ -80,19 +80,20 @@ struct FileStat {
 	 */
 	FileStat& operator=(const FileStat& rhs)
 	{
-		NameBuffer tmp = name;
-		memcpy(this, &rhs, sizeof(rhs));
-		name = tmp;
+		fs = rhs.fs;
 		name.copy(rhs.name);
+		size = rhs.size;
+		id = rhs.id;
+		compression = rhs.compression;
+		attr = rhs.attr;
+		acl = rhs.acl;
+		mtime = rhs.mtime;
 		return *this;
 	}
 
 	void clear()
 	{
-		NameBuffer tmp = name;
-		memset(this, 0, sizeof(*this));
-		name.buffer = tmp.buffer;
-		name.size = tmp.size;
+		*this = FileStat();
 	}
 };
 
@@ -140,12 +141,21 @@ struct FileSystemInfo {
 		name.length = buflen;
 	}
 
+	FileSystemInfo& operator=(const FileSystemInfo& rhs)
+	{
+		type = rhs.type;
+		media = rhs.media;
+		attr = rhs.attr;
+		volumeID = rhs.volumeID;
+		name.copy(rhs.name);
+		volumeSize = rhs.volumeSize;
+		freeSpace = rhs.freeSpace;
+		return *this;
+	}
+
 	void clear()
 	{
-		NameBuffer tmp = name;
-		memset(this, 0, sizeof(*this));
-		name.buffer = tmp.buffer;
-		name.size = tmp.size;
+		*this = FileSystemInfo();
 	}
 };
 

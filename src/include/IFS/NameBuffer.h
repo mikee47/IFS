@@ -53,8 +53,9 @@ struct NameBuffer {
 	{
 		length = srclen;
 		uint16_t copylen = std::min(srclen, size);
-		if(copylen)
+		if(copylen != 0) {
 			memcpy(buffer, src, copylen);
+		}
 		terminate();
 		return (copylen == srclen) ? FS_OK : FSERR_BufferTooSmall;
 	}
