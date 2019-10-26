@@ -482,10 +482,10 @@ int32_t HybridFileSystem::tell(file_t file)
 	return fs->tell(file);
 }
 
-int HybridFileSystem::truncate(file_t file)
+int HybridFileSystem::truncate(file_t file, size_t new_size)
 {
 	GET_FS(file)
-	return fs->truncate(file);
+	return fs->truncate(file, new_size);
 }
 
 int HybridFileSystem::flush(file_t file)

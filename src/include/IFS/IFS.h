@@ -327,7 +327,7 @@ public:
      *  @retval int new file size, or error code
      *  @note Changes the file size
      */
-	virtual int truncate(file_t file) = 0;
+	virtual int truncate(file_t file, size_t new_size) = 0;
 
 	/** @brief flush any buffered data to physical media
      *  @param file handle to open file

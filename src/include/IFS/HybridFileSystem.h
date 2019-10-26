@@ -66,7 +66,7 @@ public:
 	int lseek(file_t file, int offset, SeekOriginFlags origin) override;
 	int eof(file_t file) override;
 	int32_t tell(file_t file) override;
-	int truncate(file_t file) override;
+	int truncate(file_t file, size_t new_size) override;
 	int flush(file_t file) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;

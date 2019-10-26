@@ -58,10 +58,7 @@ public:
 	int lseek(file_t file, int offset, SeekOriginFlags origin) override;
 	int eof(file_t file) override;
 	int32_t tell(file_t file) override;
-	int truncate(file_t file) override
-	{
-		return FSERR_ReadOnly;
-	}
+	int truncate(file_t file, size_t new_size) override;
 	int flush(file_t file) override
 	{
 		return FSERR_ReadOnly;

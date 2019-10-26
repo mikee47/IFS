@@ -381,33 +381,9 @@ int32_t SPIFlashFileSystem::tell(file_t file)
 	return SPIFFS_tell(handle(), file);
 }
 
-/*
- * Truncate SPIFFS file at current file position.
- * This method is not provided by SPIFFS hydrogen so included here.
- */
-static s32_t SPIFFS_truncate(spiffs* fs, spiffs_file fh)
+int SPIFlashFileSystem::truncate(file_t file, size_t new_size)
 {
-	SPIFFS_API_CHECK_CFG(fs);
-	SPIFFS_API_CHECK_MOUNT(fs);
-	SPIFFS_LOCK(fs);
-
-	spiffs_fd* fd;
-	s32_t res;
-
-	fh = SPIFFS_FH_UNOFFS(fs, fh);
-	res = spiffs_fd_get(fs, fh, &fd);
-	SPIFFS_API_CHECK_RES_UNLOCK(fs, res);
-
-	res = spiffs_object_truncate(fd, fd->fdoffset, 0);
-	SPIFFS_API_CHECK_RES_UNLOCK(fs, res);
-
-	SPIFFS_UNLOCK(fs);
-	return 0;
-}
-
-int SPIFlashFileSystem::truncate(file_t file)
-{
-	return SPIFFS_truncate(handle(), file);
+	return SPIFFS_ftruncate(handle(), file, new_size);
 }
 
 int SPIFlashFileSystem::flush(file_t file)

@@ -200,3 +200,8 @@ int32_t StdFileSystem::tell(file_t file)
 {
 	return ::lseek(file, 0, SEEK_CUR);
 }
+
+int truncate(file_t file, size_t new_size)
+{
+	return ::ftruncate(file, new_size);
+}
