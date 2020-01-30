@@ -38,9 +38,11 @@
  */
 #define FFS_MAX_FILEDESC 8
 
+#pragma pack(1)
+
 /** @brief Content of SPIFFS metadata area
  */
-struct __packed FileMeta {
+struct FileMeta {
 	// Modification time
 	time_t mtime;
 	// FileAttr - default indicates content has changed
@@ -71,6 +73,8 @@ union SpiffsMetaBuffer {
 	uint8_t buffer[SPIFFS_OBJ_META_LEN] = {0};
 	FileMeta meta;
 };
+
+#pragma pack()
 
 /*
  * Wraps SPIFFS
