@@ -12,11 +12,11 @@
 
 int FWObjectStore::initialise()
 {
-	if(!_media)
+	if(!media)
 		return FSERR_NoMedia;
 
 	uint32_t marker;
-	int res = _media->read(0, sizeof(marker), &marker);
+	int res = media->read(0, sizeof(marker), &marker);
 	if(res < 0) {
 		return res;
 	}
@@ -34,7 +34,7 @@ int FWObjectStore::mounted(const FWObjDesc& od)
 	// Check the end marker
 	uint32_t marker;
 	auto offset = FWFS_BASE_OFFSET + od.nextOffset();
-	int res = _media->read(offset, sizeof(marker), &marker);
+	int res = media->read(offset, sizeof(marker), &marker);
 	if(res >= 0) {
 		if(marker != FWFILESYS_END_MARKER) {
 			debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
@@ -43,12 +43,12 @@ int FWObjectStore::mounted(const FWObjDesc& od)
 	}
 
 #ifdef FWFS_OBJECT_CACHE
-	_cache.initialise(od.obj.id + 1);
+	cache.initialise(od.obj.id + 1);
 #endif
 
 	// Tell media how much space we actually need to access, with a bounds check on the media limits
-	res = _media->setExtent(offset);
-	_mounted = (res >= 0);
+	res = media->setExtent(offset);
+	flags.mounted = (res >= 0);
 	return res;
 }
 
@@ -61,8 +61,8 @@ int FWObjectStore::open(FWObjDesc& od)
 	od.ref.offset = 0;
 	od.ref.id = 1; // We don't use id #0
 
-	if(objId > _lastFound.id && _lastFound.id > od.ref.id) {
-		od.ref = _lastFound;
+	if(objId > lastFound.id && lastFound.id > od.ref.id) {
+		od.ref = lastFound;
 	}
 
 	int res;
@@ -71,7 +71,7 @@ int FWObjectStore::open(FWObjDesc& od)
 	}
 
 	if(res >= 0) {
-		_lastFound = od.ref;
+		lastFound = od.ref;
 	} else if(res == FSERR_NoMoreFiles) {
 		res = FSERR_NotFound;
 	}
@@ -118,7 +118,7 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 	if(od.ref.offset == 0) {
 		od.ref.id = 1;
 	}
-	int res = _media->read(FWFS_BASE_OFFSET + od.ref.offset, sizeof(od.obj), &od.obj);
+	int res = media->read(FWFS_BASE_OFFSET + od.ref.offset, sizeof(od.obj), &od.obj);
 
 	/*
 	During volume mount, readHeader() is called repeatedly to iterate base objects.
@@ -139,10 +139,10 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 
 #ifdef FWFS_OBJECT_CACHE
 	if(res >= 0) {
-		if(_mounted) {
-			_cache.improve(od.ref, objIndex);
+		if(flags.mounted) {
+			cache.improve(od.ref, objIndex);
 		} else {
-			_cache.add(od.ref);
+			cache.add(od.ref);
 		}
 	}
 #endif
@@ -167,5 +167,5 @@ int FWObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
 int FWObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 {
 	offset += FWFS_BASE_OFFSET + od.contentOffset();
-	return _media->read(offset, size, buffer);
+	return media->read(offset, size, buffer);
 }

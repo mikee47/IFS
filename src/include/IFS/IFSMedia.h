@@ -53,16 +53,6 @@ struct FSExtent {
 	uint32_t start = 0;
 	uint32_t length = 0;
 
-	FSExtent()
-	{
-	}
-
-	FSExtent(uint32_t start, uint32_t length)
-	{
-		this->start = start;
-		this->length = length;
-	}
-
 	// Last valid address in this extent
 	uint32_t end() const
 	{
@@ -81,14 +71,14 @@ struct FSExtent {
 		uint32_t off = _off;                                                                                           \
 		size_t sz = _sz;                                                                                               \
 		if(!checkExtent(off, sz)) {                                                                                    \
-			debug_e("%s(0x%08x, %u): Bad Extent, media size = 0x%08x", __PRETTY_FUNCTION__, off, sz, _size);           \
+			debug_e("%s(0x%08x, %u): Bad Extent, media size = 0x%08x", __PRETTY_FUNCTION__, off, sz, m_size);          \
 			assert(false);                                                                                             \
 			return FSERR_BadExtent;                                                                                    \
 		}                                                                                                              \
 	}
 
 #define FS_CHECK_WRITEABLE()                                                                                           \
-	if(_attr & eFMA_ReadOnly) {                                                                                        \
+	if(m_attr & eFMA_ReadOnly) {                                                                                       \
 		return FSERR_ReadOnly;                                                                                         \
 	}
 
@@ -101,7 +91,7 @@ struct FSExtent {
 class IFSMedia
 {
 public:
-	IFSMedia(uint32_t size, FSMediaAttributes attr) : _size(size), _attr(attr)
+	IFSMedia(uint32_t size, FSMediaAttributes attr) : m_size(size), m_attr(attr)
 	{
 	}
 
@@ -118,23 +108,23 @@ public:
 	 */
 	virtual int setExtent(uint32_t size)
 	{
-		if(size > _size) {
+		if(size > m_size) {
 			return FSERR_BadExtent;
 		}
 
-		_size = size;
+		m_size = size;
 		return FS_OK;
 	}
 
 	/** @brief get the size of this media in bytes */
 	uint32_t mediaSize() const
 	{
-		return _size;
+		return m_size;
 	}
 
 	FSMediaAttributes attr() const
 	{
-		return _attr;
+		return m_attr;
 	}
 
 	FSMediaType type() const
@@ -197,10 +187,10 @@ public:
 	/** @brief check whether the given extent is valid for this media */
 	bool checkExtent(uint32_t offset, uint32_t size) const
 	{
-		return offset <= _size && (offset + size) <= _size;
+		return offset <= m_size && (offset + size) <= m_size;
 	}
 
 protected:
-	uint32_t _size;			 ///< Size of media in bytes (always starts at 0)
-	FSMediaAttributes _attr; ///< Specific media attributes
+	uint32_t m_size;		  ///< Size of media in bytes (always starts at 0)
+	FSMediaAttributes m_attr; ///< Specific media attributes
 };

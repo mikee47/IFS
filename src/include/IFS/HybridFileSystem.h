@@ -38,7 +38,7 @@
 class HybridFileSystem : public IFileSystem
 {
 public:
-	HybridFileSystem(IFSObjectStore* fwStore, IFSMedia* ffsMedia) : _fw(fwStore), _ffs(ffsMedia)
+	HybridFileSystem(IFSObjectStore* fwStore, IFSMedia* ffsMedia) : fwfs(fwStore), ffs(ffsMedia)
 	{
 	}
 
@@ -75,20 +75,21 @@ public:
 	int check() override;
 	int isfile(file_t file) override
 	{
-		int res = _fw.isfile(file);
-		if(res != FS_OK)
-			res = _ffs.isfile(file);
+		int res = fwfs.isfile(file);
+		if(res != FS_OK) {
+			res = ffs.isfile(file);
+		}
 		return res;
 	}
 
 private:
-	int _hideFWFile(const char* path, bool hide);
-	bool _isFWFileHidden(const FileStat& fwstat);
+	int hideFWFile(const char* path, bool hide);
+	bool isFWFileHidden(const FileStat& fwstat);
 
 private:
-	FirmwareFileSystem _fw;
-	SPIFlashFileSystem _ffs;
+	FirmwareFileSystem fwfs;
+	SPIFlashFileSystem ffs;
 #if HYFS_HIDE_FLAGS == 1
-	Vector<fileid_t> m_hiddenFWFiles;
+	Vector<fileid_t> hiddenFwFiles;
 #endif
 };

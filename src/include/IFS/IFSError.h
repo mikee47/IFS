@@ -61,7 +61,7 @@ enum IFSError {
 };
 
 // Success code
-const int FS_OK = eFSERR_OK;
+constexpr int FS_OK = eFSERR_OK;
 
 // Define the FSERR_xxx codes as negative versions of the enumerated values
 #define XX(_tag, _text) const int FSERR_##_tag = -eFSERR_##_tag;
@@ -69,7 +69,7 @@ FSERROR_MAP(XX)
 #undef XX
 
 // Start of user-defined error codes
-#define FSERR_USER -64
+constexpr int FSERR_USER = -64;
 
 /** @brief get text for an error code
  *  @param err

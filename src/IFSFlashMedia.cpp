@@ -21,23 +21,23 @@ static inline uint32_t getMaxSize(uint32_t startAddress)
 }
 
 IFSFlashMedia::IFSFlashMedia(uint32_t startAddress, uint32_t size, FSMediaAttributes attr)
-	: IFSMedia(std::min(size, getMaxSize(startAddress)), attr), _startAddress(startAddress)
+	: IFSMedia(std::min(size, getMaxSize(startAddress)), attr), m_startAddress(startAddress)
 {
 }
 
 IFSFlashMedia::IFSFlashMedia(uint32_t startAddress, FSMediaAttributes attr)
-	: IFSMedia(getMaxSize(startAddress), attr), _startAddress(startAddress)
+	: IFSMedia(getMaxSize(startAddress), attr), m_startAddress(startAddress)
 {
 }
 
 IFSFlashMedia::IFSFlashMedia(const void* startPtr, FSMediaAttributes attr)
-	: IFSMedia(getMaxSize(flashmem_get_address(startPtr)), attr), _startAddress(flashmem_get_address(startPtr))
+	: IFSMedia(getMaxSize(flashmem_get_address(startPtr)), attr), m_startAddress(flashmem_get_address(startPtr))
 {
 }
 
 int IFSFlashMedia::setExtent(uint32_t size)
 {
-	if((_startAddress + size) > (uint32_t)INTERNAL_FLASH_SIZE)
+	if((m_startAddress + size) > (uint32_t)INTERNAL_FLASH_SIZE)
 		return FSERR_BadExtent;
 
 	return IFSMedia::setExtent(size);
@@ -53,7 +53,7 @@ int IFSFlashMedia::read(uint32_t offset, uint32_t size, void* buffer)
 	//	m_printf("FSM(0x%08X, 0x%08X, %u, 0x%08X): ", _startAddress, offset, size, buffer);
 
 	FS_CHECK_EXTENT(offset, size);
-	uint32_t res = flashmem_read(buffer, _startAddress + offset, size);
+	uint32_t res = flashmem_read(buffer, m_startAddress + offset, size);
 
 	//	m_printf("%u\n", res);
 
@@ -65,7 +65,7 @@ int IFSFlashMedia::write(uint32_t offset, uint32_t size, const void* data)
 	FS_CHECK_EXTENT(offset, size);
 	FS_CHECK_WRITEABLE();
 
-	uint32_t res = flashmem_write(data, _startAddress + offset, size);
+	uint32_t res = flashmem_write(data, m_startAddress + offset, size);
 	return (res == size) ? FS_OK : FSERR_WriteFailure;
 }
 
@@ -74,7 +74,7 @@ int IFSFlashMedia::erase(uint32_t offset, uint32_t size)
 	FS_CHECK_EXTENT(offset, size);
 	FS_CHECK_WRITEABLE();
 
-	uint32_t sect_first = flashmem_get_sector_of_address(_startAddress + offset);
+	uint32_t sect_first = flashmem_get_sector_of_address(m_startAddress + offset);
 	uint32_t sect_last = sect_first;
 	while(sect_first <= sect_last) {
 		if(!flashmem_erase_sector(sect_first++)) {

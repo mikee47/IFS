@@ -50,5 +50,5 @@ public:
 	int erase(uint32_t offset, uint32_t size) override;
 
 private:
-	uint32_t _startAddress;
+	uint32_t m_startAddress;
 };

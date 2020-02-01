@@ -82,7 +82,7 @@ union SpiffsMetaBuffer {
 class SPIFlashFileSystem : public IFileSystem
 {
 public:
-	SPIFlashFileSystem(IFSMedia* media) : _media(media)
+	SPIFlashFileSystem(IFSMedia* media) : media(media)
 	{
 	}
 
@@ -126,7 +126,7 @@ public:
 private:
 	spiffs* handle()
 	{
-		return &_fs;
+		return &fs;
 	}
 
 	int _mount(spiffs_config& cfg);
@@ -147,10 +147,10 @@ private:
 	}
 
 private:
-	IFSMedia* _media = nullptr;
-	SpiffsMetaBuffer _metaCache[FFS_MAX_FILEDESC];
-	spiffs _fs;
-	uint8_t* _work_buf = nullptr;
-	uint8_t* _fds = nullptr;
-	u8_t* _cache = nullptr;
+	IFSMedia* media = nullptr;
+	SpiffsMetaBuffer metaCache[FFS_MAX_FILEDESC];
+	spiffs fs;
+	uint8_t* workBuffer = nullptr;
+	uint8_t* fileDescriptors = nullptr;
+	u8_t* cache = nullptr;
 };

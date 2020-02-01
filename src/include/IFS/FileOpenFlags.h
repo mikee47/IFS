@@ -30,7 +30,7 @@ enum class FileOpenFlag {
 };
 
 // The set of flags
-typedef uint8_t FileOpenFlags;
+using FileOpenFlags = uint8_t;
 
 // Various file flag combinations
 const FileOpenFlags eFO_ReadOnly = _BV(FileOpenFlag::Read);

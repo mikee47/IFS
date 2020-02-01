@@ -21,13 +21,13 @@
 class FWObjectStore : public IFSObjectStore
 {
 public:
-	FWObjectStore(IFSMedia* media) : _media(media)
+	FWObjectStore(IFSMedia* media) : media(media)
 	{
 	}
 
 	~FWObjectStore() override
 	{
-		delete _media;
+		delete media;
 	}
 
 	int initialise() override;
@@ -35,7 +35,7 @@ public:
 
 	bool isMounted() override
 	{
-		return _mounted;
+		return flags.mounted;
 	}
 
 	int open(FWObjDesc& od) override;
@@ -47,14 +47,17 @@ public:
 
 	IFSMedia* getMedia() override
 	{
-		return _media;
+		return media;
 	}
 
 private:
-	IFSMedia* _media = nullptr;
-	FWObjRef _lastFound;
-	bool _mounted = false;
+	IFSMedia* media = nullptr;
+	FWObjRef lastFound;
+	struct Flags {
+		bool mounted;
+	};
+	Flags flags{};
 #ifdef FWFS_OBJECT_CACHE
-	FWObjRefCache _cache;
+	FWObjRefCache cache;
 #endif
 };

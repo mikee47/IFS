@@ -17,20 +17,21 @@
 #endif
 
 #define CHECK_FILE()                                                                                                   \
-	if(_file < 0)                                                                                                      \
-		return FSERR_NoMedia;
+	if(m_file < 0) {                                                                                                   \
+		return FSERR_NoMedia;                                                                                          \
+	}
 
 #define SEEK(_offset)                                                                                                  \
 	{                                                                                                                  \
 		auto off = _offset;                                                                                            \
-		if(lseek(_file, off, SEEK_SET) != (int)off)                                                                    \
+		if(lseek(m_file, off, SEEK_SET) != (int)off)                                                                   \
 			return FSERR_BadExtent;                                                                                    \
 	}
 
 StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, FSMediaAttributes attr)
 	: IFSMedia(size, attr)
 {
-	_blockSize = blockSize;
+	m_blockSize = blockSize;
 
 	int file = open(filename, O_BINARY | O_CREAT | ((attr & eFMA_ReadOnly) ? O_RDONLY : O_RDWR), 0644);
 	if(file < 0) {
@@ -49,27 +50,31 @@ StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSi
 		size = len;
 	} else if((int)size > len && !(attr & eFMA_ReadOnly)) {
 		if(ftruncate(file, size) < 0) {
-			::close(_file);
+			::close(m_file);
 			return;
 		}
 	}
 
 	debug_i("Opened file media '%s', %u bytes", filename, size);
 
-	_size = size;
-	_file = file;
+	m_size = size;
+	m_file = file;
 }
 
 StdFileMedia::~StdFileMedia()
 {
-	if(_file >= 0) {
-		close(_file);
+	if(m_file >= 0) {
+		close(m_file);
 	}
 }
 
 FSMediaInfo StdFileMedia::getinfo() const
 {
-	FSMediaInfo info = {.type = eFMT_Disk, .bus = eBus_System, .blockSize = _blockSize};
+	FSMediaInfo info{
+		.type = eFMT_Disk,
+		.bus = eBus_System,
+		.blockSize = m_blockSize,
+	};
 
 	return info;
 }
@@ -79,7 +84,7 @@ int StdFileMedia::read(uint32_t offset, uint32_t size, void* buffer)
 	CHECK_FILE();
 	FS_CHECK_EXTENT(offset, size);
 	SEEK(offset);
-	int n = ::read(_file, buffer, size);
+	int n = ::read(m_file, buffer, size);
 	return (n == (int)size) ? FS_OK : FSERR_ReadFailure;
 }
 
@@ -89,7 +94,7 @@ int StdFileMedia::write(uint32_t offset, uint32_t size, const void* data)
 	FS_CHECK_EXTENT(offset, size);
 	FS_CHECK_WRITEABLE();
 	SEEK(offset);
-	int n = ::write(_file, data, size);
+	int n = ::write(m_file, data, size);
 	return (n == (int)size) ? FS_OK : FSERR_WriteFailure;
 }
 

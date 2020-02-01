@@ -33,7 +33,7 @@ enum class FileAttr : uint8_t {
 };
 
 /** @brief File attributes are stored as a bitmask */
-typedef uint8_t FileAttributes;
+using FileAttributes = uint8_t;
 
 /** @brief Get the string representation for the given set of file attributes
  *  @param attr

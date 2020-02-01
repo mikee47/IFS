@@ -25,7 +25,7 @@ enum class FileSystemAttr {
 };
 
 // The set of attributes
-typedef uint8_t FileSystemAttributes;
+using FileSystemAttributes = uint8_t;
 
 /** @brief Get the string representation for the given set of filesystem attributes
  *  @param attr

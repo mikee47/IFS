@@ -16,7 +16,7 @@
  */
 
 #define CHECK_MOUNTED()                                                                                                \
-	if(!_volumes[0].isMounted()) {                                                                                     \
+	if(!volumes[0].isMounted()) {                                                                                      \
 		return FSERR_NotMounted;                                                                                       \
 	}
 
@@ -25,7 +25,7 @@
 	if(file < FWFS_HANDLE_MIN || file > FWFS_HANDLE_MAX) {                                                             \
 		return FSERR_InvalidHandle;                                                                                    \
 	}                                                                                                                  \
-	auto& fd = _fds[file - FWFS_HANDLE_MIN];                                                                           \
+	auto& fd = fileDescriptors[file - FWFS_HANDLE_MIN];                                                                \
 	if(!bitRead(fd.attr, fwfda_Allocated)) {                                                                           \
 		return FSERR_FileNotOpen;                                                                                      \
 	}
@@ -69,7 +69,7 @@ int FirmwareFileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 	stat.fs = this;
 	stat.id = entry.ref.fileID();
 	stat.mtime = entry.obj.data16.named.mtime;
-	stat.acl = _rootACL;
+	stat.acl = rootACL;
 	stat.size = 0;
 
 	int res;
@@ -132,7 +132,7 @@ int FirmwareFileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 int FirmwareFileSystem::findUnusedDescriptor()
 {
 	for(int i = 0; i < FWFS_MAX_FDS; ++i) {
-		if(!bitRead(_fds[i].attr, fwfda_Allocated)) {
+		if(!bitRead(fileDescriptors[i].attr, fwfda_Allocated)) {
 			return i;
 		}
 	}
@@ -196,7 +196,7 @@ int FirmwareFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 		newOffset += (int)fd.dataSize;
 	}
 
-//	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
+	//	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
 
 	if((uint32_t)newOffset > fd.dataSize) {
 		return FSERR_SeekBounds;
@@ -212,7 +212,7 @@ int FirmwareFileSystem::setVolume(uint8_t num, IFSObjectStore* store)
 		return FSERR_BadStore;
 	}
 
-	auto& vol = _volumes[num];
+	auto& vol = volumes[num];
 	delete vol.store;
 	vol.store = store;
 	vol.ref.storenum = num;
@@ -222,7 +222,7 @@ int FirmwareFileSystem::setVolume(uint8_t num, IFSObjectStore* store)
 int FirmwareFileSystem::mount()
 {
 	// Store #0 is mandatory
-	auto& vol = _volumes[0];
+	auto& vol = volumes[0];
 	int res = mountVolume(vol);
 	if(res < 0) {
 		return res;
@@ -235,7 +235,7 @@ int FirmwareFileSystem::mount()
 	}
 	FileStat stat;
 	fillStat(stat, odRoot);
-	_rootACL = stat.acl;
+	rootACL = stat.acl;
 	closeObject(odRoot);
 
 	// Other volumes are mounted as required
@@ -313,7 +313,7 @@ int FirmwareFileSystem::getinfo(FileSystemInfo& info)
 {
 	int res = FS_OK;
 
-	auto& volume = _volumes[0];
+	auto& volume = volumes[0];
 
 	info.clear();
 	info.type = FileSystemType::FWFS;
@@ -371,7 +371,7 @@ int FirmwareFileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDe
 		return FSERR_BadStore;
 	}
 
-	auto& vol = _volumes[storenum];
+	auto& vol = volumes[storenum];
 	if(!vol.isMounted()) {
 		res = mountVolume(vol);
 		if(res < 0) {
@@ -463,7 +463,7 @@ file_t FirmwareFileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 		return descriptorIndex;
 	}
 
-	auto& fd = _fds[descriptorIndex];
+	auto& fd = fileDescriptors[descriptorIndex];
 
 	// Default to empty file (i.e. no data object)
 	fd.odFile = odFile;
@@ -525,7 +525,7 @@ int FirmwareFileSystem::opendir(const char* path, filedir_t* dir)
 int FirmwareFileSystem::fopendir(const FileStat* stat, filedir_t* dir)
 {
 	return FSERR_NotImplemented;
-/*
+	/*
 
 	CHECK_MOUNTED();
 	if(dir == nullptr) {
@@ -622,7 +622,7 @@ int FirmwareFileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 #endif
 
 	// Start with the root directory object
-	int res = openRootObject(_volumes[0], od);
+	int res = openRootObject(volumes[0], od);
 	if(res < 0) {
 		return res;
 	}
@@ -763,7 +763,7 @@ int FirmwareFileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
 {
 	int res = FS_OK;
 
-	auto& vol = _volumes[0];
+	auto& vol = volumes[0];
 
 	// Could be the root directory object itself
 	if(vol.ref.fileID() == fileid) {

@@ -30,14 +30,14 @@
  *
  * References an open file
  */
-typedef int16_t file_t;
+using file_t = int16_t;
 
 /*
  * File identifier
  *
  * Contained within FileStat, uniquely identifies any file on the file system.
  */
-typedef uint32_t fileid_t;
+using fileid_t = uint32_t;
 
 /** @brief File seek origin flags
  *  @note these values are fixed in stone so will never change. They only need to
@@ -111,7 +111,7 @@ private:
 };
 
 // Opaque structure for directory reading
-typedef struct FileDir* filedir_t;
+using filedir_t = struct FileDir*;
 
 /** @brief Get current timestamp in UTC
  *  @retval time_t

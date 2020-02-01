@@ -104,10 +104,10 @@ static void copyMeta(FileStat& stat, const FileMeta& meta)
 SPIFlashFileSystem::~SPIFlashFileSystem()
 {
 	SPIFFS_unmount(handle());
-	delete[] _cache;
-	delete[] _fds;
-	delete[] _work_buf;
-	delete _media;
+	delete[] cache;
+	delete[] fileDescriptors;
+	delete[] workBuffer;
+	delete media;
 }
 
 static inline uint32_t Align(uint32_t value, uint32_t gran)
@@ -139,20 +139,20 @@ static s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
 
 int SPIFlashFileSystem::mount()
 {
-	if(!_media)
+	if(!media)
 		return FSERR_NoMedia;
 
-	uint32_t blockSize = _media->blockSize();
+	uint32_t blockSize = media->blockSize();
 	if(blockSize < MIN_BLOCKSIZE)
 		blockSize = Align(MIN_BLOCKSIZE, blockSize);
 
-	_fs.user_data = _media;
+	fs.user_data = media;
 	spiffs_config cfg;
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.hal_read_f = f_read;
 	cfg.hal_write_f = f_write;
 	cfg.hal_erase_f = f_erase;
-	cfg.phys_size = _media->mediaSize();
+	cfg.phys_size = media->mediaSize();
 	cfg.phys_addr = 0; // Media object extents start at 0
 	cfg.phys_erase_block = blockSize;
 	cfg.log_block_size = blockSize * 2;
@@ -168,11 +168,11 @@ int SPIFlashFileSystem::mount()
 
 	//  debug_i("FFS offset: 0x%08x, size: %u Kb, \n", cfg.phys_addr, cfg.phys_size / 1024);
 
-	_work_buf = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
-	_fds = new uint8_t[FDS_BUF_SIZE(FFS_MAX_FILEDESC)];
-	_cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
+	workBuffer = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
+	fileDescriptors = new uint8_t[FDS_BUF_SIZE(FFS_MAX_FILEDESC)];
+	cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
 
-	if(!_work_buf || !_fds || !_cache) {
+	if(!workBuffer || !fileDescriptors || !cache) {
 		return FSERR_NoMem;
 	}
 
@@ -195,7 +195,7 @@ int SPIFlashFileSystem::mount()
 
 int SPIFlashFileSystem::_mount(spiffs_config& cfg)
 {
-	auto res = SPIFFS_mount(handle(), &cfg, _work_buf, _fds, FDS_BUF_SIZE(FFS_MAX_FILEDESC), _cache,
+	auto res = SPIFFS_mount(handle(), &cfg, workBuffer, fileDescriptors, FDS_BUF_SIZE(FFS_MAX_FILEDESC), cache,
 							CACHE_SIZE(CACHE_PAGES), nullptr);
 	if(res < 0)
 		debug_ifserr(res, "SPIFFS_mount()");
@@ -207,7 +207,7 @@ int SPIFlashFileSystem::_mount(spiffs_config& cfg)
  */
 int SPIFlashFileSystem::format()
 {
-	spiffs_config cfg = _fs.cfg;
+	spiffs_config cfg = fs.cfg;
 	// Must be unmounted before format is called - see API
 	SPIFFS_unmount(handle());
 	int res = SPIFFS_format(handle());
@@ -220,27 +220,25 @@ int SPIFlashFileSystem::format()
 	return _mount(cfg);
 }
 
-static void check_callback(spiffs* fs, spiffs_check_type type, spiffs_check_report report, u32_t arg1, u32_t arg2)
-{
-	if(report > SPIFFS_CHECK_PROGRESS) {
-		debug_i("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
-	}
-}
-
 int SPIFlashFileSystem::check()
 {
-	_fs.check_cb_f = check_callback;
+	fs.check_cb_f = [](spiffs* fs, spiffs_check_type type, spiffs_check_report report, u32_t arg1, u32_t arg2) {
+		if(report > SPIFFS_CHECK_PROGRESS) {
+			debug_i("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
+		}
+	};
+
 	return SPIFFS_check(handle());
 }
 
 int SPIFlashFileSystem::getinfo(FileSystemInfo& info)
 {
 	info.clear();
-	info.media = _media;
+	info.media = media;
 	info.type = FileSystemType::SPIFFS;
-	info.media = _media;
+	info.media = media;
 	if(SPIFFS_mounted(handle())) {
-		info.volumeID = _fs.config_magic;
+		info.volumeID = fs.config_magic;
 		bitSet(info.attr, FileSystemAttr::Mounted);
 		u32_t total, used;
 		SPIFFS_info(handle(), &total, &used);
@@ -452,7 +450,7 @@ int SPIFlashFileSystem::getMeta(file_t file, SpiffsMetaBuffer*& meta)
 		debug_e("getMeta(%d) - bad file", file);
 		return FSERR_InvalidHandle;
 	}
-	meta = &_metaCache[off];
+	meta = &metaCache[off];
 	return FS_OK;
 }
 

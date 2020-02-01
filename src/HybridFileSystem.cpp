@@ -70,10 +70,10 @@
 		return __file;                                                                                                 \
 	}                                                                                                                  \
 	IFileSystem* fs;                                                                                                   \
-	if(_fw.isfile(file) == FS_OK) {                                                                                    \
-		fs = &_fw;                                                                                                     \
+	if(fwfs.isfile(file) == FS_OK) {                                                                                   \
+		fs = &fwfs;                                                                                                    \
 	} else {                                                                                                           \
-		fs = &_ffs;                                                                                                    \
+		fs = &ffs;                                                                                                     \
 	}
 
 // opendir() uses this structure to track file listing
@@ -90,9 +90,9 @@ struct FileDir {
 int HybridFileSystem::mount()
 {
 	// Mount both filesystems so they take ownership of the media objects
-	int res = _fw.mount();
+	int res = fwfs.mount();
 	if(res >= 0) {
-		res = _ffs.mount();
+		res = ffs.mount();
 	}
 	return res;
 }
@@ -101,12 +101,12 @@ int HybridFileSystem::getinfo(FileSystemInfo& info)
 {
 	FileSystemInfo ffsinfo;
 	ffsinfo.name = info.name;
-	_ffs.getinfo(ffsinfo);
+	ffs.getinfo(ffsinfo);
 	FileSystemInfo fwinfo;
 	if(info.name.length == 0) {
 		fwinfo.name = info.name;
 	}
-	_fw.getinfo(fwinfo);
+	fwfs.getinfo(fwinfo);
 
 	info.type = FileSystemType::Hybrid;
 	info.attr = fwinfo.attr | ffsinfo.attr;
@@ -124,38 +124,38 @@ int HybridFileSystem::getinfo(FileSystemInfo& info)
  */
 int HybridFileSystem::geterrortext(int err, char* buffer, size_t size)
 {
-	int ret = _ffs.geterrortext(err, buffer, size);
+	int ret = ffs.geterrortext(err, buffer, size);
 	if(ret < 0) {
-		ret = _fw.geterrortext(err, buffer, size);
+		ret = fwfs.geterrortext(err, buffer, size);
 	}
 	return ret;
 }
 
-int HybridFileSystem::_hideFWFile(const char* path, bool hide)
+int HybridFileSystem::hideFWFile(const char* path, bool hide)
 {
 	int res = FS_OK;
 #if HYFS_HIDE_FLAGS == 1
 	FileStat stat;
-	res = _fw.stat(path, &stat);
+	res = fwfs.stat(path, &stat);
 	if(res >= 0) {
 		if(hide) {
-			if(!m_hiddenFWFiles.contains(stat.id)) {
-				m_hiddenFWFiles.add(stat.id);
+			if(!hiddenFwFiles.contains(stat.id)) {
+				hiddenFwFiles.add(stat.id);
 			}
 		} else {
-			m_hiddenFWFiles.removeElement(stat.id);
+			hiddenFwFiles.removeElement(stat.id);
 		}
 	}
 #endif
 	return res;
 }
 
-bool HybridFileSystem::_isFWFileHidden(const FileStat& fwstat)
+bool HybridFileSystem::isFWFileHidden(const FileStat& fwstat)
 {
 #if HYFS_HIDE_FLAGS == 1
-	return m_hiddenFWFiles.contains(fwstat.id);
+	return hiddenFwFiles.contains(fwstat.id);
 #else
-	return _ffs.stat(fwstat.name, nullptr) >= 0;
+	return ffs.stat(fwstat.name, nullptr) >= 0;
 #endif
 }
 
@@ -173,18 +173,18 @@ int HybridFileSystem::opendir(const char* path, filedir_t* dir)
 	}
 
 	// Open directories on both filing systems
-	int res = _ffs.opendir(path, &d->ffs);
+	int res = ffs.opendir(path, &d->ffs);
 	if(res >= 0) {
-		res = _fw.opendir(path, &d->fw);
+		res = fwfs.opendir(path, &d->fw);
 		if(res < 0) {
-			_ffs.closedir(d->ffs);
+			ffs.closedir(d->ffs);
 		}
 	}
 
 	if(res < 0) {
 		delete d;
 	} else {
-		d->fs = &_ffs;
+		d->fs = &ffs;
 		*dir = d;
 	}
 
@@ -200,22 +200,22 @@ int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
 	int res;
 
 	// FFS ?
-	if(dir->fs == &_ffs) {
+	if(dir->fs == &ffs) {
 		// Use a temporary stat in case it's not provided
 		FileStat tmp;
 		if(stat != nullptr) {
 			tmp.name = stat->name;
 		}
-		res = _ffs.readdir(dir->ffs, &tmp);
+		res = ffs.readdir(dir->ffs, &tmp);
 		if(res >= 0) {
 			char buf[SPIFFS_OBJ_NAME_LEN];
 			NameBuffer name(buf, sizeof(buf));
-			int err = _ffs.getFilePath(tmp.id, name);
+			int err = ffs.getFilePath(tmp.id, name);
 			if(err < 0) {
 				debug_e("getFilePath(%u) error %d", tmp.id, err);
 			} else {
 				debug_i("getFilePath(%u) - '%s'", tmp.id, buf);
-				_hideFWFile(name, true);
+				hideFWFile(name, true);
 			}
 			if(stat != nullptr) {
 				*stat = tmp;
@@ -224,17 +224,17 @@ int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
 		}
 
 		// End of FFS files
-		dir->fs = &_fw;
-	} else if(dir->fs != &_fw) {
+		dir->fs = &fwfs;
+	} else if(dir->fs != &fwfs) {
 		return FSERR_BadParam;
 	}
 
 	do {
-		res = _fw.readdir(dir->fw, stat);
+		res = fwfs.readdir(dir->fw, stat);
 		if(res < 0) {
 			break;
 		}
-	} while(_isFWFileHidden(*stat));
+	} while(isFWFileHidden(*stat));
 
 	return res;
 }
@@ -245,8 +245,8 @@ int HybridFileSystem::closedir(filedir_t dir)
 		return FSERR_BadParam;
 	}
 
-	_fw.closedir(dir->fw);
-	_ffs.closedir(dir->ffs);
+	fwfs.closedir(dir->fw);
+	ffs.closedir(dir->ffs);
 	delete dir;
 
 	return FS_OK;
@@ -275,13 +275,13 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 {
 	// If file exists on FFS then open it and return
 	FileStat stat;
-	int res = _ffs.stat(path, &stat);
+	int res = ffs.stat(path, &stat);
 	if(res >= 0) {
-		return _ffs.fopen(stat, flags);
+		return ffs.fopen(stat, flags);
 	}
 
 	// OK, so no FFS file exists. Get the FW file.
-	file_t fwfile = _fw.open(path, eFO_ReadOnly);
+	file_t fwfile = fwfs.open(path, eFO_ReadOnly);
 
 	// If we're only reading the file then return FW file directly
 	if((flags & ~eFO_ReadOnly) == 0) {
@@ -290,12 +290,12 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
-		int err = _fw.fstat(fwfile, &stat);
+		int err = fwfs.fstat(fwfile, &stat);
 		if(err >= 0 && bitRead(stat.attr, FileAttr::ReadOnly)) {
 			err = FSERR_ReadOnly;
 		}
 		if(err < 0) {
-			_fw.close(fwfile);
+			fwfs.close(fwfile);
 			return err;
 		}
 	}
@@ -304,7 +304,7 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 	if(fwfile >= 0) {
 		flags = flags | eFO_CreateIfNotExist | eFO_ReadWrite;
 	}
-	file_t ffsfile = _ffs.open(path, flags);
+	file_t ffsfile = ffs.open(path, flags);
 
 	// If there's no FW file, nothing further to do so return FFS result (success or failure)
 	if(fwfile < 0) {
@@ -313,43 +313,43 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
 
 	// If FFS file creation failed then fail
 	if(ffsfile < 0) {
-		_fw.close(fwfile);
+		fwfs.close(fwfile);
 		return ffsfile;
 	}
 
 	// Copy metadata
-	if(_fw.fstat(fwfile, &stat) >= 0) {
-		_ffs.setacl(ffsfile, &stat.acl);
-		_ffs.setattr(ffsfile, stat.attr);
-		_ffs.settime(ffsfile, stat.mtime);
+	if(fwfs.fstat(fwfile, &stat) >= 0) {
+		ffs.setacl(ffsfile, &stat.acl);
+		ffs.setattr(ffsfile, stat.attr);
+		ffs.settime(ffsfile, stat.mtime);
 	}
 
 	// If not truncating then copy content into FFS file
 	if(!(flags & eFO_Truncate)) {
-		_ffs.lseek(ffsfile, 0, eSO_FileStart);
+		ffs.lseek(ffsfile, 0, eSO_FileStart);
 		uint8_t buffer[512];
-		while(_fw.eof(fwfile) == 0) {
-			int len = _fw.read(fwfile, buffer, sizeof(buffer));
+		while(fwfs.eof(fwfile) == 0) {
+			int len = fwfs.read(fwfile, buffer, sizeof(buffer));
 			//      debug_i("m_fw.read: %d", len);
 			if(len <= 0) {
 				break;
 			}
-			len = _ffs.write(ffsfile, buffer, len);
+			len = ffs.write(ffsfile, buffer, len);
 			//      debug_i("m_ffs.write: %d", len);
 			if(len < 0) {
-				_ffs.fremove(ffsfile);
-				_ffs.close(ffsfile);
-				_fw.close(fwfile);
+				ffs.fremove(ffsfile);
+				ffs.close(ffsfile);
+				fwfs.close(fwfile);
 				return len;
 			}
 		}
 		// Move back to beginning if we're not appending
 		if((flags & eFO_Append) == 0) {
-			_ffs.lseek(ffsfile, 0, eSO_FileStart);
+			ffs.lseek(ffsfile, 0, eSO_FileStart);
 		}
 	}
 
-	_fw.close(fwfile);
+	fwfs.close(fwfile);
 
 	return ffsfile;
 }
@@ -365,19 +365,19 @@ file_t HybridFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 		return FSERR_BadParam;
 	}
 
-	if(stat.fs == &_ffs) {
-		return _ffs.fopen(stat, flags);
+	if(stat.fs == &ffs) {
+		return ffs.fopen(stat, flags);
 	}
 
 	// If we're only reading the file then return FW file directly
 	if((flags & ~eFO_ReadOnly) == 0) {
-		return _fw.fopen(stat, flags);
+		return fwfs.fopen(stat, flags);
 	}
 
 	// Otherwise it'll involve some work...
 	char buf[SPIFFS_OBJ_NAME_LEN];
 	NameBuffer name(buf, sizeof(buf));
-	int res = _fw.getFilePath(stat.id, name);
+	int res = fwfs.getFilePath(stat.id, name);
 	return res < 0 ? res : open(name, flags);
 }
 
@@ -394,8 +394,8 @@ int HybridFileSystem::close(file_t file)
  */
 int HybridFileSystem::remove(const char* path)
 {
-	int res = _ffs.remove(path);
-	if(_hideFWFile(path, false) == FS_OK) {
+	int res = ffs.remove(path);
+	if(hideFWFile(path, false) == FS_OK) {
 		if(res == SPIFFS_ERR_NOT_FOUND) {
 			res = FSERR_ReadOnly;
 		}
@@ -406,22 +406,22 @@ int HybridFileSystem::remove(const char* path)
 int HybridFileSystem::format()
 {
 #if HYFS_HIDE_FLAGS == 1
-	m_hiddenFWFiles.removeAllElements();
+	hiddenFwFiles.removeAllElements();
 #endif
 
-	return _ffs.format();
+	return ffs.format();
 }
 
 int HybridFileSystem::check()
 {
-	return _ffs.check();
+	return ffs.check();
 }
 
 int HybridFileSystem::stat(const char* path, FileStat* stat)
 {
-	int res = _ffs.stat(path, stat);
+	int res = ffs.stat(path, stat);
 	if(res < 0) {
-		res = _fw.stat(path, stat);
+		res = fwfs.stat(path, stat);
 	}
 	return res;
 }
@@ -510,7 +510,7 @@ int HybridFileSystem::rename(const char* oldpath, const char* newpath)
 
 	// Close the file and rename it
 	close(file);
-	return _ffs.rename(oldpath, newpath);
+	return ffs.rename(oldpath, newpath);
 }
 
 /*

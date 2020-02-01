@@ -87,7 +87,7 @@ public:
 
 	~FirmwareFileSystem() override
 	{
-		for(auto& vol : _volumes)
+		for(auto& vol : volumes)
 			delete vol.store;
 	}
 
@@ -186,7 +186,7 @@ private:
 		if(ref.storenum >= FWFS_MAX_VOLUMES) {
 			return FSERR_BadStore;
 		}
-		store = _volumes[ref.storenum].store;
+		store = volumes[ref.storenum].store;
 		return store ? FS_OK : FSERR_NotMounted;
 	}
 
@@ -286,7 +286,7 @@ private:
 	void printObject(const FWObjDesc& od);
 
 private:
-	FWVolume _volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
-	FileACL _rootACL;
-	FWFileDesc _fds[FWFS_MAX_FDS]; ///< File descriptor array
+	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
+	FileACL rootACL;
+	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 };
