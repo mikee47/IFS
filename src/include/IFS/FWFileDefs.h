@@ -276,7 +276,7 @@ struct FWFS_Object {
 					// Offset to start of child object table
 					unsigned childTableOffset() const
 					{
-						return nameOffset() + ALIGNUP(namelen);
+						return nameOffset() + ALIGNUP4(namelen);
 					}
 
 				} named;
@@ -361,7 +361,7 @@ struct FWFS_Object {
 
 	uint32_t sizeAligned() const
 	{
-		return ALIGNUP(size());
+		return ALIGNUP4(size());
 	}
 };
 

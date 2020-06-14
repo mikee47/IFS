@@ -395,7 +395,7 @@ int FirmwareFileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& chil
 {
 	assert(parent.obj.isNamed());
 
-	char buf[ALIGNUP(namelen)];
+	char buf[ALIGNUP4(namelen)];
 	int res;
 	FWObjDesc od;
 	while((res = readChildObjectHeader(parent, od)) >= 0) {
@@ -410,7 +410,7 @@ int FirmwareFileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& chil
 				if(namelen == 0) {
 					break;
 				}
-				res = readObjectContent(child, objNamed.nameOffset(), ALIGNUP(namelen), buf);
+				res = readObjectContent(child, objNamed.nameOffset(), ALIGNUP4(namelen), buf);
 				if(res < 0) {
 					break;
 				}
