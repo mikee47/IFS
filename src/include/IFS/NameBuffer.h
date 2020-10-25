@@ -12,33 +12,32 @@
 
 namespace IFS
 {
-/** @brief defines a 'safe' name buffer
- *  @note Instead of including a fixed name array in FileStat (and FileSystemInfo) structures,
- *  we use a NameBuffer to identify a separate buffer. This has several advantages:
- *  	- Maximum size is not fixed
+/**
+ * @brief defines a 'safe' name buffer
+ * @note Instead of including a fixed name array in FileStat (and FileSystemInfo) structures,
+ * we use a NameBuffer to identify a separate buffer. This has several advantages:
+ *
+ *		- Maximum size is not fixed
  *  	- Finding and copying the name is optional
  *  	- Actual name length is returned in the 'length' field, regardless of size
  *  	- A NameBuffer structure (or one containing it) only requires initialising once before
  *  	a loop operation as buffer/size are preserved.
  *
- *  There are fancier ways to do this but a structure is transparent and requires no heap allocation.
+ * There are fancier ways to do this but a structure is transparent and requires no heap allocation.
  *
- *  Note that 'length' always reflects the _required_ name/path length, and may be longer than size.
+ * @note `length` always reflects the _required_ name/path length, and may be longer than size.
  */
 struct NameBuffer {
-	char* buffer = nullptr; ///< Buffer to store name
-	uint16_t size = 0;		///< IN: Size of buffer
-	uint16_t length = 0;	///< OUT: length of name
+	char* buffer{nullptr}; ///< Buffer to store name
+	uint16_t size{0};	  ///< IN: Size of buffer
+	uint16_t length{0};	///< OUT: length of name
 
 	NameBuffer()
 	{
 	}
 
-	NameBuffer(char* buffer, uint16_t size, uint16_t length = 0)
+	NameBuffer(char* buffer, uint16_t size, uint16_t length = 0) : buffer(buffer), size(size), length(length)
 	{
-		this->buffer = buffer;
-		this->size = size;
-		this->length = length;
 	}
 
 	operator const char*() const
@@ -46,10 +45,11 @@ struct NameBuffer {
 		return buffer;
 	}
 
-	/** @brief copies text from a source buffer into a name buffer
-	 *  @param src source name
-	 *  @param srclen number of characters in name
-	 *  @note length field is always set to srclen, regardless of number of characters copied.
+	/**
+	 * @brief copies text from a source buffer into a name buffer
+	 * @param src source name
+	 * @param srclen number of characters in name
+	 * @note length field is always set to srclen, regardless of number of characters copied.
 	 */
 	int copy(const char* src, uint16_t srclen)
 	{
@@ -72,9 +72,10 @@ struct NameBuffer {
 		return copy(name.buffer, name.length);
 	}
 
-	/** @brief When building file paths this method simplified appending separators
-	 *  @retval int error code
-	 *  @note if the path is not empty, a separator character is appended
+	/**
+	 * @brief When building file paths this method simplified appending separators
+	 * @retval int error code
+	 * @note if the path is not empty, a separator character is appended
 	 */
 	int addSep()
 	{
@@ -93,26 +94,29 @@ struct NameBuffer {
 		return FSERR_BufferTooSmall;
 	}
 
-	/** @brief get a pointer to the next write position
-	 *  @retval char*
-	 *  @note use space() to ensure buffer doesn't overrun
-	 *  When writing text be sure to call terminate() when complete
+	/**
+	 * @brief get a pointer to the next write position
+	 * @retval char*
+	 * @note use space() to ensure buffer doesn't overrun
+	 * When writing text be sure to call terminate() when complete
 	 */
 	char* endptr()
 	{
 		return buffer + length;
 	}
 
-	/** @brief get the number of free characters available
-	 *  @retval uint16_t
-	 *  @note returns 0 if buffer has overrun
+	/**
+	 * @brief get the number of free characters available
+	 * @retval uint16_t
+	 * @note returns 0 if buffer has overrun
 	 */
 	uint16_t space()
 	{
 		return (length < size) ? size - length : 0;
 	}
 
-	/** @brief ensure the buffer has a nul terminator, even if it means overwriting content
+	/**
+	 * @brief ensure the buffer has a nul terminator, even if it means overwriting content
 	 */
 	void terminate()
 	{
@@ -123,8 +127,9 @@ struct NameBuffer {
 		}
 	}
 
-	/** @brief determine if name buffer overflowed
-	 *  @note Compares returned length with buffer size; A nul terminator is always appended, so size should be >= (length + 1)
+	/**
+	 * @brief determine if name buffer overflowed
+	 * @note Compares returned length with buffer size; A nul terminator is always appended, so size should be >= (length + 1)
 	 */
 	bool overflow() const
 	{
@@ -132,7 +137,9 @@ struct NameBuffer {
 	}
 };
 
-/** @brief a quick'n'dirty name buffer with maximum path allocation */
+/**
+ * @brief a quick'n'dirty name buffer with maximum path allocation
+ */
 struct FileNameBuffer : public NameBuffer {
 public:
 	FileNameBuffer() : NameBuffer(buffer, sizeof(buffer))

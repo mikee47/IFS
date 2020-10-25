@@ -14,8 +14,9 @@
 
 namespace IFS
 {
-/** @brief Physical media filing system is mounted on
- *  @note We'll use the term 'disk' when referring to physical media
+/**
+ * @brief Physical media filing system is mounted on
+ * @note We'll use the term 'disk' when referring to physical media
  */
 enum FSMediaType {
 	eFMT_Unknown,
@@ -24,8 +25,8 @@ enum FSMediaType {
 	eFMT_Disk,   ///< Physical disk
 };
 
-/** @brief Transport mechanism for physical media
- *
+/**
+ * @brief Transport mechanism for physical media
  */
 enum BusType {
 	eBus_Unknown,
@@ -50,10 +51,12 @@ struct FSMediaInfo {
 	uint32_t blockSize; ///< Smallest allocation unit For erase
 };
 
-/** @brief defines an address range */
-struct FSExtent {
-	uint32_t start = 0;
-	uint32_t length = 0;
+/**
+ * @brief defines an address range
+ */
+struct Extent {
+	uint32_t start{0};
+	uint32_t length{0};
 
 	// Last valid address in this extent
 	uint32_t end() const
@@ -68,10 +71,10 @@ struct FSExtent {
 };
 
 // Media implementations can use this macro for standard extent check
-#define FS_CHECK_EXTENT(_off, _sz)                                                                                     \
+#define FS_CHECK_EXTENT(offset, size)                                                                                  \
 	{                                                                                                                  \
-		uint32_t off = _off;                                                                                           \
-		size_t sz = _sz;                                                                                               \
+		uint32_t off = offset;                                                                                         \
+		size_t sz = size;                                                                                              \
 		if(!checkExtent(off, sz)) {                                                                                    \
 			debug_e("%s(0x%08x, %u): Bad Extent, media size = 0x%08x", __PRETTY_FUNCTION__, off, sz, m_size);          \
 			assert(false);                                                                                             \
@@ -84,11 +87,12 @@ struct FSExtent {
 		return FSERR_ReadOnly;                                                                                         \
 	}
 
-/** @brief virtual base class to access physical filesystem media
- *  @note this is typically flash memory, hence a separate erase method.
- *  All media is represented as a single valid contiguous extent, even if it
- *  is physically arranged differently, e.g. multiple regions spread across
- *  memory chips.
+/**
+ * @brief virtual base class to access physical filesystem media
+ * @note this is typically flash memory, hence a separate erase method.
+ * All media is represented as a single valid contiguous extent, even if it
+ * is physically arranged differently, e.g. multiple regions spread across
+ * memory chips.
  */
 class Media
 {

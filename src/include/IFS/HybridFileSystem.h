@@ -44,10 +44,6 @@ public:
 	{
 	}
 
-	~HybridFileSystem() override
-	{
-	}
-
 	// IFileSystem methods
 	int mount() override;
 	int getinfo(FileSystemInfo& info) override;

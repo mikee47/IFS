@@ -123,15 +123,17 @@ enum FWFS_ObjectType {
 };
 
 // Top bit of object type set to indicate a reference
-const uint8_t FWOBT_REF = 0x80;
+constexpr uint8_t FWOBT_REF{0x80};
 
 char* fwfsObjectTypeName(FWFS_ObjectType obt, char* buffer, size_t bufSize);
 
-/** @brief Object attributes
- *  @note these are bit values
+/**
+ * @brief Object attributes
+ * @note these are bit values
  */
 enum FWFS_ObjectAttr : uint8_t {
-	/** @brief Object should not be modified or deleted
+	/**
+	 * @brief Object should not be modified or deleted
 	 */
 	fwoa_ReadOnly,
 	/** @brief Object modified flag
@@ -140,7 +142,10 @@ enum FWFS_ObjectAttr : uint8_t {
 	fwoa_Archive,
 };
 
-typedef uint16_t FWObjectID; ///< Object identifier
+/**
+ * @brief Object identifier
+ */
+using FWObjectID = uint16_t;
 
 /** @brief Object structure
  *  @note all objects conform to this structure. Only the first word (4 bytes) are required to
@@ -318,12 +323,13 @@ struct FWFS_Object {
 	 */
 	size_t contentOffset() const
 	{
-		if(isRef() || (_type < fwobt_Data16))
+		if(isRef() || (_type < fwobt_Data16)) {
 			return data8.contentOffset();
-		else if(_type < fwobt_Data24)
+		} else if(_type < fwobt_Data24) {
 			return data16.contentOffset();
-		else
+		} else {
 			return data24.contentOffset();
+		}
 	}
 
 	/** @brief return size of object content, excluding header and size fields
@@ -332,12 +338,13 @@ struct FWFS_Object {
 	 */
 	uint32_t contentSize() const
 	{
-		if(isRef() || (_type < fwobt_Data16))
+		if(isRef() || (_type < fwobt_Data16)) {
 			return data8.contentSize();
-		else if(_type < fwobt_Data24)
+		} else if(_type < fwobt_Data24) {
 			return data16.contentSize();
-		else
+		} else {
 			return data24.contentSize();
+		}
 	}
 
 	uint32_t childTableOffset() const

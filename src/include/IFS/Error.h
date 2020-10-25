@@ -5,27 +5,29 @@
  *
  ****/
 
-/**	@defgroup filesystem File system
- *	@brief	Installable file system
- *  @{
+/**
+ * @defgroup filesystem File system
+ * @brief	Installable file system
+ * @{
  */
 
 #pragma once
 
 namespace IFS
 {
-/** @brief IFS return codes
- *  @note An IFS implementation must return negative values for errors. Wrappers may
- *  use these IFS codes instead of their own.
- *  If returning an internal error code it may need to be translated.
- *  Methods returning ONLY an error code (i.e. not file_t) may return positive 'error'
- *  codes for information purposes. See IFileSystem::check() as an example.
- *  Return value usage is consistent with SPIFFS.
+/**
+ * @brief IFS return codes
  *
- *  These codes are allocated using an enum since they are purely for internal purposes.
+ * An IFS implementation must return negative values for errors. Wrappers may
+ * use these IFS codes instead of their own.
+ * If returning an internal error code it may need to be translated.
+ * Methods returning ONLY an error code (i.e. not file_t) may return positive 'error'
+ * codes for information purposes. See IFileSystem::check() as an example.
+ * Return value usage is consistent with SPIFFS.
+ *
+ * These codes are allocated using an enum since they are purely for internal purposes.
  */
-
-#define IFS_ERROR_MAP(XX)                                                                                                \
+#define IFS_ERROR_MAP(XX)                                                                                              \
 	XX(OK, "Success")                                                                                                  \
 	XX(NoFileSystem, "File system has not been set")                                                                   \
 	XX(NoMedia, "File system has no media object")                                                                     \
@@ -62,23 +64,28 @@ enum Error {
 		eFSERR_MAX // Mark end of value range
 };
 
-// Success code
-constexpr int FS_OK = eFSERR_OK;
+/**
+ * @brief Success code
+ */
+constexpr int FS_OK{eFSERR_OK};
 
 // Define the FSERR_xxx codes as negative versions of the enumerated values
 #define XX(_tag, _text) const int FSERR_##_tag = -eFSERR_##_tag;
 IFS_ERROR_MAP(XX)
 #undef XX
 
-// Start of user-defined error codes
-constexpr int FSERR_USER = -64;
+/**
+ * @brief Start of user-defined error codes
+ */
+constexpr int FSERR_USER{-64};
 
-/** @brief get text for an error code
- *  @param err
- *  @param buffer
- *  @param size
- *  @retval length of message, excluding nul terminator
- *  @note message is always nul terminated
+/**
+ * @brief get text for an error code
+ * @param err
+ * @param buffer
+ * @param size
+ * @retval length of message, excluding nul terminator
+ * @note message is always nul terminated
  */
 int fsGetErrorText(int err, char* buffer, unsigned size);
 

@@ -13,16 +13,17 @@
 
 namespace IFS
 {
-/* Paths equal to "/" or "" are empty and considered equivalent to nullptr.
+/*
+ * Paths equal to "/" or "" are empty and considered equivalent to nullptr.
  * Methods or functions can use this macro to resolve these for simpler parsing.
  */
-#define FS_CHECK_PATH(_path)                                                                                           \
-	if(_path) {                                                                                                        \
-		if(*_path == '/') {                                                                                            \
-			++_path;                                                                                                   \
+#define FS_CHECK_PATH(path)                                                                                            \
+	if(path) {                                                                                                         \
+		if(*path == '/') {                                                                                             \
+			++path;                                                                                                    \
 		}                                                                                                              \
-		if(*_path == '\0') {                                                                                           \
-			_path = nullptr;                                                                                           \
+		if(*path == '\0') {                                                                                            \
+			path = nullptr;                                                                                            \
 		}                                                                                                              \
 	}
 
