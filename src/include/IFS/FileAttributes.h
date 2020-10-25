@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 
+namespace IFS
+{
 /** @brief file attributes
  *  @note
  *
@@ -42,3 +44,5 @@ using FileAttributes = uint8_t;
  *  @retval char* points to buf
  */
 char* fileAttrToStr(FileAttributes attr, char* buf, size_t bufSize);
+
+} // namespace IFS

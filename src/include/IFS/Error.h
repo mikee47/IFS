@@ -12,6 +12,8 @@
 
 #pragma once
 
+namespace IFS
+{
 /** @brief IFS return codes
  *  @note An IFS implementation must return negative values for errors. Wrappers may
  *  use these IFS codes instead of their own.
@@ -23,7 +25,7 @@
  *  These codes are allocated using an enum since they are purely for internal purposes.
  */
 
-#define FSERROR_MAP(XX)                                                                                                \
+#define IFS_ERROR_MAP(XX)                                                                                                \
 	XX(OK, "Success")                                                                                                  \
 	XX(NoFileSystem, "File system has not been set")                                                                   \
 	XX(NoMedia, "File system has no media object")                                                                     \
@@ -53,9 +55,9 @@
 	XX(NoMoreFiles, "readdir has no more files to return")                                                             \
 	XX(OutOfFileDescs, "Cannot open another file until one is closed")
 
-enum IFSError {
+enum Error {
 #define XX(_tag, _text) eFSERR_##_tag,
-	FSERROR_MAP(XX)
+	IFS_ERROR_MAP(XX)
 #undef XX
 		eFSERR_MAX // Mark end of value range
 };
@@ -65,7 +67,7 @@ constexpr int FS_OK = eFSERR_OK;
 
 // Define the FSERR_xxx codes as negative versions of the enumerated values
 #define XX(_tag, _text) const int FSERR_##_tag = -eFSERR_##_tag;
-FSERROR_MAP(XX)
+IFS_ERROR_MAP(XX)
 #undef XX
 
 // Start of user-defined error codes
@@ -79,3 +81,5 @@ constexpr int FSERR_USER = -64;
  *  @note message is always nul terminated
  */
 int fsGetErrorText(int err, char* buffer, unsigned size);
+
+} // namespace IFS

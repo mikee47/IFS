@@ -63,7 +63,7 @@
  *
  */
 
-#include <IFS/HybridFileSystem.h>
+#include "include/IFS/HybridFileSystem.h"
 
 #define GET_FS(__file)                                                                                                 \
 	if(__file < 0) {                                                                                                   \
@@ -76,6 +76,8 @@
 		fs = &ffs;                                                                                                     \
 	}
 
+namespace IFS
+{
 // opendir() uses this structure to track file listing
 struct FileDir {
 	// Directory objects for both filing systems
@@ -84,8 +86,6 @@ struct FileDir {
 	// The directory object being enumerated
 	IFileSystem* fs;
 };
-
-/* CHybridFileSystem */
 
 int HybridFileSystem::mount()
 {
@@ -522,3 +522,5 @@ int HybridFileSystem::fremove(file_t file)
 	GET_FS(file)
 	return fs->fremove(file);
 }
+
+} // namespace IFS

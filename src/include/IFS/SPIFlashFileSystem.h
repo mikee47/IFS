@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include "IFS.h"
+#include "FileSystem.h"
 #include <spiffs.h>
 
 #define FFS_LOG_PAGE_SIZE 256
@@ -40,6 +40,8 @@
 
 #pragma pack(1)
 
+namespace IFS
+{
 /** @brief Content of SPIFFS metadata area
  */
 struct FileMeta {
@@ -82,7 +84,7 @@ union SpiffsMetaBuffer {
 class SPIFlashFileSystem : public IFileSystem
 {
 public:
-	SPIFlashFileSystem(IFSMedia* media) : media(media)
+	SPIFlashFileSystem(Media* media) : media(media)
 	{
 	}
 
@@ -147,10 +149,12 @@ private:
 	}
 
 private:
-	IFSMedia* media = nullptr;
+	Media* media = nullptr;
 	SpiffsMetaBuffer metaCache[FFS_MAX_FILEDESC];
 	spiffs fs;
 	uint8_t* workBuffer = nullptr;
 	uint8_t* fileDescriptors = nullptr;
 	u8_t* cache = nullptr;
 };
+
+} // namespace IFS

@@ -5,9 +5,11 @@
  *      Author: mikee47
  */
 
-#include <IFS/FileSystemAttributes.h>
-#include "flags.h"
+#include "include/IFS/FileSystemAttributes.h"
+#include "Flags.h"
 
+namespace IFS
+{
 #define XX(_tag, _comment) DEFINE_PSTR_LOCAL(attrstr_##_tag, #_tag)
 FILE_SYSTEM_ATTR_MAP(XX)
 #undef XX
@@ -20,3 +22,5 @@ char* fileSystemAttrToStr(FileSystemAttributes attr, char* buf, size_t bufSize)
 {
 	return flagsToStr(attr, attributeStrings, ARRAY_SIZE(attributeStrings), buf, bufSize);
 }
+
+} // namespace IFS

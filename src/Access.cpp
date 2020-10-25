@@ -7,8 +7,10 @@
  * Access control definitions
  */
 
-#include <IFS/Access.h>
+#include "include/IFS/Access.h"
 
+namespace IFS
+{
 #define XX(_tag, _char, _comment) DEFINE_PSTR_LOCAL(accstr_##_tag, #_tag)
 USER_ROLE_MAP(XX)
 #undef XX
@@ -74,3 +76,5 @@ char* fileAclToStr(FileACL acl, char* buf, size_t bufSize)
 	}
 	return buf;
 }
+
+} // namespace IFS

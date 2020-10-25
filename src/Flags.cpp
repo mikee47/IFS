@@ -1,12 +1,14 @@
 /*
- * flags.cpp
+ * Flags.cpp
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
  */
 
-#include "flags.h"
+#include "Flags.h"
 
+namespace IFS
+{
 char* flagsToStr(uint32_t flags, PGM_P const* strings, unsigned flagCount, char* buf, size_t bufSize)
 {
 	size_t off = 0;
@@ -32,3 +34,5 @@ char* flagsToStr(uint32_t flags, PGM_P const* strings, unsigned flagCount, char*
 	buf[off] = '\0';
 	return buf;
 }
+
+} // namespace IFS

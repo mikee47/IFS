@@ -5,11 +5,13 @@
  *      Author: mikee47
  */
 
-#include <IFS/IFSFlashMedia.h>
-#include <IFS/IFSError.h>
+#include "include/IFS/FlashMedia.h"
+#include "include/IFS/Error.h"
 #include <esp_spi_flash.h>
 #include <algorithm>
 
+namespace IFS
+{
 /** @brief obtain the maximum size for an extent starting at a specified address in flash memory
  *  @param startAddress offset from start of flash
  *  @retval uint32_t maximum size
@@ -20,35 +22,35 @@ static inline uint32_t getMaxSize(uint32_t startAddress)
 	return (startAddress < (uint32_t)INTERNAL_FLASH_SIZE) ? (uint32_t)INTERNAL_FLASH_SIZE - startAddress : 0;
 }
 
-IFSFlashMedia::IFSFlashMedia(uint32_t startAddress, uint32_t size, FSMediaAttributes attr)
-	: IFSMedia(std::min(size, getMaxSize(startAddress)), attr), m_startAddress(startAddress)
+FlashMedia::FlashMedia(uint32_t startAddress, uint32_t size, FSMediaAttributes attr)
+	: Media(std::min(size, getMaxSize(startAddress)), attr), m_startAddress(startAddress)
 {
 }
 
-IFSFlashMedia::IFSFlashMedia(uint32_t startAddress, FSMediaAttributes attr)
-	: IFSMedia(getMaxSize(startAddress), attr), m_startAddress(startAddress)
+FlashMedia::FlashMedia(uint32_t startAddress, FSMediaAttributes attr)
+	: Media(getMaxSize(startAddress), attr), m_startAddress(startAddress)
 {
 }
 
-IFSFlashMedia::IFSFlashMedia(const void* startPtr, FSMediaAttributes attr)
-	: IFSMedia(getMaxSize(flashmem_get_address(startPtr)), attr), m_startAddress(flashmem_get_address(startPtr))
+FlashMedia::FlashMedia(const void* startPtr, FSMediaAttributes attr)
+	: Media(getMaxSize(flashmem_get_address(startPtr)), attr), m_startAddress(flashmem_get_address(startPtr))
 {
 }
 
-int IFSFlashMedia::setExtent(uint32_t size)
+int FlashMedia::setExtent(uint32_t size)
 {
 	if((m_startAddress + size) > (uint32_t)INTERNAL_FLASH_SIZE)
 		return FSERR_BadExtent;
 
-	return IFSMedia::setExtent(size);
+	return Media::setExtent(size);
 }
 
-FSMediaInfo IFSFlashMedia::getinfo() const
+FSMediaInfo FlashMedia::getinfo() const
 {
 	return FSMediaInfo{.type = eFMT_Flash, .bus = eBus_HSPI, .blockSize = INTERNAL_FLASH_SECTOR_SIZE};
 }
 
-int IFSFlashMedia::read(uint32_t offset, uint32_t size, void* buffer)
+int FlashMedia::read(uint32_t offset, uint32_t size, void* buffer)
 {
 	//	m_printf("FSM(0x%08X, 0x%08X, %u, 0x%08X): ", _startAddress, offset, size, buffer);
 
@@ -60,7 +62,7 @@ int IFSFlashMedia::read(uint32_t offset, uint32_t size, void* buffer)
 	return (res == size) ? FS_OK : FSERR_ReadFailure;
 }
 
-int IFSFlashMedia::write(uint32_t offset, uint32_t size, const void* data)
+int FlashMedia::write(uint32_t offset, uint32_t size, const void* data)
 {
 	FS_CHECK_EXTENT(offset, size);
 	FS_CHECK_WRITEABLE();
@@ -69,7 +71,7 @@ int IFSFlashMedia::write(uint32_t offset, uint32_t size, const void* data)
 	return (res == size) ? FS_OK : FSERR_WriteFailure;
 }
 
-int IFSFlashMedia::erase(uint32_t offset, uint32_t size)
+int FlashMedia::erase(uint32_t offset, uint32_t size)
 {
 	FS_CHECK_EXTENT(offset, size);
 	FS_CHECK_WRITEABLE();
@@ -84,3 +86,5 @@ int IFSFlashMedia::erase(uint32_t offset, uint32_t size)
 
 	return FS_OK;
 }
+
+} // namespace IFS

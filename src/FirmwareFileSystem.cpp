@@ -6,10 +6,10 @@
  *
  */
 
-#include <IFS/FirmwareFileSystem.h>
-#include <IFS/FWFileDefs.h>
-#include <IFS/IFSFlashMedia.h>
-#include <IFS/IFSUtil.h>
+#include "include/IFS/FirmwareFileSystem.h"
+#include "include/IFS/FWFileDefs.h"
+#include "include/IFS/FlashMedia.h"
+#include "include/IFS/Util.h"
 
 /*
  * Macros to perform standard checks
@@ -30,6 +30,8 @@
 		return FSERR_FileNotOpen;                                                                                      \
 	}
 
+namespace IFS
+{
 void FirmwareFileSystem::printObject(const FWObjDesc& od)
 {
 	char idstr[20];
@@ -206,7 +208,7 @@ int FirmwareFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 	return newOffset;
 }
 
-int FirmwareFileSystem::setVolume(uint8_t num, IFSObjectStore* store)
+int FirmwareFileSystem::setVolume(uint8_t num, ObjectStore* store)
 {
 	if(num >= FWFS_MAX_VOLUMES) {
 		return FSERR_BadStore;
@@ -864,3 +866,5 @@ int FirmwareFileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuf
 
 	return res == FSERR_EndOfObjects ? FSERR_NotFound : res;
 }
+
+} // namespace IFS

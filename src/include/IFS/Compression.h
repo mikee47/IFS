@@ -1,5 +1,5 @@
 /*
- * compression.h
+ * Compression.h
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 
+namespace IFS
+{
 /** @brief compression type
  */
 #define COMPRESSION_TYPE_MAP(XX)                                                                                       \
@@ -29,3 +31,5 @@ enum class CompressionType : uint8_t {
  *  @retval char* points to buf
  */
 char* compressionTypeToStr(CompressionType type, char* buf, size_t bufSize);
+
+} // namespace IFS

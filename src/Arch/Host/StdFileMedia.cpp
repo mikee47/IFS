@@ -7,8 +7,8 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include <IFS/StdFileMedia.h>
-#include <IFS/IFSError.h>
+#include "include/IFS/StdFileMedia.h"
+#include <IFS/Error.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -28,8 +28,10 @@
 			return FSERR_BadExtent;                                                                                    \
 	}
 
+namespace IFS
+{
 StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, FSMediaAttributes attr)
-	: IFSMedia(size, attr)
+	: Media(size, attr)
 {
 	m_blockSize = blockSize;
 
@@ -106,3 +108,5 @@ int StdFileMedia::erase(uint32_t offset, uint32_t size)
 	memset(tmp, 0xFF, size);
 	return write(offset, size, tmp);
 }
+
+} // namespace IFS

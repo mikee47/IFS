@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 
+namespace IFS
+{
 /** @brief File open flag
  *  @note These are filing-system independent flags based on SPIFFS 0.3.7, however they
  *  may change so filing systems should map them.
@@ -49,3 +51,5 @@ const FileOpenFlags eFO_CreateNewAlways = _BV(FileOpenFlag::Create) | _BV(FileOp
  * @note intended for debug output
  */
 char* fileOpenFlagsToStr(FileOpenFlags flags, char* buf, size_t bufSize);
+
+} // namespace IFS

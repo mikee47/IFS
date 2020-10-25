@@ -1,25 +1,27 @@
 /*
- * ifshelp.cpp
+ * Helpers.cpp
  *
  *  Created on: 27 Jan 2019
  *      Author: Mike
  */
 
-#include "IFS/ifshelp.h"
-#include "IFS/IFSFlashMedia.h"
-#include "IFS/FWObjectStore.h"
-#include "IFS/HybridFileSystem.h"
-#include "spiffs_sming.h"
+#include "include/IFS/Helpers.h"
+#include "include/IFS/FlashMedia.h"
+#include "include/IFS/FWObjectStore.h"
+#include "include/IFS/HybridFileSystem.h"
+#include <spiffs_sming.h>
 
-#include "SystemClock.h"
+#include <SystemClock.h>
 
 #ifdef ARCH_HOST
-#include "IFS/IFSMemoryMedia.h"
-typedef IFSMemoryMedia FlashMedia;
+#include <IFS/MemoryMedia.h>
+using MediaType = IFS::MemoryMedia;
 #else
-typedef IFSFlashMedia FlashMedia;
+using MediaType = IFS::FlashMedia;
 #endif
 
+namespace IFS
+{
 /** @brief required by IFS, platform-specific */
 time_t fsGetTimeUTC()
 {
@@ -28,7 +30,7 @@ time_t fsGetTimeUTC()
 
 IFileSystem* CreateFirmwareFilesystem(const void* fwfsImageData)
 {
-	auto fwMedia = new FlashMedia(fwfsImageData, eFMA_ReadOnly);
+	auto fwMedia = new MediaType(fwfsImageData, eFMA_ReadOnly);
 	if(fwMedia == nullptr) {
 		return nullptr;
 	}
@@ -49,7 +51,7 @@ IFileSystem* CreateFirmwareFilesystem(const void* fwfsImageData)
 
 IFileSystem* CreateHybridFilesystem(const void* fwfsImageData)
 {
-	auto fwMedia = new FlashMedia(fwfsImageData, eFMA_ReadOnly);
+	auto fwMedia = new MediaType(fwfsImageData, eFMA_ReadOnly);
 	if(fwMedia == nullptr) {
 		return nullptr;
 	}
@@ -61,7 +63,7 @@ IFileSystem* CreateHybridFilesystem(const void* fwfsImageData)
 	}
 
 	auto cfg = spiffs_get_storage_config();
-	auto ffsMedia = new IFSFlashMedia(cfg.phys_addr, cfg.phys_size, eFMA_ReadWrite);
+	auto ffsMedia = new FlashMedia(cfg.phys_addr, cfg.phys_size, eFMA_ReadWrite);
 
 	auto fs = new HybridFileSystem(store, ffsMedia);
 
@@ -72,3 +74,5 @@ IFileSystem* CreateHybridFilesystem(const void* fwfsImageData)
 
 	return fs;
 }
+
+} // namespace IFS

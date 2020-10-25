@@ -5,8 +5,10 @@
  *      Author: mikee47
  */
 
-#include <IFS/FileAttributes.h>
+#include "include/IFS/FileAttributes.h"
 
+namespace IFS
+{
 static const char attributeChars[] PROGMEM = {
 #define XX(_tag, _char, _comment) _char,
 	FILEATTR_MAP(XX)
@@ -32,3 +34,5 @@ char* fileAttrToStr(FileAttributes attr, char* buf, size_t bufSize)
 	}
 	return buf;
 }
+
+} // namespace IFS

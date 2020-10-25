@@ -1,23 +1,25 @@
 /*
- * IFSError.cpp
+ * Error.cpp
  *
  *  Created on: 19 Aug 2018
  *      Author: mikee47
  */
 
-#include <IFS/IFSError.h>
-#include <IFS/ifstypes.h>
+#include "include/IFS/Error.h"
+#include "include/IFS/Types.h"
 
+namespace IFS
+{
 /* @brief Define string table for standard IFS error codes
  *
  */
 #define XX(_tag, _text) DEFINE_PSTR_LOCAL(FSES_##_tag, #_tag)
-FSERROR_MAP(XX)
+IFS_ERROR_MAP(XX)
 #undef XX
 
 static PGM_P const errorStrings[] PROGMEM = {
 #define XX(_tag, _text) FSES_##_tag,
-	FSERROR_MAP(XX)
+	IFS_ERROR_MAP(XX)
 #undef XX
 };
 
@@ -41,3 +43,5 @@ int fsGetErrorText(int err, char* buffer, unsigned size)
 	buffer[size - 1] = '\0';
 	return strlen(buffer);
 }
+
+} // namespace IFS

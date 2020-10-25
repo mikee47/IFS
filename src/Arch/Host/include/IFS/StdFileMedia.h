@@ -10,9 +10,11 @@
 
 #pragma once
 
-#include "IFS/IFSMedia.h"
+#include <IFS/Media.h>
 
-class StdFileMedia : public IFSMedia
+namespace IFS
+{
+class StdFileMedia : public Media
 {
 public:
 	StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, FSMediaAttributes attr);
@@ -26,3 +28,5 @@ private:
 	int m_file = -1;
 	uint32_t m_blockSize = sizeof(uint32_t);
 };
+
+} // namespace IFS

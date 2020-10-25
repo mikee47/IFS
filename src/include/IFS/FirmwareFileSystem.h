@@ -20,9 +20,11 @@
 
 #pragma once
 
-#include "IFS.h"
-#include "IFSObjectStore.h"
+#include "FileSystem.h"
+#include "ObjectStore.h"
 
+namespace IFS
+{
 // File handles start at this value
 #ifndef FWFS_HANDLE_MIN
 #define FWFS_HANDLE_MIN 100
@@ -62,7 +64,7 @@ struct FWFileDesc {
 /** @brief FWFS Volume definition - identifies object store and volume object after mounting
  */
 struct FWVolume {
-	IFSObjectStore* store = nullptr;
+	ObjectStore* store = nullptr;
 	FWObjRef ref; ///< Volume reference
 
 	bool isMounted()
@@ -80,7 +82,7 @@ public:
 	{
 	}
 
-	FirmwareFileSystem(IFSObjectStore* store)
+	FirmwareFileSystem(ObjectStore* store)
 	{
 		setVolume(0, store);
 	}
@@ -96,7 +98,7 @@ public:
 	 *  @param store the object store object
 	 *  @retval int error code
 	 */
-	int setVolume(uint8_t num, IFSObjectStore* store);
+	int setVolume(uint8_t num, ObjectStore* store);
 
 	// IFileSystem methods
 	int mount() override;
@@ -181,7 +183,7 @@ private:
 
 	/** @brief Obtain the managing object store for an object reference
 	 *  @param ref .store field must be valid */
-	int getStore(const FWObjRef& ref, IFSObjectStore*& store)
+	int getStore(const FWObjRef& ref, ObjectStore*& store)
 	{
 		if(ref.storenum >= FWFS_MAX_VOLUMES) {
 			return FSERR_BadStore;
@@ -190,7 +192,7 @@ private:
 		return store ? FS_OK : FSERR_NotMounted;
 	}
 
-	int getStore(const FWObjDesc& od, IFSObjectStore*& store)
+	int getStore(const FWObjDesc& od, ObjectStore*& store)
 	{
 		return getStore(od.ref, store);
 	}
@@ -201,7 +203,7 @@ private:
 	{
 		assert(od.ref.refCount == 0);
 
-		IFSObjectStore* store;
+		ObjectStore* store;
 		int res = getStore(od.ref, store);
 		if(res >= 0) {
 			res = store->open(od);
@@ -217,7 +219,7 @@ private:
 	{
 		assert(od.ref.refCount == 0);
 
-		IFSObjectStore* store;
+		ObjectStore* store;
 		int res = getStore(parent.ref, store);
 		if(res >= 0) {
 			res = store->openChild(parent, child, od);
@@ -233,7 +235,7 @@ private:
 	{
 		assert(od.ref.refCount == 1);
 
-		IFSObjectStore* store;
+		ObjectStore* store;
 		int res = getStore(od.ref, store);
 		if(res >= 0) {
 			res = store->close(od);
@@ -247,7 +249,7 @@ private:
 
 	int readObjectHeader(FWObjDesc& od)
 	{
-		IFSObjectStore* store;
+		ObjectStore* store;
 		int res = getStore(od.ref, store);
 		return res < 0 ? res : store->readHeader(od);
 	}
@@ -257,14 +259,14 @@ private:
 		assert(parent.obj.isNamed());
 		// Child must be in same store as parent
 		child.ref.storenum = parent.ref.storenum;
-		IFSObjectStore* store;
+		ObjectStore* store;
 		int res = getStore(parent.ref, store);
 		return res < 0 ? res : store->readChildHeader(parent, child);
 	}
 
 	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 	{
-		IFSObjectStore* store;
+		ObjectStore* store;
 		int res = getStore(od.ref, store);
 		return res < 0 ? res : store->readContent(od, offset, size, buffer);
 	}
@@ -290,3 +292,5 @@ private:
 	FileACL rootACL;
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 };
+
+} // namespace IFS
