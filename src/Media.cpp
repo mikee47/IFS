@@ -11,6 +11,9 @@
 
 namespace IFS
 {
+constexpr Media::Attributes Media::ReadWrite;
+constexpr Media::Attributes Media::ReadOnly;
+
 int Media::readname(char* buffer, unsigned bufsize, uint32_t offset, unsigned len)
 {
 	if(buffer == nullptr || bufsize == 0) {

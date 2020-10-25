@@ -38,7 +38,7 @@ using OpenFlags = BitSet<uint8_t, OpenFlag>;
 
 inline constexpr OpenFlags operator|(OpenFlag a, OpenFlag b)
 {
-	return OpenFlags{a} | OpenFlags{b};
+	return OpenFlags(OpenFlags::bitVal(a) | OpenFlags::bitVal(b));
 }
 
 } // namespace File

@@ -9,6 +9,8 @@
 
 namespace IFS
 {
+constexpr uint8_t Object::FWOBT_REF;
+
 #define XX(_value, _tag, _text) DEFINE_PSTR(__str_##_tag, #_tag)
 FWFS_OBJTYPE_MAP(XX)
 #undef XX

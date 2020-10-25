@@ -296,7 +296,7 @@ int scandir(IFileSystem* fs, const String& path)
 	while((res = fs->readdir(dir, stat)) >= 0) {
 		IFileSystem::Info info;
 		stat.fs->getinfo(info);
-		debug_i("%-50s %6u %s #0x%04x %s %s %s %s", stat.name.c_str(), stat.size, toString(info.type).c_str(), stat.id,
+		debug_i("%-50s %6u %s #0x%04x %s %s %s %s", stat.name.buffer, stat.size, toString(info.type).c_str(), stat.id,
 				toString(stat.acl).c_str(), toString(stat.attr).c_str(), toString(stat.compression).c_str(),
 				timeToStr(stat.mtime, " ").c_str());
 
@@ -304,9 +304,9 @@ int scandir(IFileSystem* fs, const String& path)
 
 		if(stat.attr[File::Attribute::Directory]) {
 			if(path.length() == 0) {
-				scandir(fs, stat.name);
+				scandir(fs, String(stat.name));
 			} else {
-				scandir(fs, path + '/' + stat.name);
+				scandir(fs, path + '/' + String(stat.name));
 			}
 			continue;
 		}
