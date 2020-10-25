@@ -16,17 +16,17 @@
 // Hybrid filesystem, 'touch' files to propagate them to SPIFFS from FWFS
 //#define WRITE_THROUGH_TEST
 
-#include <stdio.h>
+#include <Platform/System.h>
+#include <WString.h>
 #include <assert.h>
 #include <esp_spi_flash.h>
 #include <IFS/HybridFileSystem.h>
-#include <IFS/StdFileMedia.h>
 #include <IFS/FlashMedia.h>
 #include <IFS/FWObjectStore.h>
-#include <IFS/SPIFFSObjectStore.h>
 
-#include <string>
-using String = std::string;
+#ifdef ARCH_HOST
+#include <IFS/StdFileMedia.h>
+#endif
 
 // We mount SPIFFS on a file so we can inspect if necessary
 const char* FLASHMEM_DMP = "flashmem.dmp";
@@ -36,41 +36,8 @@ using namespace IFS;
 // Global filesystem instance
 static IFileSystem* g_filesys;
 
-//
-#ifdef __WIN32
-
-#define INCBIN(name, file)                                                                                             \
-	__asm__(".section .rodata\n"                                                                                       \
-			".global _" #name "\n"                                                                                     \
-			".def _" #name "; .scl 2; .type 32; .endef\n"                                                              \
-			".align 4\n"                                                                                               \
-			"_" #name ":\n"                                                                                            \
-			".incbin \"" file "\"\n"                                                                                   \
-			".global _" #name "_end\n"                                                                                 \
-			".def _" #name "_end; .scl 2; .type 32; .endef\n"                                                          \
-			".align 4\n"                                                                                               \
-			"_" #name "_end:\n"                                                                                        \
-			".byte 0\n");                                                                                              \
-	extern const __attribute__((aligned(4))) uint8_t name[];                                                           \
-	extern const __attribute__((aligned(4))) uint8_t name##_end[];                                                     \
-	const uint32_t name##_len = name##_end - name;
-
-#else
-
-#define INCBIN(name, file)                                                                                             \
-	__asm__(".section .rodata\n"                                                                                       \
-			".global " #name "\n"                                                                                      \
-			".type " #name ", @object\n"                                                                               \
-			".align 4\n" #name ":\n"                                                                                   \
-			".incbin \"" file "\"\n" #name "_end:\n");                                                                 \
-	extern const __attribute__((aligned(4))) uint8_t name[];                                                           \
-	extern const __attribute__((aligned(4))) uint8_t name##_end[];                                                     \
-	const uint32_t name##_len = name##_end - name;
-
-#endif
-
-INCBIN(_fwfiles_data, "out/fwfiles.bin")
-//INCBIN(_fwfiles_data1, "out/fwfiles1.bin")
+IMPORT_FSTR(fwfsImage1, "../../fwfiles1.bin")
+//IMPORT_FSTR(fwfsImage2, "../../fwfiles2.bin")
 
 // Flash Filesystem parameters
 #define FFS_SECTOR_COUNT 128
@@ -135,7 +102,7 @@ void initSpiffs()
 {
 	// Mount source data image
 	//	flashmem_write(_fwfiles_data1, 0, _fwfiles_data1_len);
-	auto fwMedia1 = new IFSFlashMedia(_fwfiles_data_len, eFMA_ReadOnly);
+	auto fwMedia1 = new FlashMedia(fwfsImage1.data(), eFMA_ReadOnly);
 	auto fwStore1 = new FWObjectStore(fwMedia1);
 	auto hfs = new FirmwareFileSystem(fwStore1);
 
@@ -172,22 +139,21 @@ bool fsInit(const char* imgfile)
 {
 	//	initSpiffs();
 
-	debugf("fwfiles_data = 0x%08X, end = 0x%08X, len = 0x%08X", uint32_t(_fwfiles_data), uint32_t(_fwfiles_data_end),
-		   _fwfiles_data_len);
+	debugf("fwfiles_data = %p, len = 0x%08X", fwfsImage1.data(), fwfsImage1.length());
 
 	IFS::Media* fwMedia;
 	if(imgfile != nullptr) {
 		fwMedia = new StdFileMedia(imgfile, FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadOnly);
 	} else {
-		flashmem_write(_fwfiles_data, 0, _fwfiles_data_len);
-		fwMedia = new IFSFlashMedia(uint32_t(0), eFMA_ReadOnly);
+		flashmem_write(fwfsImage1.data(), 0, fwfsImage1.size());
+		fwMedia = new FlashMedia(uint32_t(0), eFMA_ReadOnly);
 	}
 
 	auto store = new FWObjectStore(fwMedia);
 
 #ifdef HYBRID_TEST
 
-	IFS::Media* ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
 	auto hfs = new HybridFileSystem(store, ffsMedia);
 
 #else
@@ -328,7 +294,7 @@ int scandir(const String& path)
 		readFileTest(stat);
 
 		if(bitRead(stat.attr, FileAttr::Directory)) {
-			if(path.empty()) {
+			if(path.length() == 0) {
 				scandir(stat.name.buffer);
 			} else {
 				scandir(path + '/' + stat.name.buffer);
@@ -396,15 +362,14 @@ void fstest()
 	scandir("");
 }
 
-int main(int argc, char* argv[])
+void init()
 {
-	trap_exceptions();
-
-	const char* imgfile = (argc > 1) ? argv[1] : nullptr;
+	//	const char* imgfile = (argc > 1) ? argv[1] : nullptr;
+	char* imgfile{nullptr};
 
 	if(!fsInit(imgfile)) {
 		debug_e("fs init failed");
-		return 1;
+		System.restart();
 	}
 
 	fsinfo();
