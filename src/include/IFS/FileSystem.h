@@ -140,10 +140,8 @@ struct FileSystemInfo {
 	{
 	}
 
-	FileSystemInfo(char* namebuf, unsigned buflen)
+	FileSystemInfo(char* namebuf, unsigned buflen) : name(namebuf, buflen)
 	{
-		name.buffer = namebuf;
-		name.length = buflen;
 	}
 
 	FileSystemInfo& operator=(const FileSystemInfo& rhs)

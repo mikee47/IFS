@@ -1,5 +1,5 @@
 /*
- * FWFileDefs.h
+ * Object.h
  *
  *  Created on: 7 Aug 2018
  *      Author: mikee47
@@ -9,11 +9,11 @@
  * A filesystem image is basically:
  *
  * 	uint32_t START_MARKER;
- * 	FSFW_Object Objects[];
- * 	FWFS_Object EndObject;
+ * 	Object Objects[];
+ * 	Object EndObject;
  * 	uint32_t END_MARKER;
  *
- * The FWFS_Object is a variable-length structure which can be read as either 1 or 2 words,
+ * An FWFS Object is a variable-length structure which can be read as either 1 or 2 words,
  * depending on the type.
  * Objects always start on a word boundary.
  * File and directory objects are both emitted as 'named' objects which contain a list of
@@ -60,7 +60,6 @@
 #pragma once
 
 #include "FileAttributes.h"
-#include "Types.h"
 #include "Compression.h"
 #include "Access.h"
 
@@ -114,76 +113,74 @@ template <typename T> static T at_offset(void* current, int offset)
 	XX(36, File, "File entry")                                                                                         \
 	XX(64, Data24, "Data, max 16M - 1")
 
-enum FWFS_ObjectType {
-#define XX(_value, _tag, _text) fwobt_##_tag = _value,
-	FWFS_OBJTYPE_MAP(XX)
-#undef XX
-	// Start of named objects
-	fwobt_Named = 33
-};
-
-// Top bit of object type set to indicate a reference
-constexpr uint8_t FWOBT_REF{0x80};
-
-char* fwfsObjectTypeName(FWFS_ObjectType obt, char* buffer, size_t bufSize);
-
-/**
- * @brief Object attributes
- * @note these are bit values
- */
-enum FWFS_ObjectAttr : uint8_t {
-	/**
-	 * @brief Object should not be modified or deleted
-	 */
-	fwoa_ReadOnly,
-	/** @brief Object modified flag
-	 *  @note Object has been changed on disk. Typically used by backup applications
-	 */
-	fwoa_Archive,
-};
-
-/**
- * @brief Object identifier
- */
-using FWObjectID = uint16_t;
-
 /** @brief Object structure
  *  @note all objects conform to this structure. Only the first word (4 bytes) are required to
  *  nagivate the file system.
  *  All objects have an 8, 16 or 24-bit size field. Content is always immediately after this field.
  *  Reference objects are always 8-bit sized.
  */
-struct FWFS_Object {
-	uint8_t _type;
+struct Object {
+	uint8_t typeData; ///< Stored type plus flag
 
-	FWFS_ObjectType type() const
+	/**
+	 * @brief Object identifier
+	 */
+	using ID = uint16_t;
+
+	enum class Type {
+#define XX(value, tag, text) tag = value,
+		FWFS_OBJTYPE_MAP(XX)
+#undef XX
+		// Start of named objects
+		Named = 33
+	};
+
+	// Top bit of object type set to indicate a reference
+	static constexpr uint8_t FWOBT_REF{0x80};
+
+	/**
+	 * @brief Object attributes
+	 * @note these are bit values
+	 */
+	enum class Attribute : uint8_t {
+		/**
+		 * @brief Object should not be modified or deleted
+		 */
+		ReadOnly,
+		/** @brief Object modified flag
+		 *  @note Object has been changed on disk. Typically used by backup applications
+		 */
+		Archive,
+	};
+
+	Type type() const
 	{
-		return static_cast<FWFS_ObjectType>(_type & 0x7f);
+		return static_cast<Type>(typeData & 0x7f);
 	}
 
 	bool isRef() const
 	{
-		return (_type & FWOBT_REF) != 0;
+		return (typeData & FWOBT_REF) != 0;
 	}
 
 	bool isNamed() const
 	{
-		return type() >= fwobt_Named;
+		return type() >= Type::Named;
 	}
 
 	bool isData() const
 	{
-		return type() == fwobt_Data8 || type() == fwobt_Data16 || type() == fwobt_Data24;
+		return type() == Type::Data8 || type() == Type::Data16 || type() == Type::Data24;
 	}
 
 	bool isDir() const
 	{
-		return type() == fwobt_Directory;
+		return type() == Type::Directory;
 	}
 
 	bool isMountPoint() const
 	{
-		return type() == fwobt_MountPoint;
+		return type() == Type::MountPoint;
 	}
 
 	union {
@@ -194,7 +191,7 @@ struct FWFS_Object {
 
 			unsigned contentOffset() const
 			{
-				return offsetof(FWFS_Object, data8) + 1;
+				return offsetof(Object, data8) + 1;
 			}
 
 			unsigned contentSize() const
@@ -205,7 +202,7 @@ struct FWFS_Object {
 			union {
 				// An object reference: the contents are stored externally (on the same volume)
 				struct {
-					FWObjectID id;
+					ID id;
 				} ref;
 
 				// ID32
@@ -247,7 +244,7 @@ struct FWFS_Object {
 
 			unsigned contentOffset() const
 			{
-				return offsetof(FWFS_Object, data16) + 2;
+				return offsetof(Object, data16) + 2;
 			}
 
 			uint32_t contentSize() const
@@ -272,12 +269,12 @@ struct FWFS_Object {
 					uint8_t namelen; ///< Length of object name
 					time_t mtime;	// Object modification time
 					// char name[namelen];
-					// FWFS_Object children[];	// __aligned
+					// Object children[];	// __aligned
 
 					// Offset to object name relative to content start
 					unsigned nameOffset() const
 					{
-						return sizeof(FWFS_Object::data16.named);
+						return sizeof(Object::data16.named);
 					}
 
 					// Offset to start of child object table
@@ -298,7 +295,7 @@ struct FWFS_Object {
 
 			size_t contentOffset() const
 			{
-				return offsetof(FWFS_Object, data24) + 3;
+				return offsetof(Object, data24) + 3;
 			}
 
 			uint32_t contentSize() const
@@ -323,9 +320,9 @@ struct FWFS_Object {
 	 */
 	size_t contentOffset() const
 	{
-		if(isRef() || (_type < fwobt_Data16)) {
+		if(isRef() || (type() < Type::Data16)) {
 			return data8.contentOffset();
-		} else if(_type < fwobt_Data24) {
+		} else if(type() < Type::Data24) {
 			return data16.contentOffset();
 		} else {
 			return data24.contentOffset();
@@ -338,9 +335,9 @@ struct FWFS_Object {
 	 */
 	uint32_t contentSize() const
 	{
-		if(isRef() || (_type < fwobt_Data16)) {
+		if(isRef() || (type() < Type::Data16)) {
 			return data8.contentSize();
-		} else if(_type < fwobt_Data24) {
+		} else if(type() < Type::Data24) {
 			return data16.contentSize();
 		} else {
 			return data24.contentSize();
@@ -375,5 +372,7 @@ struct FWFS_Object {
 };
 
 #pragma pack()
+
+char* toString(Object::Type obt, char* buffer, size_t bufSize);
 
 } // namespace IFS

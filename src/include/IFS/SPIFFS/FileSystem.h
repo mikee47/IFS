@@ -1,5 +1,5 @@
 /*
- * SPIFlashFileSystem.h
+ * FileSystem.h
  *
  *  Created on: 21 Jul 2018
  *      Author: mikee47
@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include "FileSystem.h"
+#include "../FileSystem.h"
 #include <spiffs.h>
 
 #define FFS_LOG_PAGE_SIZE 256
@@ -41,6 +41,8 @@
 #pragma pack(1)
 
 namespace IFS
+{
+namespace SPIFFS
 {
 /** @brief Content of SPIFFS metadata area
  */
@@ -81,14 +83,14 @@ union SpiffsMetaBuffer {
 /*
  * Wraps SPIFFS
  */
-class SPIFlashFileSystem : public IFileSystem
+class FileSystem : public IFileSystem
 {
 public:
-	SPIFlashFileSystem(Media* media) : media(media)
+	FileSystem(Media* media) : media(media)
 	{
 	}
 
-	~SPIFlashFileSystem();
+	~FileSystem();
 
 	int mount() override;
 	int getinfo(FileSystemInfo& info) override;
@@ -157,4 +159,5 @@ private:
 	uint8_t* cache{nullptr};
 };
 
+} // namespace SPIFFS
 } // namespace IFS

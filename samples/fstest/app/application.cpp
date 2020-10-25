@@ -20,11 +20,11 @@
 #include <WString.h>
 #include <assert.h>
 #include <esp_spi_flash.h>
-#include <IFS/HybridFileSystem.h>
+#include <IFS/HYFS/FileSystem.h>
 #include <IFS/StdFileMedia.h>
 #include <IFS/MemoryMedia.h>
 #include <IFS/FlashMedia.h>
-#include <IFS/FWObjectStore.h>
+#include <IFS/FWFS/ObjectStore.h>
 #include <IFS/Helpers.h>
 #include <HardwareSerial.h>
 
@@ -104,7 +104,7 @@ IFileSystem* initSpiffs()
 {
 	// Mount SPIFFS
 	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
-	auto ffs = new SPIFlashFileSystem(ffsMedia);
+	auto ffs = new SPIFFS::FileSystem(ffsMedia);
 
 	int err = ffs->mount();
 	if(err < 0) {
@@ -167,7 +167,7 @@ IFileSystem* initFWFS(const char* imgfile)
 		fwMedia = new FlashMedia(uint32_t(0), Media::ReadOnly);
 	}
 
-	auto store = new FWObjectStore(fwMedia);
+	auto store = new FWFS::ObjectStore(fwMedia);
 
 #ifdef HYBRID_TEST
 
@@ -176,12 +176,12 @@ IFileSystem* initFWFS(const char* imgfile)
 
 #else
 
-	auto hfs = new FirmwareFileSystem(store);
+	auto hfs = new FWFS::FileSystem(store);
 
 	/*
 	flashmem_write(_fwfiles_data1, _fwfiles_data_len, _fwfiles_data1_len);
 	auto fwMedia1 = new IFSFlashMedia(_fwfiles_data_len, eFMA_ReadOnly);
-	auto store1 = new FWObjectStore(fwMedia1);
+	auto store1 = new FWFS::ObjectStore(fwMedia1);
 */
 
 	/*
@@ -205,7 +205,8 @@ IFileSystem* initFWFS(const char* imgfile)
 
 void printFsInfo(IFileSystem* fs)
 {
-	FileSystemInfo info;
+	char namebuf[256];
+	FileSystemInfo info(namebuf, sizeof(namebuf));
 	int res = fs->getinfo(info);
 	if(res < 0) {
 		debug_e("fileSystemGetInfo(): %s", getErrorText(fs, res));

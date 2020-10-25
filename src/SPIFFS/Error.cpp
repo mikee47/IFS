@@ -5,10 +5,12 @@
  *      Author: mikee47
  */
 
-#include "include/IFS/SpiffsError.h"
-#include "include/IFS/Types.h"
+#include "../include/IFS/SPIFFS/Error.h"
+#include "../include/IFS/Types.h"
 
 namespace IFS
+{
+namespace SPIFFS
 {
 /*
  * @todo Return generic FSERR codes whereever possible by mapping from SPIFFS codes
@@ -96,4 +98,5 @@ int spiffsErrorToStr(int err, char* buffer, unsigned size)
 	return 0;
 }
 
+} // namespace SPIFFS
 } // namespace IFS

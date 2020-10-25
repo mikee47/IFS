@@ -8,26 +8,28 @@
 
 #pragma once
 
-#include "ObjectStore.h"
-#include "Media.h"
+#include "../ObjectStore.h"
+#include "../Media.h"
 
 #ifdef FWFS_OBJECT_CACHE
-#include "FWObjRefCache.h"
+#include "ObjRefCache.h"
 #endif
 
 namespace IFS
 {
+namespace FWFS
+{
 /**
  * @brief object store for read-only filesystem
  */
-class FWObjectStore : public ObjectStore
+class ObjectStore : public IObjectStore
 {
 public:
-	FWObjectStore(Media* media) : media(media)
+	ObjectStore(Media* media) : media(media)
 	{
 	}
 
-	~FWObjectStore()
+	~ObjectStore()
 	{
 		delete media;
 	}
@@ -54,14 +56,15 @@ public:
 
 private:
 	Media* media{nullptr};
-	FWObjRef lastFound;
+	ObjRef lastFound;
 	struct Flags {
 		bool mounted;
 	};
 	Flags flags{};
 #ifdef FWFS_OBJECT_CACHE
-	FWObjRefCache cache;
+	ObjRefCache cache;
 #endif
 };
 
+} // namespace FWFS
 } // namespace IFS

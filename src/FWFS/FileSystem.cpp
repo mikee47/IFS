@@ -1,16 +1,20 @@
 /*
- * FirmwareFileSystem.cpp
+ * FileSystem.cpp
  *
  *  Created on: 19 Jul 2018
  *      Author: mikee47
  *
  */
 
-#include "include/IFS/FirmwareFileSystem.h"
-#include "include/IFS/FWFileDefs.h"
-#include "include/IFS/FlashMedia.h"
-#include "include/IFS/Util.h"
+#include "../include/IFS/FWFS/FileSystem.h"
+#include "../include/IFS/Object.h"
+#include "../include/IFS/FlashMedia.h"
+#include "../include/IFS/Util.h"
 
+namespace IFS
+{
+namespace FWFS
+{
 /*
  * Macros to perform standard checks
  */
@@ -30,12 +34,10 @@
 		return FSERR_FileNotOpen;                                                                                      \
 	}
 
-namespace IFS
-{
-void FirmwareFileSystem::printObject(const FWObjDesc& od)
+void FileSystem::printObject(const FWObjDesc& od)
 {
 	char idstr[20];
-	fwfsObjectTypeName(od.obj.type(), idstr, sizeof(idstr));
+	toString(od.obj.type(), idstr, sizeof(idstr));
 	char name[260];
 	if(od.obj.isNamed()) {
 		name[0] = ' ';
@@ -53,7 +55,7 @@ void FirmwareFileSystem::printObject(const FWObjDesc& od)
 	} else {
 		name[0] = '\0';
 	}
-	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj._type, od.obj.size(), idstr,
+	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.type_, od.obj.size(), idstr,
 			name);
 	//	if (od.obj.size() <= 4)
 	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());
@@ -63,7 +65,7 @@ void FirmwareFileSystem::printObject(const FWObjDesc& od)
  *  @param stat
  *  @param entry
  */
-int FirmwareFileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
+int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 {
 	assert(entry.obj.isNamed());
 
@@ -96,24 +98,24 @@ int FirmwareFileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 			}
 		} else {
 			switch(child.obj.type()) {
-			case fwobt_FileAttr:
+			case Object::Type::FileAttr:
 				stat.attr |= child.obj.data8.fileAttributes.attr;
 				break;
 
-			case fwobt_ObjectStore:
+			case Object::Type::ObjectStore:
 				stat.attr |= _BV(FileAttr::MountPoint) | _BV(FileAttr::Directory);
 				break;
 
-			case fwobt_Compression:
+			case Object::Type::Compression:
 				stat.compression = child.obj.data8.compression.type;
 				bitSet(stat.attr, FileAttr::Compressed);
 				break;
 
-			case fwobt_ReadACE:
+			case Object::Type::ReadACE:
 				stat.acl.readAccess = child.obj.data8.ace.role;
 				break;
 
-			case fwobt_WriteACE:
+			case Object::Type::WriteACE:
 				stat.acl.writeAccess = child.obj.data8.ace.role;
 				break;
 
@@ -124,14 +126,14 @@ int FirmwareFileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 		child.next();
 	}
 
-	if(entry.obj.type() == fwobt_Directory) {
+	if(entry.obj.type() == Object::Type::Directory) {
 		bitSet(stat.attr, FileAttr::Directory);
 	}
 
 	return readObjectName(entry, stat.name);
 }
 
-int FirmwareFileSystem::findUnusedDescriptor()
+int FileSystem::findUnusedDescriptor()
 {
 	for(int i = 0; i < FWFS_MAX_FDS; ++i) {
 		if(!bitRead(fileDescriptors[i].attr, fwfda_Allocated)) {
@@ -142,7 +144,7 @@ int FirmwareFileSystem::findUnusedDescriptor()
 	return FSERR_OutOfFileDescs;
 }
 
-int FirmwareFileSystem::read(file_t file, void* data, size_t size)
+int FileSystem::read(file_t file, void* data, size_t size)
 {
 	GET_FD();
 
@@ -187,7 +189,7 @@ int FirmwareFileSystem::read(file_t file, void* data, size_t size)
 	return (res == FS_OK) || (res == FSERR_EndOfObjects) ? readTotal : res;
 }
 
-int FirmwareFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int FileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 {
 	GET_FD();
 
@@ -208,7 +210,7 @@ int FirmwareFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 	return newOffset;
 }
 
-int FirmwareFileSystem::setVolume(uint8_t num, ObjectStore* store)
+int FileSystem::setVolume(uint8_t num, IObjectStore* store)
 {
 	if(num >= FWFS_MAX_VOLUMES) {
 		return FSERR_BadStore;
@@ -221,7 +223,7 @@ int FirmwareFileSystem::setVolume(uint8_t num, ObjectStore* store)
 	return FS_OK;
 }
 
-int FirmwareFileSystem::mount()
+int FileSystem::mount()
 {
 	// Store #0 is mandatory
 	auto& vol = volumes[0];
@@ -245,7 +247,7 @@ int FirmwareFileSystem::mount()
 	return FS_OK;
 }
 
-int FirmwareFileSystem::mountVolume(FWVolume& volume)
+int FileSystem::mountVolume(FWVolume& volume)
 {
 	if(volume.store == nullptr) {
 		return FSERR_StoreNotMounted;
@@ -263,9 +265,9 @@ int FirmwareFileSystem::mountVolume(FWVolume& volume)
 		++objectCount;
 		//		printObject(od);
 
-		if(od.obj.type() == fwobt_Volume) {
+		if(od.obj.type() == Object::Type::Volume) {
 			volume.ref = od.ref;
-		} else if(od.obj.type() == fwobt_End) {
+		} else if(od.obj.type() == Object::Type::End) {
 			// @todo verify checksum
 			// od.obj.end.checksum
 			break;
@@ -292,13 +294,13 @@ int FirmwareFileSystem::mountVolume(FWVolume& volume)
 	return res;
 }
 
-int FirmwareFileSystem::openRootObject(const FWVolume& volume, FWObjDesc& odRoot)
+int FileSystem::openRootObject(const FWVolume& volume, FWObjDesc& odRoot)
 {
 	FWObjDesc odVolume(volume.ref);
 	int res = readObjectHeader(odVolume);
 	if(res >= 0) {
 		FWObjDesc child;
-		res = findChildObjectHeader(odVolume, child, fwobt_Directory);
+		res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
 		if(res >= 0) {
 			res = openChildObject(odVolume, child, odRoot);
 		}
@@ -311,7 +313,7 @@ int FirmwareFileSystem::openRootObject(const FWVolume& volume, FWObjDesc& odRoot
 	return res;
 }
 
-int FirmwareFileSystem::getinfo(FileSystemInfo& info)
+int FileSystem::getinfo(FileSystemInfo& info)
 {
 	int res = FS_OK;
 
@@ -331,7 +333,7 @@ int FirmwareFileSystem::getinfo(FileSystemInfo& info)
 		if(res >= 0) {
 			readObjectName(odVolume, info.name);
 			FWObjDesc od;
-			if(findChildObjectHeader(odVolume, od, fwobt_ID32)) {
+			if(findChildObjectHeader(odVolume, od, Object::Type::ID32)) {
 				info.volumeID = od.obj.data8.id32.value;
 			}
 		}
@@ -341,7 +343,7 @@ int FirmwareFileSystem::getinfo(FileSystemInfo& info)
 	return res;
 }
 
-int FirmwareFileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, FWFS_ObjectType objId)
+int FileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId)
 {
 	int res;
 	FWObjDesc od;
@@ -356,12 +358,12 @@ int FirmwareFileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc
 	return res == FSERR_EndOfObjects ? FSERR_NotFound : res;
 }
 
-int FirmwareFileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved)
+int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved)
 {
 	assert(odMountPoint.obj.isMountPoint());
 
 	FWObjDesc odStore;
-	int res = findChildObjectHeader(odMountPoint, odStore, fwobt_ObjectStore);
+	int res = findChildObjectHeader(odMountPoint, odStore, Object::Type::ObjectStore);
 	if(res < 0) {
 		debug_e("Mount point missing object store");
 		return res;
@@ -393,7 +395,7 @@ int FirmwareFileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDe
  *  @retval error code
  *  @note child and parent must refer to different objects
  */
-int FirmwareFileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen)
+int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen)
 {
 	assert(parent.obj.isNamed());
 
@@ -439,7 +441,7 @@ int FirmwareFileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& chil
  *  @retval int error code
  *  @note the name is always nul-terminated
  */
-int FirmwareFileSystem::readObjectName(const FWObjDesc& od, NameBuffer& name)
+int FileSystem::readObjectName(const FWObjDesc& od, NameBuffer& name)
 {
 	if(name.buffer == nullptr || name.size == 0) {
 		return 0;
@@ -458,7 +460,7 @@ int FirmwareFileSystem::readObjectName(const FWObjDesc& od, NameBuffer& name)
  *  @param od the file object descriptor
  *  @retval file_t file handle, or error code
  */
-file_t FirmwareFileSystem::allocateFileDescriptor(FWObjDesc& odFile)
+file_t FileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 {
 	int descriptorIndex = findUnusedDescriptor();
 	if(descriptorIndex < 0) {
@@ -499,7 +501,7 @@ file_t FirmwareFileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 	return FWFS_HANDLE_MIN + descriptorIndex;
 }
 
-int FirmwareFileSystem::opendir(const char* path, filedir_t* dir)
+int FileSystem::opendir(const char* path, filedir_t* dir)
 {
 	CHECK_MOUNTED();
 	if(dir == nullptr) {
@@ -524,7 +526,7 @@ int FirmwareFileSystem::opendir(const char* path, filedir_t* dir)
 /*
  * TODO: To implement this we could do with storing the directory offset in `stat`.
  */
-int FirmwareFileSystem::fopendir(const FileStat* stat, filedir_t* dir)
+int FileSystem::fopendir(const FileStat* stat, filedir_t* dir)
 {
 	return FSERR_NotImplemented;
 	/*
@@ -555,7 +557,7 @@ int FirmwareFileSystem::fopendir(const FileStat* stat, filedir_t* dir)
  * The XXXdir() methods will work on any named objects, including files, although
  * these don't normally contain named children.
  */
-int FirmwareFileSystem::readdir(filedir_t dir, FileStat* stat)
+int FileSystem::readdir(filedir_t dir, FileStat* stat)
 {
 	CHECK_MOUNTED();
 
@@ -573,7 +575,7 @@ int FirmwareFileSystem::readdir(filedir_t dir, FileStat* stat)
 		odDir.ref.refCount = 0;
 	}
 
-	FWObjRef ref;
+	ObjRef ref;
 	ref.offset = fd.cursor;
 	FWObjDesc od(ref);
 	while((res = readChildObjectHeader(odDir, od)) >= 0) {
@@ -604,7 +606,7 @@ int FirmwareFileSystem::readdir(filedir_t dir, FileStat* stat)
 	return res == FSERR_EndOfObjects ? FSERR_NoMoreFiles : res;
 }
 
-int FirmwareFileSystem::closedir(filedir_t dir)
+int FileSystem::closedir(filedir_t dir)
 {
 	return close(reinterpret_cast<int>(dir));
 }
@@ -617,7 +619,7 @@ int FirmwareFileSystem::closedir(filedir_t dir)
  *  Called by open, opendir and stat methods.
  *  @todo track ACEs during path traversal and store resultant ACL in file descriptor.
  */
-int FirmwareFileSystem::findObjectByPath(const char* path, FWObjDesc& od)
+int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 {
 #ifdef DEBUG_FWFS
 	ElapseTimer timer;
@@ -661,7 +663,7 @@ int FirmwareFileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 	return res;
 }
 
-file_t FirmwareFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
+file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
 	CHECK_MOUNTED();
 	if(stat.fs != this) {
@@ -680,7 +682,7 @@ file_t FirmwareFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	return res;
 }
 
-file_t FirmwareFileSystem::open(const char* path, FileOpenFlags flags)
+file_t FileSystem::open(const char* path, FileOpenFlags flags)
 {
 	CHECK_MOUNTED();
 
@@ -698,7 +700,7 @@ file_t FirmwareFileSystem::open(const char* path, FileOpenFlags flags)
 	return res;
 }
 
-int FirmwareFileSystem::close(file_t file)
+int FileSystem::close(file_t file)
 {
 	GET_FD();
 
@@ -710,7 +712,7 @@ int FirmwareFileSystem::close(file_t file)
 	return FS_OK;
 }
 
-int FirmwareFileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, FileStat* stat)
 {
 	CHECK_MOUNTED();
 
@@ -725,14 +727,14 @@ int FirmwareFileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int FirmwareFileSystem::fstat(file_t file, FileStat* stat)
+int FileSystem::fstat(file_t file, FileStat* stat)
 {
 	GET_FD();
 
 	return stat ? fillStat(*stat, fd.odFile) : FSERR_BadParam;
 }
 
-int FirmwareFileSystem::eof(file_t file)
+int FileSystem::eof(file_t file)
 {
 	GET_FD();
 
@@ -740,14 +742,14 @@ int FirmwareFileSystem::eof(file_t file)
 	return fd.cursor >= fd.dataSize ? 1 : 0;
 }
 
-int32_t FirmwareFileSystem::tell(file_t file)
+int32_t FileSystem::tell(file_t file)
 {
 	GET_FD();
 
 	return fd.cursor;
 }
 
-int FirmwareFileSystem::isfile(file_t file)
+int FileSystem::isfile(file_t file)
 {
 	GET_FD();
 
@@ -761,7 +763,7 @@ int FirmwareFileSystem::isfile(file_t file)
  * searching for the file. Not pretty, but then the only reason this method is provided is
  * for the hybrid filesystem, which needs to match full file paths across filesystems.
  */
-int FirmwareFileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
+int FileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
 {
 	int res = FS_OK;
 
@@ -796,7 +798,7 @@ int FirmwareFileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
  * @retval error code
  * @note name buffer overrun does not return an error; we check for this in getFilePath()
  */
-int FirmwareFileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuffer& path)
+int FileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuffer& path)
 {
 	auto addPathSeg = [&](FWObjDesc& child) {
 		path.addSep();
@@ -866,5 +868,7 @@ int FirmwareFileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuf
 
 	return res == FSERR_EndOfObjects ? FSERR_NotFound : res;
 }
+
+} // namespace FWFS
 
 } // namespace IFS

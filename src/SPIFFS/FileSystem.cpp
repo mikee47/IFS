@@ -1,18 +1,29 @@
 /*
- * SPIFlashFileSystem.cpp
+ * FileSystem.cpp
  *
  *  Created on: 21 Jul 2018
  *      Author: mikee47
  */
 
-#include "include/IFS/SPIFlashFileSystem.h"
-#include "include/IFS/SpiffsError.h"
+#include "../include/IFS/SPIFFS/FileSystem.h"
+#include "../include/IFS/SPIFFS/Error.h"
 extern "C" {
 #include <spiffs_nucleus.h>
 }
-#include "include/IFS/Util.h"
+#include "../include/IFS/Util.h"
 
 namespace IFS
+{
+/** @brief SPIFFS directory object
+ *
+ */
+struct FileDir {
+	char path[SPIFFS_OBJ_NAME_LEN]; ///< Filter for readdir()
+	unsigned pathlen;
+	spiffs_DIR d;
+};
+
+namespace SPIFFS
 {
 /*
  * Number of pages to cache
@@ -32,15 +43,6 @@ namespace IFS
 //@todo an integer offset added to each file handle
 u16_t fh_ix_offset;
 #endif
-
-/** @brief SPIFFS directory object
- *
- */
-struct FileDir {
-	char path[SPIFFS_OBJ_NAME_LEN]; ///< Filter for readdir()
-	unsigned pathlen;
-	spiffs_DIR d;
-};
 
 /** @brief map IFS FileOpenFlags to SPIFFS equivalents
  *  @param flags
@@ -101,9 +103,9 @@ static void copyMeta(FileStat& stat, const FileMeta& meta)
 	stat.mtime = meta.mtime;
 }
 
-/* SPIFlashFileSystem */
+/* FileSystem */
 
-SPIFlashFileSystem::~SPIFlashFileSystem()
+FileSystem::~FileSystem()
 {
 	SPIFFS_unmount(handle());
 	delete[] cache;
@@ -139,7 +141,7 @@ static s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
 	return reinterpret_cast<Media*>(fs->user_data)->erase(addr, size);
 }
 
-int SPIFlashFileSystem::mount()
+int FileSystem::mount()
 {
 	if(!media)
 		return FSERR_NoMedia;
@@ -195,7 +197,7 @@ int SPIFlashFileSystem::mount()
 	return res;
 }
 
-int SPIFlashFileSystem::_mount(spiffs_config& cfg)
+int FileSystem::_mount(spiffs_config& cfg)
 {
 	auto res = SPIFFS_mount(handle(), &cfg, workBuffer, fileDescriptors, FDS_BUF_SIZE(FFS_MAX_FILEDESC), cache,
 							CACHE_SIZE(CACHE_PAGES), nullptr);
@@ -207,7 +209,7 @@ int SPIFlashFileSystem::_mount(spiffs_config& cfg)
 /*
  * Format the file system and leave it mounted in an accessible state.
  */
-int SPIFlashFileSystem::format()
+int FileSystem::format()
 {
 	spiffs_config cfg = fs.cfg;
 	// Must be unmounted before format is called - see API
@@ -222,7 +224,7 @@ int SPIFlashFileSystem::format()
 	return _mount(cfg);
 }
 
-int SPIFlashFileSystem::check()
+int FileSystem::check()
 {
 	fs.check_cb_f = [](spiffs* fs, spiffs_check_type type, spiffs_check_report report, u32_t arg1, u32_t arg2) {
 		if(report > SPIFFS_CHECK_PROGRESS) {
@@ -233,7 +235,7 @@ int SPIFlashFileSystem::check()
 	return SPIFFS_check(handle());
 }
 
-int SPIFlashFileSystem::getinfo(FileSystemInfo& info)
+int FileSystem::getinfo(FileSystemInfo& info)
 {
 	info.clear();
 	info.media = media;
@@ -256,7 +258,7 @@ int SPIFlashFileSystem::getinfo(FileSystemInfo& info)
 	return FS_OK;
 }
 
-int SPIFlashFileSystem::geterrortext(int err, char* buffer, size_t size)
+int FileSystem::geterrortext(int err, char* buffer, size_t size)
 {
 	int res = spiffsErrorToStr(err, buffer, size);
 	if(res == 0) {
@@ -295,7 +297,7 @@ static spiffs_file SPIFFS_open_by_id(spiffs* fs, spiffs_obj_id obj_id, spiffs_fl
 	return SPIFFS_FH_OFFS(fs, fd->file_nbr);
 }
 
-file_t SPIFlashFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
+file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
 	/*
 	 * If file is marked read-only, fail write requests.
@@ -326,7 +328,7 @@ file_t SPIFlashFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	return file;
 }
 
-file_t SPIFlashFileSystem::open(const char* path, FileOpenFlags flags)
+file_t FileSystem::open(const char* path, FileOpenFlags flags)
 {
 	FS_CHECK_PATH(path);
 	if(path == nullptr) {
@@ -360,7 +362,7 @@ file_t SPIFlashFileSystem::open(const char* path, FileOpenFlags flags)
 	return file;
 }
 
-int SPIFlashFileSystem::close(file_t file)
+int FileSystem::close(file_t file)
 {
 	if(file < 0) {
 		return FSERR_FileNotOpen;
@@ -371,28 +373,28 @@ int SPIFlashFileSystem::close(file_t file)
 	return SPIFFS_close(handle(), file);
 }
 
-int SPIFlashFileSystem::eof(file_t file)
+int FileSystem::eof(file_t file)
 {
 	return SPIFFS_eof(handle(), file);
 }
 
-int32_t SPIFlashFileSystem::tell(file_t file)
+int32_t FileSystem::tell(file_t file)
 {
 	return SPIFFS_tell(handle(), file);
 }
 
-int SPIFlashFileSystem::truncate(file_t file, size_t new_size)
+int FileSystem::truncate(file_t file, size_t new_size)
 {
 	return SPIFFS_ftruncate(handle(), file, new_size);
 }
 
-int SPIFlashFileSystem::flush(file_t file)
+int FileSystem::flush(file_t file)
 {
 	flushMeta(file);
 	return SPIFFS_fflush(handle(), file);
 }
 
-int SPIFlashFileSystem::read(file_t file, void* data, size_t size)
+int FileSystem::read(file_t file, void* data, size_t size)
 {
 	int res = SPIFFS_read(handle(), file, data, size);
 	if(res < 0) {
@@ -403,14 +405,14 @@ int SPIFlashFileSystem::read(file_t file, void* data, size_t size)
 	return res;
 }
 
-int SPIFlashFileSystem::write(file_t file, const void* data, size_t size)
+int FileSystem::write(file_t file, const void* data, size_t size)
 {
 	int err = SPIFFS_write(handle(), file, (void*)data, size);
 	touch(file);
 	return err;
 }
 
-int SPIFlashFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int FileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 {
 	int res = SPIFFS_lseek(handle(), file, offset, origin);
 	if(res < 0) {
@@ -423,7 +425,7 @@ int SPIFlashFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 	return res;
 }
 
-SpiffsMetaBuffer* SPIFlashFileSystem::cacheMeta(file_t file)
+SpiffsMetaBuffer* FileSystem::cacheMeta(file_t file)
 {
 	SpiffsMetaBuffer* smb;
 	if(getMeta(file, smb) < 0) {
@@ -445,7 +447,7 @@ SpiffsMetaBuffer* SPIFlashFileSystem::cacheMeta(file_t file)
 	return smb;
 }
 
-int SPIFlashFileSystem::getMeta(file_t file, SpiffsMetaBuffer*& meta)
+int FileSystem::getMeta(file_t file, SpiffsMetaBuffer*& meta)
 {
 	unsigned off = SPIFFS_FH_UNOFFS(handle(), file) - 1;
 	if(off >= FFS_MAX_FILEDESC) {
@@ -459,7 +461,7 @@ int SPIFlashFileSystem::getMeta(file_t file, SpiffsMetaBuffer*& meta)
 /*
  * If metadata has changed, flush it to SPIFFS.
  */
-int SPIFlashFileSystem::flushMeta(file_t file)
+int FileSystem::flushMeta(file_t file)
 {
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
@@ -480,7 +482,7 @@ int SPIFlashFileSystem::flushMeta(file_t file)
 	return res;
 }
 
-int SPIFlashFileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, FileStat* stat)
 {
 	spiffs_stat ss;
 	int res = SPIFFS_stat(handle(), path, &ss);
@@ -503,7 +505,7 @@ int SPIFlashFileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int SPIFlashFileSystem::fstat(file_t file, FileStat* stat)
+int FileSystem::fstat(file_t file, FileStat* stat)
 {
 	spiffs_stat ss;
 	int res = SPIFFS_fstat(handle(), file, &ss);
@@ -532,7 +534,7 @@ int SPIFlashFileSystem::fstat(file_t file, FileStat* stat)
 	return res;
 }
 
-int SPIFlashFileSystem::setacl(file_t file, FileACL* acl)
+int FileSystem::setacl(file_t file, FileACL* acl)
 {
 	if(acl == nullptr) {
 		return FSERR_BadParam;
@@ -547,7 +549,7 @@ int SPIFlashFileSystem::setacl(file_t file, FileACL* acl)
 	return res;
 }
 
-int SPIFlashFileSystem::setattr(file_t file, FileAttributes attr)
+int FileSystem::setattr(file_t file, FileAttributes attr)
 {
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
@@ -557,7 +559,7 @@ int SPIFlashFileSystem::setattr(file_t file, FileAttributes attr)
 	return res;
 }
 
-int SPIFlashFileSystem::settime(file_t file, time_t mtime)
+int FileSystem::settime(file_t file, time_t mtime)
 {
 	SpiffsMetaBuffer* smb = nullptr;
 	int res = getMeta(file, smb);
@@ -568,7 +570,7 @@ int SPIFlashFileSystem::settime(file_t file, time_t mtime)
 	return res;
 }
 
-int SPIFlashFileSystem::opendir(const char* path, filedir_t* dir)
+int FileSystem::opendir(const char* path, filedir_t* dir)
 {
 	if(dir == nullptr) {
 		return FSERR_BadParam;
@@ -604,7 +606,7 @@ int SPIFlashFileSystem::opendir(const char* path, filedir_t* dir)
 	return FS_OK;
 }
 
-int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
+int FileSystem::readdir(filedir_t dir, FileStat* stat)
 {
 	if(dir == nullptr) {
 		return FSERR_BadParam;
@@ -680,7 +682,7 @@ int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 	}
 }
 
-int SPIFlashFileSystem::closedir(filedir_t dir)
+int FileSystem::closedir(filedir_t dir)
 {
 	if(dir == nullptr) {
 		return FSERR_BadParam;
@@ -691,7 +693,7 @@ int SPIFlashFileSystem::closedir(filedir_t dir)
 	return res;
 }
 
-int SPIFlashFileSystem::rename(const char* oldpath, const char* newpath)
+int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	FS_CHECK_PATH(oldpath);
 	FS_CHECK_PATH(newpath);
@@ -702,7 +704,7 @@ int SPIFlashFileSystem::rename(const char* oldpath, const char* newpath)
 	return SPIFFS_rename(handle(), oldpath, newpath);
 }
 
-int SPIFlashFileSystem::remove(const char* path)
+int FileSystem::remove(const char* path)
 {
 	FS_CHECK_PATH(path);
 	if(path == nullptr) {
@@ -714,18 +716,18 @@ int SPIFlashFileSystem::remove(const char* path)
 	return res;
 }
 
-int SPIFlashFileSystem::fremove(file_t file)
+int FileSystem::fremove(file_t file)
 {
 	return SPIFFS_fremove(handle(), file);
 }
 
-int SPIFlashFileSystem::isfile(file_t file)
+int FileSystem::isfile(file_t file)
 {
 	SpiffsMetaBuffer* meta;
 	return getMeta(file, meta);
 }
 
-int SPIFlashFileSystem::getFilePath(fileid_t fileid, NameBuffer& buffer)
+int FileSystem::getFilePath(fileid_t fileid, NameBuffer& buffer)
 {
 	auto fs = handle();
 	spiffs_block_ix block_ix;
@@ -744,4 +746,5 @@ int SPIFlashFileSystem::getFilePath(fileid_t fileid, NameBuffer& buffer)
 	return res;
 }
 
+} // namespace SPIFFS
 } // namespace IFS

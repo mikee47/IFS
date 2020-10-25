@@ -1,18 +1,20 @@
 /*
- * FWObjectStore.cpp
+ * ObjectStore.cpp
  *
  *  Created on: 1 Sep 2018
  *      Author: mikee47
  */
 
-#include "include/IFS/FWObjectStore.h"
+#include "../include/IFS/FWFS/ObjectStore.h"
 
 // First object located immediately after start marker in image
 #define FWFS_BASE_OFFSET sizeof(uint32_t)
 
 namespace IFS
 {
-int FWObjectStore::initialise()
+namespace FWFS
+{
+int ObjectStore::initialise()
 {
 	if(!media)
 		return FSERR_NoMedia;
@@ -31,7 +33,7 @@ int FWObjectStore::initialise()
 	return FS_OK;
 }
 
-int FWObjectStore::mounted(const FWObjDesc& od)
+int ObjectStore::mounted(const FWObjDesc& od)
 {
 	// Check the end marker
 	uint32_t marker;
@@ -54,10 +56,10 @@ int FWObjectStore::mounted(const FWObjDesc& od)
 	return res;
 }
 
-int FWObjectStore::open(FWObjDesc& od)
+int ObjectStore::open(FWObjDesc& od)
 {
 	// The object we're looking for
-	FWObjectID objId = od.ref.id;
+	Object::ID objId = od.ref.id;
 
 	// Start search with first child
 	od.ref.offset = 0;
@@ -81,7 +83,7 @@ int FWObjectStore::open(FWObjDesc& od)
 	return res;
 }
 
-int FWObjectStore::openChild(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
+int ObjectStore::openChild(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
 {
 	if(!child.obj.isRef()) {
 		od = child;
@@ -89,7 +91,7 @@ int FWObjectStore::openChild(const FWObjDesc& parent, const FWObjDesc& child, FW
 		return FS_OK;
 	}
 
-	od.ref = FWObjRef(child.ref, child.obj.data8.ref.id);
+	od.ref = ObjRef(child.ref, child.obj.data8.ref.id);
 
 	int res = open(od);
 	if(res >= 0) {
@@ -105,13 +107,13 @@ int FWObjectStore::openChild(const FWObjDesc& parent, const FWObjDesc& child, FW
 	return res;
 }
 
-int FWObjectStore::close(FWObjDesc& od)
+int ObjectStore::close(FWObjDesc& od)
 {
 	// Nothing to do for FWRO
 	return FS_OK;
 }
 
-int FWObjectStore::readHeader(FWObjDesc& od)
+int ObjectStore::readHeader(FWObjDesc& od)
 {
 	//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
 	assert(sizeof(od.obj) == 8);
@@ -128,7 +130,7 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 	its own IDs. Also, readHeader might be used on child objects in which case the ID
 	isn't applicable. So just leave this code here until I decide what to do with it.
 
-	FWObjectID lastObjectID = 0;
+	ID lastObjectID{0};
 	...
 	// This check is only applicable to FWRO
 	if(od.ref.id < lastObjectID) {
@@ -152,7 +154,7 @@ int FWObjectStore::readHeader(FWObjDesc& od)
 	return res;
 }
 
-int FWObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
+int ObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
 {
 	if(child.ref.offset >= parent.obj.childTableSize()) {
 		return FSERR_EndOfObjects;
@@ -166,10 +168,11 @@ int FWObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
 	return res;
 }
 
-int FWObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
+int ObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 {
 	offset += FWFS_BASE_OFFSET + od.contentOffset();
 	return media->read(offset, size, buffer);
 }
 
+} // namespace FWFS
 } // namespace IFS

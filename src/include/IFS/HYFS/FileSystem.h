@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "FirmwareFileSystem.h"
-#include "SPIFlashFileSystem.h"
-#include "Types.h"
+#include "../FWFS/FileSystem.h"
+#include "../SPIFFS/FileSystem.h"
+#include "../Types.h"
 
 #ifndef HYFS_HIDE_FLAGS
 #define HYFS_HIDE_FLAGS 1
@@ -37,10 +37,12 @@
 
 namespace IFS
 {
-class HybridFileSystem : public IFileSystem
+namespace HYFS
+{
+class FileSystem : public IFileSystem
 {
 public:
-	HybridFileSystem(ObjectStore* fwStore, Media* ffsMedia) : fwfs(fwStore), ffs(ffsMedia)
+	FileSystem(IObjectStore* fwStore, Media* ffsMedia) : fwfs(fwStore), ffs(ffsMedia)
 	{
 	}
 
@@ -85,11 +87,13 @@ private:
 	bool isFWFileHidden(const FileStat& fwstat);
 
 private:
-	FirmwareFileSystem fwfs;
-	SPIFlashFileSystem ffs;
+	FWFS::FileSystem fwfs;
+	SPIFFS::FileSystem ffs;
 #if HYFS_HIDE_FLAGS == 1
 	Vector<fileid_t> hiddenFwFiles;
 #endif
 };
+
+} // namespace HYFS
 
 } // namespace IFS
