@@ -27,10 +27,10 @@ public:
 	 *  @param startPtr must be in flash memory
 	 *  @param attr
 	 */
-	MemoryMedia(const void* startPtr, FSMediaAttributes attr);
+	MemoryMedia(const void* startPtr, Media::Attributes attr);
 
 	int setExtent(uint32_t size) override;
-	FSMediaInfo getinfo() const override;
+	Media::Info getinfo() const override;
 	int read(uint32_t offset, uint32_t size, void* buffer) override;
 	int write(uint32_t offset, uint32_t size, const void* data) override;
 	int erase(uint32_t offset, uint32_t size) override;

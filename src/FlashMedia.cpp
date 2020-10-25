@@ -26,17 +26,17 @@ uint32_t getMaxSize(uint32_t startAddress)
 
 } // namespace
 
-FlashMedia::FlashMedia(uint32_t startAddress, uint32_t size, FSMediaAttributes attr)
+FlashMedia::FlashMedia(uint32_t startAddress, uint32_t size, Media::Attributes attr)
 	: Media(std::min(size, getMaxSize(startAddress)), attr), m_startAddress(startAddress)
 {
 }
 
-FlashMedia::FlashMedia(uint32_t startAddress, FSMediaAttributes attr)
+FlashMedia::FlashMedia(uint32_t startAddress, Media::Attributes attr)
 	: Media(getMaxSize(startAddress), attr), m_startAddress(startAddress)
 {
 }
 
-FlashMedia::FlashMedia(const void* startPtr, FSMediaAttributes attr)
+FlashMedia::FlashMedia(const void* startPtr, Media::Attributes attr)
 	: Media(getMaxSize(flashmem_get_address(startPtr)), attr), m_startAddress(flashmem_get_address(startPtr))
 {
 }
@@ -49,9 +49,13 @@ int FlashMedia::setExtent(uint32_t size)
 	return Media::setExtent(size);
 }
 
-FSMediaInfo FlashMedia::getinfo() const
+Media::Info FlashMedia::getinfo() const
 {
-	return FSMediaInfo{.type = eFMT_Flash, .bus = eBus_HSPI, .blockSize = INTERNAL_FLASH_SECTOR_SIZE};
+	return Media::Info{
+		.type = Type::Flash,
+		.bus = Bus::HSPI,
+		.blockSize = INTERNAL_FLASH_SECTOR_SIZE,
+	};
 }
 
 int FlashMedia::read(uint32_t offset, uint32_t size, void* buffer)

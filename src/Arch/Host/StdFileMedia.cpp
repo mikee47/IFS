@@ -30,12 +30,12 @@
 
 namespace IFS
 {
-StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, FSMediaAttributes attr)
+StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, Media::Attributes attr)
 	: Media(size, attr)
 {
 	m_blockSize = blockSize;
 
-	int file = open(filename, O_BINARY | O_CREAT | ((attr & eFMA_ReadOnly) ? O_RDONLY : O_RDWR), 0644);
+	int file = open(filename, O_BINARY | O_CREAT | (attr[Media::Attribute::ReadOnly] ? O_RDONLY : O_RDWR), 0644);
 	if(file < 0) {
 		debug_e("Failed to open '%s'", filename);
 		return; // FSERR_NotFound;
@@ -50,7 +50,7 @@ StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSi
 	 */
 	if(len > (int)size) {
 		size = len;
-	} else if((int)size > len && !(attr & eFMA_ReadOnly)) {
+	} else if((int)size > len && !attr[Media::Attribute::ReadOnly]) {
 		if(ftruncate(file, size) < 0) {
 			::close(m_file);
 			return;
@@ -70,11 +70,11 @@ StdFileMedia::~StdFileMedia()
 	}
 }
 
-FSMediaInfo StdFileMedia::getinfo() const
+Media::Info StdFileMedia::getinfo() const
 {
-	FSMediaInfo info{
-		.type = eFMT_Disk,
-		.bus = eBus_System,
+	Media::Info info{
+		.type = Type::Disk,
+		.bus = Bus::System,
 		.blockSize = m_blockSize,
 	};
 

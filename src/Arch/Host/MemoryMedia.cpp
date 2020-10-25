@@ -13,7 +13,7 @@ namespace IFS
 const uint32_t MAX_MEMORY_SIZE = 4096 * 1024U;
 const uint32_t BLOCK_SIZE = 4096U;
 
-MemoryMedia::MemoryMedia(const void* startPtr, FSMediaAttributes attr)
+MemoryMedia::MemoryMedia(const void* startPtr, Media::Attributes attr)
 	: Media(MAX_MEMORY_SIZE, attr), startPtr(startPtr)
 {
 }
@@ -27,11 +27,11 @@ int MemoryMedia::setExtent(uint32_t size)
 	return Media::setExtent(size);
 }
 
-FSMediaInfo MemoryMedia::getinfo() const
+Media::Info MemoryMedia::getinfo() const
 {
-	return FSMediaInfo{
-		.type = eFMT_Flash,
-		.bus = eBus_HSPI,
+	return Media::Info{
+		.type = Type::Flash,
+		.bus = Bus::HSPI,
 		.blockSize = BLOCK_SIZE,
 	};
 }

@@ -148,7 +148,7 @@ int FirmwareFileSystem::read(file_t file, void* data, size_t size)
 
 	uint32_t readTotal = 0;
 	// Offset from start of data content
-	FSExtent ext;
+	Extent ext;
 
 	FWObjDesc child;
 	int res;

@@ -30,7 +30,7 @@ time_t fsGetTimeUTC()
 
 IFileSystem* createFirmwareFilesystem(const void* fwfsImageData)
 {
-	auto fwMedia = new MediaType(fwfsImageData, eFMA_ReadOnly);
+	auto fwMedia = new MediaType(fwfsImageData, Media::ReadOnly);
 	if(fwMedia == nullptr) {
 		return nullptr;
 	}
@@ -51,7 +51,7 @@ IFileSystem* createFirmwareFilesystem(const void* fwfsImageData)
 
 IFileSystem* createHybridFilesystem(const void* fwfsImageData)
 {
-	auto fwMedia = new MediaType(fwfsImageData, eFMA_ReadOnly);
+	auto fwMedia = new MediaType(fwfsImageData, Media::ReadOnly);
 	if(fwMedia == nullptr) {
 		return nullptr;
 	}
@@ -63,7 +63,7 @@ IFileSystem* createHybridFilesystem(const void* fwfsImageData)
 	}
 
 	auto cfg = spiffs_get_storage_config();
-	auto ffsMedia = new FlashMedia(cfg.phys_addr, cfg.phys_size, eFMA_ReadWrite);
+	auto ffsMedia = new FlashMedia(cfg.phys_addr, cfg.phys_size, Media::ReadWrite);
 
 	auto fs = new HybridFileSystem(store, ffsMedia);
 
