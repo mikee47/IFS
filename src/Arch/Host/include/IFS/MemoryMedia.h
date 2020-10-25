@@ -1,5 +1,5 @@
 /*
- * IFSMemoryMedia.h
+ * MemoryMedia.h
  *
  *  Created on: 18 Aug 2018
  *      Author: mikee47
@@ -10,22 +10,24 @@
 
 #pragma once
 
-#include <IFS/IFSMedia.h>
+#include <IFS/Media.h>
 
+namespace IFS
+{
 /** @brief Media object representing storage in regular memory.
  *  @note If using IMPORT_FSTR to place filesystem images into flash, they cannot
  *  be accessed using the Flash API because the Host emulates flash memory using
  *  a separate file.
  *  Note that IMPORT_FSTR will consume program memory, which is limited to 1MB.
  */
-class IFSMemoryMedia : public IFSMedia
+class MemoryMedia : public Media
 {
 public:
 	/** @brief constructor to calculate extent from a memory pointer
 	 *  @param startPtr must be in flash memory
 	 *  @param attr
 	 */
-	IFSMemoryMedia(const void* startPtr, FSMediaAttributes attr);
+	MemoryMedia(const void* startPtr, FSMediaAttributes attr);
 
 	int setExtent(uint32_t size) override;
 	FSMediaInfo getinfo() const override;
@@ -36,3 +38,5 @@ public:
 private:
 	const void* startPtr;
 };
+
+} // namespace IFS

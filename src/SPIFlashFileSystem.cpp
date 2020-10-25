@@ -5,13 +5,15 @@
  *      Author: mikee47
  */
 
-#include <IFS/SPIFlashFileSystem.h>
-#include <IFS/SpiffsError.h>
+#include "include/IFS/SPIFlashFileSystem.h"
+#include "include/IFS/SpiffsError.h"
 extern "C" {
 #include <spiffs_nucleus.h>
 }
-#include <IFS/IFSUtil.h>
+#include "include/IFS/Util.h"
 
+namespace IFS
+{
 /*
  * Number of pages to cache
  */
@@ -27,7 +29,7 @@ extern "C" {
 
 #if SPIFFS_FILEHDL_OFFSET
 #define SPIFFS_
-// an integer offset added to each file handle
+//@todo an integer offset added to each file handle
 u16_t fh_ix_offset;
 #endif
 
@@ -124,17 +126,17 @@ static inline uint32_t Align(uint32_t value, uint32_t gran)
 
 static s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
 {
-	return reinterpret_cast<IFSMedia*>(fs->user_data)->read(addr, size, dst);
+	return reinterpret_cast<Media*>(fs->user_data)->read(addr, size, dst);
 }
 
 static s32_t f_write(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* src)
 {
-	return reinterpret_cast<IFSMedia*>(fs->user_data)->write(addr, size, src);
+	return reinterpret_cast<Media*>(fs->user_data)->write(addr, size, src);
 }
 
 static s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
 {
-	return reinterpret_cast<IFSMedia*>(fs->user_data)->erase(addr, size);
+	return reinterpret_cast<Media*>(fs->user_data)->erase(addr, size);
 }
 
 int SPIFlashFileSystem::mount()
@@ -737,3 +739,5 @@ int SPIFlashFileSystem::getFilePath(fileid_t fileid, NameBuffer& buffer)
 
 	return res;
 }
+
+} // namespace IFS

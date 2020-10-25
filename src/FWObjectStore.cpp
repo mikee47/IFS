@@ -5,11 +5,13 @@
  *      Author: mikee47
  */
 
-#include <IFS/FWObjectStore.h>
+#include "include/IFS/FWObjectStore.h"
 
 // First object located immediately after start marker in image
 #define FWFS_BASE_OFFSET sizeof(uint32_t)
 
+namespace IFS
+{
 int FWObjectStore::initialise()
 {
 	if(!media)
@@ -169,3 +171,5 @@ int FWObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_t si
 	offset += FWFS_BASE_OFFSET + od.contentOffset();
 	return media->read(offset, size, buffer);
 }
+
+} // namespace IFS

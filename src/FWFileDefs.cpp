@@ -5,9 +5,11 @@
  *      Author: mikee47
  */
 
-#include <IFS/FWFileDefs.h>
-#include <IFS/ifstypes.h>
+#include "include/IFS/FWFileDefs.h"
+#include "IFS/Types.h"
 
+namespace IFS
+{
 #define XX(_value, _tag, _text) DEFINE_PSTR(__str_##_tag, #_tag)
 FWFS_OBJTYPE_MAP(XX)
 #undef XX
@@ -29,3 +31,5 @@ char* fwfsObjectTypeName(FWFS_ObjectType obt, char* buffer, size_t bufSize)
 	buffer[bufSize - 1] = '\0';
 	return buffer;
 }
+
+} // namespace IFS

@@ -1,5 +1,5 @@
 /*
- * access.h
+ * Access.h
  *
  *  Created on: 6 Jun 2018
  *      Author: mikee47
@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 
+namespace IFS
+{
 // Access Control level
 #define USER_ROLE_MAP(XX)                                                                                              \
 	XX(None, '-', "No assigned role")                                                                                  \
@@ -58,3 +60,5 @@ struct FileACL {
 };
 
 char* fileAclToStr(FileACL acl, char* buf, size_t bufSize);
+
+} // namespace IFS

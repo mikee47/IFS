@@ -25,7 +25,7 @@
 
 #include "FirmwareFileSystem.h"
 #include "SPIFlashFileSystem.h"
-#include "ifstypes.h"
+#include "Types.h"
 
 #ifndef HYFS_HIDE_FLAGS
 #define HYFS_HIDE_FLAGS 1
@@ -35,10 +35,12 @@
 #include "WVector.h"
 #endif
 
+namespace IFS
+{
 class HybridFileSystem : public IFileSystem
 {
 public:
-	HybridFileSystem(IFSObjectStore* fwStore, IFSMedia* ffsMedia) : fwfs(fwStore), ffs(ffsMedia)
+	HybridFileSystem(ObjectStore* fwStore, Media* ffsMedia) : fwfs(fwStore), ffs(ffsMedia)
 	{
 	}
 
@@ -93,3 +95,5 @@ private:
 	Vector<fileid_t> hiddenFwFiles;
 #endif
 };
+
+} // namespace IFS

@@ -7,9 +7,11 @@
 
 #pragma once
 
-#include "ifstypes.h"
-#include "IFSError.h"
+#include "Types.h"
+#include "Error.h"
 
+namespace IFS
+{
 /** @brief defines a 'safe' name buffer
  *  @note Instead of including a fixed name array in FileStat (and FileSystemInfo) structures,
  *  we use a NameBuffer to identify a separate buffer. This has several advantages:
@@ -141,3 +143,5 @@ private:
 	// maximum size for a byte-length string, + 1 char for nul terminator
 	char buffer[256];
 };
+
+} // namespace IFS

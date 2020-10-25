@@ -1,5 +1,5 @@
 /*
- * IFSObjectStore.h
+ * ObjectStore.h
  *
  *  Created on: 1 Sep 2018
  *      Author: mikee47
@@ -8,20 +8,22 @@
 
 #pragma once
 
-#include "IFSObjectStore.h"
-#include "IFSMedia.h"
+#include "ObjectStore.h"
+#include "Media.h"
 
 #ifdef FWFS_OBJECT_CACHE
 #include "FWObjRefCache.h"
 #endif
 
+namespace IFS
+{
 /** @brief object store for read-only filesystem
  *
  */
-class FWObjectStore : public IFSObjectStore
+class FWObjectStore : public ObjectStore
 {
 public:
-	FWObjectStore(IFSMedia* media) : media(media)
+	FWObjectStore(Media* media) : media(media)
 	{
 	}
 
@@ -45,13 +47,13 @@ public:
 	int readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer) override;
 	int close(FWObjDesc& od) override;
 
-	IFSMedia* getMedia() override
+	Media* getMedia() override
 	{
 		return media;
 	}
 
 private:
-	IFSMedia* media = nullptr;
+	Media* media = nullptr;
 	FWObjRef lastFound;
 	struct Flags {
 		bool mounted;
@@ -61,3 +63,5 @@ private:
 	FWObjRefCache cache;
 #endif
 };
+
+} // namespace IFS

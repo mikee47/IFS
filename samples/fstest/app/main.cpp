@@ -18,19 +18,20 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include "except.h"
-#include "flashmem.h"
-#include "IFS/HybridFileSystem.h"
-#include "../../ifs-host/StdFileMedia.h"
-#include "IFS/IFSFlashMedia.h"
-#include "IFS/FWObjectStore.h"
-#include "IFS/SPIFFSObjectStore.h"
+#include <esp_spi_flash.h>
+#include <IFS/HybridFileSystem.h>
+#include <IFS/StdFileMedia.h>
+#include <IFS/FlashMedia.h>
+#include <IFS/FWObjectStore.h>
+#include <IFS/SPIFFSObjectStore.h>
 
 #include <string>
 using String = std::string;
 
 // We mount SPIFFS on a file so we can inspect if necessary
 const char* FLASHMEM_DMP = "flashmem.dmp";
+
+using namespace IFS;
 
 // Global filesystem instance
 static IFileSystem* g_filesys;
@@ -174,7 +175,7 @@ bool fsInit(const char* imgfile)
 	debugf("fwfiles_data = 0x%08X, end = 0x%08X, len = 0x%08X", uint32_t(_fwfiles_data), uint32_t(_fwfiles_data_end),
 		   _fwfiles_data_len);
 
-	IFSMedia* fwMedia;
+	IFS::Media* fwMedia;
 	if(imgfile != nullptr) {
 		fwMedia = new StdFileMedia(imgfile, FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadOnly);
 	} else {
@@ -186,7 +187,7 @@ bool fsInit(const char* imgfile)
 
 #ifdef HYBRID_TEST
 
-	IFSMedia* ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+	IFS::Media* ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
 	auto hfs = new HybridFileSystem(store, ffsMedia);
 
 #else

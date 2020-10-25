@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "IFSObjectStore.h"
+#include "ObjectStore.h"
 
+namespace IFS
+{
 #define FWFS_OBJECT_CACHE
 
 // Add a cache entry at regular index positions - pick a number here which is a modulus of 2
@@ -90,3 +92,5 @@ private:
 };
 
 #endif
+
+} // namespace IFS

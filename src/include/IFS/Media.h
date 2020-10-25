@@ -1,5 +1,5 @@
 /*
- * IFSMedia.h
+ * Media.h
  *
  *  Created on: 18 Aug 2018
  *      Author: mikee47
@@ -9,9 +9,11 @@
 
 #pragma once
 
-#include "IFSError.h"
-#include "ifstypes.h"
+#include "Error.h"
+#include "Types.h"
 
+namespace IFS
+{
 /** @brief Physical media filing system is mounted on
  *  @note We'll use the term 'disk' when referring to physical media
  */
@@ -65,7 +67,7 @@ struct FSExtent {
 	}
 };
 
-// IFSMedia implementations can use this macro for standard extent check
+// Media implementations can use this macro for standard extent check
 #define FS_CHECK_EXTENT(_off, _sz)                                                                                     \
 	{                                                                                                                  \
 		uint32_t off = _off;                                                                                           \
@@ -88,14 +90,14 @@ struct FSExtent {
  *  is physically arranged differently, e.g. multiple regions spread across
  *  memory chips.
  */
-class IFSMedia
+class Media
 {
 public:
-	IFSMedia(uint32_t size, FSMediaAttributes attr) : m_size(size), m_attr(attr)
+	Media(uint32_t size, FSMediaAttributes attr) : m_size(size), m_attr(attr)
 	{
 	}
 
-	virtual ~IFSMedia()
+	virtual ~Media()
 	{
 	}
 
@@ -194,3 +196,5 @@ protected:
 	uint32_t m_size;		  ///< Size of media in bytes (always starts at 0)
 	FSMediaAttributes m_attr; ///< Specific media attributes
 };
+
+} // namespace IFS

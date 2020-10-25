@@ -1,5 +1,5 @@
 /*
- * fwfiledefs.h
+ * FWFileDefs.h
  *
  *  Created on: 7 Aug 2018
  *      Author: mikee47
@@ -60,10 +60,12 @@
 #pragma once
 
 #include "FileAttributes.h"
-#include "ifstypes.h"
+#include "Types.h"
 #include "Compression.h"
 #include "Access.h"
 
+namespace IFS
+{
 /*
  * Helper template function to get the next object pointer at (current + offset)
  * casting as required for the given return type.
@@ -366,3 +368,5 @@ struct FWFS_Object {
 };
 
 #pragma pack()
+
+} // namespace IFS

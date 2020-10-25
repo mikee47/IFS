@@ -6,14 +6,17 @@
  *
  * Standard File System
  *
- * IFS wrapper for mingw file system
+ * IFS wrapper for POSIX file system
  *
  */
 
 #pragma once
 
-#include <IFS/IFS.h>
+#include <IFS/FileSystem.h>
+#include <sys/stat.h>
 
+namespace IFS
+{
 /** @brief Implementation of standard mingw filing system using IFS
  */
 class StdFileSystem : public IFileSystem
@@ -91,3 +94,5 @@ public:
 private:
 	void fillStat(const struct stat& s, FileStat& stat);
 };
+
+} // namespace IFS

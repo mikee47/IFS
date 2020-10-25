@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 
+namespace IFS
+{
 /** @brief Four-character tag to identify type of filing system
  *  @note As new filing systems are incorporated into IFS, update this enumeration
  */
@@ -33,3 +35,5 @@ enum class FileSystemType {
  *  @note if buffer more than 4 characters then nul will be appended
  */
 char* fileSystemTypeToStr(FileSystemType type, char* buf, unsigned bufSize);
+
+} // namespace IFS

@@ -18,13 +18,15 @@
 #include "FileSystemType.h"
 #include "FileSystemAttributes.h"
 #include "FileAttributes.h"
-#include "ifstypes.h"
+#include "Types.h"
 #include "Access.h"
 #include "Compression.h"
-#include "IFSMedia.h"
-#include "IFSError.h"
+#include "Media.h"
+#include "Error.h"
 #include "NameBuffer.h"
 
+namespace IFS
+{
 /*
  * File handle
  *
@@ -124,7 +126,7 @@ time_t fsGetTimeUTC();
  */
 struct FileSystemInfo {
 	FileSystemType type = FileSystemType::Unknown; ///< The filing system type identifier
-	const IFSMedia* media = nullptr;			   ///< WARNING: can be null for virtual file systems
+	const Media* media = nullptr;				   ///< WARNING: can be null for virtual file systems
 	FileSystemAttributes attr = 0;				   ///< Attribute flags
 	uint32_t volumeID = 0;						   ///< Unique identifier for volume
 	NameBuffer name;							   ///< Buffer for name
@@ -400,5 +402,7 @@ public:
 	 */
 	virtual int isfile(file_t file) = 0;
 };
+
+} // namespace IFS
 
 /** @} */

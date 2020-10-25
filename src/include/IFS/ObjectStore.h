@@ -1,5 +1,5 @@
 /*
- * IFSObjectStore.h
+ * ObjectStore.h
  *
  *  Created on: 1 Sep 2018
  *      Author: mikee47
@@ -8,10 +8,12 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 #include "FWFileDefs.h"
-#include "IFSMedia.h"
+#include "Media.h"
 
+namespace IFS
+{
 /** @brief gives the identity and location of an FWFS object
  */
 struct FWObjRef {
@@ -90,10 +92,10 @@ struct FWObjDesc {
 	}
 };
 
-class IFSObjectStore
+class ObjectStore
 {
 public:
-	virtual ~IFSObjectStore()
+	virtual ~ObjectStore()
 	{
 	}
 
@@ -162,5 +164,7 @@ public:
 	 */
 	virtual int close(FWObjDesc& od) = 0;
 
-	virtual IFSMedia* getMedia() = 0;
+	virtual Media* getMedia() = 0;
 };
+
+} // namespace IFS

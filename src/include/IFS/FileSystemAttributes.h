@@ -7,8 +7,10 @@
 
 #pragma once
 
-#include "ifstypes.h"
+#include "Types.h"
 
+namespace IFS
+{
 /** @brief Attribute flags for filing system
   */
 #define FILE_SYSTEM_ATTR_MAP(XX)                                                                                       \
@@ -34,3 +36,5 @@ using FileSystemAttributes = uint8_t;
  *  @retval char* points to buf
  */
 char* fileSystemAttrToStr(FileSystemAttributes attr, char* buf, size_t bufSize);
+
+} // namespace IFS

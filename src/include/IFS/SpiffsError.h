@@ -7,4 +7,7 @@
 
 #pragma once
 
+namespace IFS
+{
 int spiffsErrorToStr(int err, char* buffer, unsigned size);
+}

@@ -1,13 +1,15 @@
 /*
- * compression.cpp
+ * Compression.cpp
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
  */
 
-#include <IFS/Compression.h>
-#include <IFS/ifstypes.h>
+#include "include/IFS/Compression.h"
+#include "include/IFS/Types.h"
 
+namespace IFS
+{
 #define XX(_tag, _comment) DEFINE_PSTR_LOCAL(__str_##_tag, #_tag)
 COMPRESSION_TYPE_MAP(XX)
 #undef XX
@@ -22,8 +24,11 @@ char* compressionTypeToStr(CompressionType type, char* buf, size_t bufSize)
 		if(type < CompressionType::MAX) {
 			strncpy_P(buf, __strings[(unsigned)type], bufSize);
 			buf[bufSize - 1] = '\0';
-		} else
+		} else {
 			buf[0] = '\0';
+		}
 	}
 	return buf;
 }
+
+} // namespace IFS

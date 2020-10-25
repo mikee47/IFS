@@ -7,26 +7,52 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include <IFS/StdFileSystem.h>
+#include "include/IFS/StdFileSystem.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 255
 #endif
 
-struct FileDir {
-	char path[PATH_MAX];
-	DIR* d;
-};
-
+namespace IFS
+{
+namespace
+{
 int syserr()
 {
 	return -errno;
 }
+
+int mapFlags(FileOpenFlags flags)
+{
+	int ret = 0;
+	if(bitRead(flags, FileOpenFlag::Append)) {
+		ret |= O_APPEND;
+	}
+	if(bitRead(flags, FileOpenFlag::Create)) {
+		ret |= O_CREAT;
+	}
+	if(bitRead(flags, FileOpenFlag::Read)) {
+		ret |= O_RDONLY;
+	}
+	if(bitRead(flags, FileOpenFlag::Truncate)) {
+		ret |= O_TRUNC;
+	}
+	if(bitRead(flags, FileOpenFlag::Write)) {
+		ret |= O_WRONLY;
+	}
+	return ret;
+}
+
+} // namespace
+
+struct FileDir {
+	char path[PATH_MAX];
+	DIR* d;
+};
 
 int StdFileSystem::getinfo(FileSystemInfo& info)
 {
@@ -131,27 +157,6 @@ int StdFileSystem::fstat(file_t file, FileStat* stat)
 	return res;
 }
 
-int mapFlags(FileOpenFlags flags)
-{
-	int ret = 0;
-	if(bitRead(flags, FileOpenFlag::Append)) {
-		ret |= O_APPEND;
-	}
-	if(bitRead(flags, FileOpenFlag::Create)) {
-		ret |= O_CREAT;
-	}
-	if(bitRead(flags, FileOpenFlag::Read)) {
-		ret |= O_RDONLY;
-	}
-	if(bitRead(flags, FileOpenFlag::Truncate)) {
-		ret |= O_TRUNC;
-	}
-	if(bitRead(flags, FileOpenFlag::Write)) {
-		ret |= O_WRONLY;
-	}
-	return ret;
-}
-
 file_t StdFileSystem::open(const char* path, FileOpenFlags flags)
 {
 	int res = ::open(path, mapFlags(flags));
@@ -201,7 +206,9 @@ int32_t StdFileSystem::tell(file_t file)
 	return ::lseek(file, 0, SEEK_CUR);
 }
 
-int truncate(file_t file, size_t new_size)
+int StdFileSystem::truncate(file_t file, size_t new_size)
 {
 	return ::ftruncate(file, new_size);
 }
+
+} // namespace IFS

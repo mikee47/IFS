@@ -1,5 +1,5 @@
 /*
- * ifshelp.h
+ * Helpers.h
  *
  *  Created on: 27 Jan 2019
  *      Author: Mike
@@ -9,8 +9,10 @@
 
 #pragma once
 
-#include "IFS/IFS.h"
+#include "IFS/FileSystem.h"
 
+namespace IFS
+{
 /** @brief Create a firmware filesystem
  *  @param fwfsImageData
  *  @retval IFileSystem* constructed filesystem object
@@ -23,3 +25,5 @@ IFileSystem* CreateFirmwareFilesystem(const void* fwfsImageData);
  *  @note SPIFFS configuration is obtained via spiffs_get_storage_config()
  */
 IFileSystem* CreateHybridFilesystem(const void* fwfsImageData);
+
+} // namespace IFS
