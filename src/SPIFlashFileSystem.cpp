@@ -613,7 +613,11 @@ int SPIFlashFileSystem::readdir(filedir_t dir, FileStat* stat)
 	spiffs_dirent e;
 	for(;;) {
 		if(SPIFFS_readdir(&dir->d, &e) == nullptr) {
-			return SPIFFS_errno(handle());
+			int err = SPIFFS_errno(handle());
+			if(err == SPIFFS_VIS_END) {
+				err = FSERR_NoMoreFiles;
+			}
+			return err;
 		}
 
 		/* The volume doesn't contain directory objects, so at each level we need
