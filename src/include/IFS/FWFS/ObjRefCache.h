@@ -1,5 +1,5 @@
 /*
- * FWObjRefCache.h
+ * ObjRefCache.h
  *
  *  Created on: 1 Sep 2018
  *      Author: mikee47
@@ -11,6 +11,8 @@
 
 namespace IFS
 {
+namespace FWFS
+{
 #define FWFS_OBJECT_CACHE
 
 // Add a cache entry at regular index positions - pick a number here which is a modulus of 2
@@ -21,15 +23,15 @@ namespace IFS
 
 /** @brief Cache the locations of several objects to improve search speed
  */
-class FWObjRefCache
+class ObjRefCache
 {
 public:
-	~FWObjRefCache()
+	~ObjRefCache()
 	{
 		clear();
 	}
 
-	void initialise(FWObjectID objectCount)
+	void initialise(Object::ID objectCount)
 	{
 		clear();
 		if(objectCount < FWFS_CACHE_SPACING) {
@@ -49,7 +51,7 @@ public:
 		offsets = nullptr;
 	}
 
-	void add(const FWObjRef& ref)
+	void add(const ObjRef& ref)
 	{
 		if(ref.id && (ref.id & FWFS_CACHE_MASK) == 0) {
 			auto po = getOffset(ref.id);
@@ -60,7 +62,7 @@ public:
 		}
 	}
 
-	uint32_t* getOffset(FWObjectID objIndex)
+	uint32_t* getOffset(FWFS::Object::ID objIndex)
 	{
 		int pos = (objIndex / FWFS_CACHE_SPACING) - 1;
 		return (pos >= 0 && pos < offsetCount) ? &offsets[pos] : nullptr;
@@ -71,9 +73,9 @@ public:
 	 *  @param objID object we're looking for
 	 *  @note FWRO object IDs are sequential indices, so we'll try to get the start offset as close as possible
 	 */
-	void improve(FWObjRef& ref, FWObjectID objID)
+	void improve(ObjRef& ref, FWFS::Object::ID objID)
 	{
-		FWObjectID cachedIndex = objID & ~FWFS_CACHE_MASK;
+		FWFS::Object::ID cachedIndex = objID & ~FWFS_CACHE_MASK;
 		if(cachedIndex <= ref.id) {
 			return;
 		}
@@ -88,9 +90,10 @@ public:
 
 private:
 	uint32_t* offsets{nullptr};
-	FWObjectID offsetCount{0}; ///< Number of cached offsets
+	FWFS::Object::ID offsetCount{0}; ///< Number of cached offsets
 };
 
 #endif
 
+} // namespace FWFS
 } // namespace IFS

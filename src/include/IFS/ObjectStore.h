@@ -8,39 +8,38 @@
 
 #pragma once
 
-#include "Types.h"
-#include "FWFileDefs.h"
+#include "Object.h"
 #include "Media.h"
 
 namespace IFS
 {
 /** @brief gives the identity and location of an FWFS object
  */
-struct FWObjRef {
+struct ObjRef {
 	uint32_t offset{0}; ///< Offset from start of image
-	FWObjectID id{0};
+	Object::ID id{0};
 	uint8_t handle{0};	///< SPIFFS object store requires handles
 	uint8_t storenum{0};  ///< Object store number
 	uint8_t readCount{0}; ///< For profiling
 	uint8_t refCount{0};  ///< For testing open/close correctness
 
-	FWObjRef()
+	ObjRef()
 	{
 	}
 
-	FWObjRef(const FWObjRef& parent, FWObjectID objID)
+	ObjRef(const ObjRef& parent, Object::ID objID)
 	{
 		storenum = parent.storenum;
 		id = objID;
 	}
 
-	FWObjRef(uint32_t fileid)
+	ObjRef(uint32_t fileid)
 	{
 		storenum = fileid >> 16;
 		id = fileid & 0xffff;
 	}
 
-	~FWObjRef()
+	~ObjRef()
 	{
 		assert(refCount == 0);
 	}
@@ -54,14 +53,14 @@ struct FWObjRef {
 /** @brief FWFS Object Descriptor
  */
 struct FWObjDesc {
-	FWFS_Object obj; ///< The object structure
-	FWObjRef ref;	///< location
+	Object obj; ///< The object structure
+	ObjRef ref; ///< location
 
 	FWObjDesc()
 	{
 	}
 
-	FWObjDesc(const FWObjRef& objRef) : ref(objRef)
+	FWObjDesc(const ObjRef& objRef) : ref(objRef)
 	{
 	}
 
@@ -92,10 +91,10 @@ struct FWObjDesc {
 	}
 };
 
-class ObjectStore
+class IObjectStore
 {
 public:
-	virtual ~ObjectStore()
+	virtual ~IObjectStore()
 	{
 	}
 

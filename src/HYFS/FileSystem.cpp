@@ -1,5 +1,5 @@
 /*
- * HybridFileSystem.cpp
+ * FileSystem.cpp
  *
  *  Created on: 22 Jul 2018
  *      Author: mikee47
@@ -63,7 +63,7 @@
  *
  */
 
-#include "include/IFS/HybridFileSystem.h"
+#include "../include/IFS/HYFS/FileSystem.h"
 
 #define GET_FS(__file)                                                                                                 \
 	if(__file < 0) {                                                                                                   \
@@ -87,7 +87,9 @@ struct FileDir {
 	IFileSystem* fs;
 };
 
-int HybridFileSystem::mount()
+namespace HYFS
+{
+int FileSystem::mount()
 {
 	// Mount both filesystems so they take ownership of the media objects
 	int res = fwfs.mount();
@@ -97,7 +99,7 @@ int HybridFileSystem::mount()
 	return res;
 }
 
-int HybridFileSystem::getinfo(FileSystemInfo& info)
+int FileSystem::getinfo(FileSystemInfo& info)
 {
 	FileSystemInfo ffsinfo;
 	ffsinfo.name = info.name;
@@ -122,7 +124,7 @@ int HybridFileSystem::getinfo(FileSystemInfo& info)
  * error. This relies on the fact that error codes from these two filing systems
  * do not overlap.
  */
-int HybridFileSystem::geterrortext(int err, char* buffer, size_t size)
+int FileSystem::geterrortext(int err, char* buffer, size_t size)
 {
 	int ret = ffs.geterrortext(err, buffer, size);
 	if(ret < 0) {
@@ -131,7 +133,7 @@ int HybridFileSystem::geterrortext(int err, char* buffer, size_t size)
 	return ret;
 }
 
-int HybridFileSystem::hideFWFile(const char* path, bool hide)
+int FileSystem::hideFWFile(const char* path, bool hide)
 {
 	int res = FS_OK;
 #if HYFS_HIDE_FLAGS == 1
@@ -150,7 +152,7 @@ int HybridFileSystem::hideFWFile(const char* path, bool hide)
 	return res;
 }
 
-bool HybridFileSystem::isFWFileHidden(const FileStat& fwstat)
+bool FileSystem::isFWFileHidden(const FileStat& fwstat)
 {
 #if HYFS_HIDE_FLAGS == 1
 	return hiddenFwFiles.contains(fwstat.id);
@@ -165,7 +167,7 @@ bool HybridFileSystem::isFWFileHidden(const FileStat& fwstat)
  * during FFS enumeration.
  */
 
-int HybridFileSystem::opendir(const char* path, filedir_t* dir)
+int FileSystem::opendir(const char* path, filedir_t* dir)
 {
 	auto d = new FileDir;
 	if(d == nullptr) {
@@ -191,7 +193,7 @@ int HybridFileSystem::opendir(const char* path, filedir_t* dir)
 	return res;
 }
 
-int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
+int FileSystem::readdir(filedir_t dir, FileStat* stat)
 {
 	if(dir == nullptr) {
 		return FSERR_BadParam;
@@ -239,7 +241,7 @@ int HybridFileSystem::readdir(filedir_t dir, FileStat* stat)
 	return res;
 }
 
-int HybridFileSystem::closedir(filedir_t dir)
+int FileSystem::closedir(filedir_t dir)
 {
 	if(dir == nullptr) {
 		return FSERR_BadParam;
@@ -271,7 +273,7 @@ int HybridFileSystem::closedir(filedir_t dir)
  *      fail
  *
  */
-file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
+file_t FileSystem::open(const char* path, FileOpenFlags flags)
 {
 	// If file exists on FFS then open it and return
 	FileStat stat;
@@ -359,7 +361,7 @@ file_t HybridFileSystem::open(const char* path, FileOpenFlags flags)
  * only returns the file name, omitting the path. So we need to do a lower-level
  * SPIFS stat to get the real file path.
  */
-file_t HybridFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
+file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
 	if(stat.fs == nullptr) {
 		return FSERR_BadParam;
@@ -381,7 +383,7 @@ file_t HybridFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	return res < 0 ? res : open(name, flags);
 }
 
-int HybridFileSystem::close(file_t file)
+int FileSystem::close(file_t file)
 {
 	GET_FS(file)
 	return fs->close(file);
@@ -392,7 +394,7 @@ int HybridFileSystem::close(file_t file)
  * needs a bit of thought this one; do we hide the FW file or unhide it?
  * perhaps an 'unremove' method...
  */
-int HybridFileSystem::remove(const char* path)
+int FileSystem::remove(const char* path)
 {
 	int res = ffs.remove(path);
 	if(hideFWFile(path, false) == FS_OK) {
@@ -403,7 +405,7 @@ int HybridFileSystem::remove(const char* path)
 	return res;
 }
 
-int HybridFileSystem::format()
+int FileSystem::format()
 {
 #if HYFS_HIDE_FLAGS == 1
 	hiddenFwFiles.removeAllElements();
@@ -412,12 +414,12 @@ int HybridFileSystem::format()
 	return ffs.format();
 }
 
-int HybridFileSystem::check()
+int FileSystem::check()
 {
 	return ffs.check();
 }
 
-int HybridFileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, FileStat* stat)
 {
 	int res = ffs.stat(path, stat);
 	if(res < 0) {
@@ -426,43 +428,43 @@ int HybridFileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int HybridFileSystem::fstat(file_t file, FileStat* stat)
+int FileSystem::fstat(file_t file, FileStat* stat)
 {
 	GET_FS(file)
 	return fs->fstat(file, stat);
 }
 
-int HybridFileSystem::setacl(file_t file, FileACL* acl)
+int FileSystem::setacl(file_t file, FileACL* acl)
 {
 	GET_FS(file)
 	return fs->setacl(file, acl);
 }
 
-int HybridFileSystem::setattr(file_t file, FileAttributes attr)
+int FileSystem::setattr(file_t file, FileAttributes attr)
 {
 	GET_FS(file)
 	return fs->setattr(file, attr);
 }
 
-int HybridFileSystem::settime(file_t file, time_t mtime)
+int FileSystem::settime(file_t file, time_t mtime)
 {
 	GET_FS(file)
 	return fs->settime(file, mtime);
 }
 
-int HybridFileSystem::read(file_t file, void* data, size_t size)
+int FileSystem::read(file_t file, void* data, size_t size)
 {
 	GET_FS(file)
 	return fs->read(file, data, size);
 }
 
-int HybridFileSystem::write(file_t file, const void* data, size_t size)
+int FileSystem::write(file_t file, const void* data, size_t size)
 {
 	GET_FS(file)
 	return fs->write(file, data, size);
 }
 
-int HybridFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int FileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 {
 	GET_FS(file)
 	int res = fs->lseek(file, offset, origin);
@@ -470,25 +472,25 @@ int HybridFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
 	return res;
 }
 
-int HybridFileSystem::eof(file_t file)
+int FileSystem::eof(file_t file)
 {
 	GET_FS(file)
 	return fs->eof(file);
 }
 
-int32_t HybridFileSystem::tell(file_t file)
+int32_t FileSystem::tell(file_t file)
 {
 	GET_FS(file)
 	return fs->tell(file);
 }
 
-int HybridFileSystem::truncate(file_t file, size_t new_size)
+int FileSystem::truncate(file_t file, size_t new_size)
 {
 	GET_FS(file)
 	return fs->truncate(file, new_size);
 }
 
-int HybridFileSystem::flush(file_t file)
+int FileSystem::flush(file_t file)
 {
 	GET_FS(file)
 	return fs->flush(file);
@@ -500,7 +502,7 @@ int HybridFileSystem::flush(file_t file)
  *  close file
  *  rename
  */
-int HybridFileSystem::rename(const char* oldpath, const char* newpath)
+int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	// Make sure file exists on FFS
 	auto file = open(oldpath, eFO_ReadWrite);
@@ -517,10 +519,11 @@ int HybridFileSystem::rename(const char* oldpath, const char* newpath)
  * @note can only delete files with write permission, which means the
  * file is on FFS.
  */
-int HybridFileSystem::fremove(file_t file)
+int FileSystem::fremove(file_t file)
 {
 	GET_FS(file)
 	return fs->fremove(file);
 }
 
+} // namespace HYFS
 } // namespace IFS

@@ -1,5 +1,5 @@
 /*
- * FirmwareFileSystem.h
+ * FileSystem.h
  *
  *  Created on: 19 Jul 2018
  *      Author: mikee47
@@ -20,10 +20,12 @@
 
 #pragma once
 
-#include "FileSystem.h"
-#include "ObjectStore.h"
+#include "../FileSystem.h"
+#include "../ObjectStore.h"
 
 namespace IFS
+{
+namespace FWFS
 {
 // File handles start at this value
 #ifndef FWFS_HANDLE_MIN
@@ -53,7 +55,8 @@ enum FWFileDescAttr {
 
 using FWFileDescAttributes = uint8_t;
 
-/** @brief FWFS File Descriptor
+/**
+ * @brief FWFS File Descriptor
  */
 struct FWFileDesc {
 	FWObjDesc odFile;	 ///< File object
@@ -62,11 +65,12 @@ struct FWFileDesc {
 	FWFileDescAttributes attr{0};
 };
 
-/** @brief FWFS Volume definition - identifies object store and volume object after mounting
+/**
+ * @brief FWFS Volume definition - identifies object store and volume object after mounting
  */
 struct FWVolume {
-	ObjectStore* store = nullptr;
-	FWObjRef ref; ///< Volume reference
+	IObjectStore* store{nullptr};
+	ObjRef ref; ///< Volume reference
 
 	bool isMounted()
 	{
@@ -74,21 +78,22 @@ struct FWVolume {
 	}
 };
 
-/** @brief Implementation of firmware filing system using IFS
+/**
+ * @brief Implementation of firmware filing system using IFS
  */
-class FirmwareFileSystem : public IFileSystem
+class FileSystem : public IFileSystem
 {
 public:
-	FirmwareFileSystem()
+	FileSystem()
 	{
 	}
 
-	FirmwareFileSystem(ObjectStore* store)
+	FileSystem(IObjectStore* store)
 	{
 		setVolume(0, store);
 	}
 
-	~FirmwareFileSystem()
+	~FileSystem()
 	{
 		for(auto& vol : volumes) {
 			delete vol.store;
@@ -100,7 +105,7 @@ public:
 	 *  @param store the object store object
 	 *  @retval int error code
 	 */
-	int setVolume(uint8_t num, ObjectStore* store);
+	int setVolume(uint8_t num, IObjectStore* store);
 
 	// IFileSystem methods
 	int mount() override;
@@ -185,7 +190,7 @@ private:
 
 	/** @brief Obtain the managing object store for an object reference
 	 *  @param ref .store field must be valid */
-	int getStore(const FWObjRef& ref, ObjectStore*& store)
+	int getStore(const ObjRef& ref, IObjectStore*& store)
 	{
 		if(ref.storenum >= FWFS_MAX_VOLUMES) {
 			return FSERR_BadStore;
@@ -194,7 +199,7 @@ private:
 		return store ? FS_OK : FSERR_NotMounted;
 	}
 
-	int getStore(const FWObjDesc& od, ObjectStore*& store)
+	int getStore(const FWObjDesc& od, IObjectStore*& store)
 	{
 		return getStore(od.ref, store);
 	}
@@ -205,7 +210,7 @@ private:
 	{
 		assert(od.ref.refCount == 0);
 
-		ObjectStore* store;
+		IObjectStore* store;
 		int res = getStore(od.ref, store);
 		if(res >= 0) {
 			res = store->open(od);
@@ -221,7 +226,7 @@ private:
 	{
 		assert(od.ref.refCount == 0);
 
-		ObjectStore* store;
+		IObjectStore* store;
 		int res = getStore(parent.ref, store);
 		if(res >= 0) {
 			res = store->openChild(parent, child, od);
@@ -237,7 +242,7 @@ private:
 	{
 		assert(od.ref.refCount == 1);
 
-		ObjectStore* store;
+		IObjectStore* store;
 		int res = getStore(od.ref, store);
 		if(res >= 0) {
 			res = store->close(od);
@@ -251,7 +256,7 @@ private:
 
 	int readObjectHeader(FWObjDesc& od)
 	{
-		ObjectStore* store;
+		IObjectStore* store;
 		int res = getStore(od.ref, store);
 		return res < 0 ? res : store->readHeader(od);
 	}
@@ -261,14 +266,14 @@ private:
 		assert(parent.obj.isNamed());
 		// Child must be in same store as parent
 		child.ref.storenum = parent.ref.storenum;
-		ObjectStore* store;
+		IObjectStore* store;
 		int res = getStore(parent.ref, store);
 		return res < 0 ? res : store->readChildHeader(parent, child);
 	}
 
 	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 	{
-		ObjectStore* store;
+		IObjectStore* store;
 		int res = getStore(od.ref, store);
 		return res < 0 ? res : store->readContent(od, offset, size, buffer);
 	}
@@ -278,7 +283,7 @@ private:
 	 */
 	int findUnusedDescriptor();
 
-	int findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, FWFS_ObjectType objId);
+	int findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId);
 	int findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen);
 	int findObjectByPath(const char* path, FWObjDesc& od);
 	int resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved);
@@ -294,5 +299,7 @@ private:
 	FileACL rootACL;
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 };
+
+} // namespace FWFS
 
 } // namespace IFS

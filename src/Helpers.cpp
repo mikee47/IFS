@@ -7,8 +7,8 @@
 
 #include "include/IFS/Helpers.h"
 #include "include/IFS/FlashMedia.h"
-#include "include/IFS/FWObjectStore.h"
-#include "include/IFS/HybridFileSystem.h"
+#include "include/IFS/FWFS/ObjectStore.h"
+#include "include/IFS/HYFS/FileSystem.h"
 #include <spiffs_sming.h>
 
 #include <SystemClock.h>
@@ -35,13 +35,13 @@ IFileSystem* createFirmwareFilesystem(const void* fwfsImageData)
 		return nullptr;
 	}
 
-	auto store = new FWObjectStore(fwMedia);
+	auto store = new FWFS::ObjectStore(fwMedia);
 	if(store == nullptr) {
 		delete fwMedia;
 		return nullptr;
 	}
 
-	auto fs = new FirmwareFileSystem(store);
+	auto fs = new FWFS::FileSystem(store);
 	if(fs == nullptr) {
 		delete store;
 	}
@@ -56,7 +56,7 @@ IFileSystem* createHybridFilesystem(const void* fwfsImageData)
 		return nullptr;
 	}
 
-	auto store = new FWObjectStore(fwMedia);
+	auto store = new FWFS::ObjectStore(fwMedia);
 	if(store == nullptr) {
 		delete fwMedia;
 		return nullptr;
@@ -65,7 +65,7 @@ IFileSystem* createHybridFilesystem(const void* fwfsImageData)
 	auto cfg = spiffs_get_storage_config();
 	auto ffsMedia = new FlashMedia(cfg.phys_addr, cfg.phys_size, Media::ReadWrite);
 
-	auto fs = new HybridFileSystem(store, ffsMedia);
+	auto fs = new HYFS::FileSystem(store, ffsMedia);
 
 	if(fs == nullptr) {
 		delete ffsMedia;
