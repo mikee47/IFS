@@ -103,7 +103,7 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 IFileSystem* initSpiffs()
 {
 	// Mount SPIFFS
-	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
 	auto ffs = new SPIFlashFileSystem(ffsMedia);
 
 	int err = ffs->mount();
@@ -161,17 +161,17 @@ IFileSystem* initFWFS(const char* imgfile)
 
 	IFS::Media* fwMedia;
 	if(imgfile != nullptr) {
-		fwMedia = new StdFileMedia(imgfile, FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadOnly);
+		fwMedia = new StdFileMedia(imgfile, FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadOnly);
 	} else {
 		flashmem_write(fwfsImage1.data(), 0, fwfsImage1.size());
-		fwMedia = new FlashMedia(uint32_t(0), eFMA_ReadOnly);
+		fwMedia = new FlashMedia(uint32_t(0), Media::ReadOnly);
 	}
 
 	auto store = new FWObjectStore(fwMedia);
 
 #ifdef HYBRID_TEST
 
-	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
 	auto hfs = new HybridFileSystem(store, ffsMedia);
 
 #else

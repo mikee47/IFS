@@ -31,22 +31,22 @@ public:
 	 *  memory range then size is adjusted downwards. If startAddress is invalid
 	 *  then size will be set to 0 and any memory access requests will fail.
 	 */
-	FlashMedia(uint32_t startAddress, uint32_t size, FSMediaAttributes attr);
+	FlashMedia(uint32_t startAddress, uint32_t size, Media::Attributes attr);
 
 	/** @brief constructor to calculate extent from startAddress
 	 *  @param startAddress
 	 *  @param attr
 	 */
-	FlashMedia(uint32_t startAddress, FSMediaAttributes attr);
+	FlashMedia(uint32_t startAddress, Media::Attributes attr);
 
 	/** @brief constructor to calculate extent from a memory pointer
 	 *  @param startPtr must be in flash memory
 	 *  @param attr
 	 */
-	FlashMedia(const void* startPtr, FSMediaAttributes attr);
+	FlashMedia(const void* startPtr, Media::Attributes attr);
 
 	int setExtent(uint32_t size) override;
-	FSMediaInfo getinfo() const override;
+	Media::Info getinfo() const override;
 	int read(uint32_t offset, uint32_t size, void* buffer) override;
 	int write(uint32_t offset, uint32_t size, const void* data) override;
 	int erase(uint32_t offset, uint32_t size) override;

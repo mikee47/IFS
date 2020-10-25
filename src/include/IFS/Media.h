@@ -11,49 +11,11 @@
 
 #include "Error.h"
 #include "Types.h"
+#include <Data/BitSet.h>
 
 namespace IFS
 {
-/**
- * @brief Physical media filing system is mounted on
- * @note We'll use the term 'disk' when referring to physical media
- */
-enum FSMediaType {
-	eFMT_Unknown,
-	eFMT_Flash,  ///< Flash memory (no wear levelling)
-	eFMT_SDCard, ///< SD card - flash with wear levelling
-	eFMT_Disk,   ///< Physical disk
-};
-
-/**
- * @brief Transport mechanism for physical media
- */
-enum BusType {
-	eBus_Unknown,
-	eBus_System,   ///< System bus (e.g. memory controller)
-	eBus_SDIO,	 ///< SD card interfaces
-	eBus_SPI,	  ///< Serial Peripheral bus
-	eBus_HSPI,	 ///< Hardware SPI
-	eBus_I2C,	  ///< I2C bus
-	eBus_Modbus,   ///< Modbus
-	eBus_Ethernet, ///< Wired network
-	eBus_WiFi,	 ///< Wireless network
-};
-
-enum FSMediaAttributes {
-	eFMA_ReadWrite = 0x00,
-	eFMA_ReadOnly = 0x01, ///< Prevent write/erase operations
-};
-
-struct FSMediaInfo {
-	FSMediaType type;
-	BusType bus;
-	uint32_t blockSize; ///< Smallest allocation unit For erase
-};
-
-/**
- * @brief defines an address range
- */
+/** @brief defines an address range */
 struct Extent {
 	uint32_t start{0};
 	uint32_t length{0};
@@ -83,21 +45,60 @@ struct Extent {
 	}
 
 #define FS_CHECK_WRITEABLE()                                                                                           \
-	if(m_attr & eFMA_ReadOnly) {                                                                                       \
+	if(m_attr[Attribute::ReadOnly]) {                                                                                  \
 		return FSERR_ReadOnly;                                                                                         \
 	}
 
-/**
- * @brief virtual base class to access physical filesystem media
- * @note this is typically flash memory, hence a separate erase method.
- * All media is represented as a single valid contiguous extent, even if it
- * is physically arranged differently, e.g. multiple regions spread across
- * memory chips.
+/** @brief virtual base class to access physical filesystem media
+ *  @note this is typically flash memory, hence a separate erase method.
+ *  All media is represented as a single valid contiguous extent, even if it
+ *  is physically arranged differently, e.g. multiple regions spread across
+ *  memory chips.
  */
 class Media
 {
 public:
-	Media(uint32_t size, FSMediaAttributes attr) : m_size(size), m_attr(attr)
+	/**
+	 * @brief Physical media filing system is mounted on
+	 * @note We'll use the term 'disk' when referring to physical media
+	 */
+	enum class Type {
+		Unknown,
+		Flash,  ///< Flash memory (no wear levelling)
+		SDCard, ///< SD card - flash with wear levelling
+		Disk,   ///< Physical disk
+	};
+
+	/**
+	 * @brief Transport mechanism for physical media
+	 */
+	enum class Bus {
+		Unknown,
+		System,   ///< System bus (e.g. memory controller)
+		SDIO,	 ///< SD card interfaces
+		SPI,	  ///< Serial Peripheral bus
+		HSPI,	 ///< Hardware SPI
+		I2C,	  ///< I2C bus
+		Modbus,   ///< Modbus
+		Ethernet, ///< Wired network
+		WiFi,	 ///< Wireless network
+	};
+
+	enum class Attribute {
+		ReadOnly, ///< Prevent write/erase operations
+	};
+
+	using Attributes = BitSet<uint8_t, Attribute>;
+	static constexpr Attributes ReadWrite{};
+	static constexpr Attributes ReadOnly{Attribute::ReadOnly};
+
+	struct Info {
+		Type type;
+		Bus bus;
+		uint32_t blockSize; ///< Smallest allocation unit For erase
+	};
+
+	Media(uint32_t size, Attributes attr) : m_size(size), m_attr(attr)
 	{
 	}
 
@@ -128,17 +129,17 @@ public:
 		return m_size;
 	}
 
-	FSMediaAttributes attr() const
+	Attributes attr() const
 	{
 		return m_attr;
 	}
 
-	FSMediaType type() const
+	Type type() const
 	{
 		return getinfo().type;
 	}
 
-	BusType bus() const
+	Bus bus() const
 	{
 		return getinfo().bus;
 	}
@@ -152,7 +153,7 @@ public:
 	 *  @param info returned information
 	 *  @retval error code
 	 */
-	virtual FSMediaInfo getinfo() const = 0;
+	virtual Info getinfo() const = 0;
 
 	/** @brief read a block from disk
 	 *  @param offset location to start reading
@@ -197,8 +198,8 @@ public:
 	}
 
 protected:
-	uint32_t m_size;		  ///< Size of media in bytes (always starts at 0)
-	FSMediaAttributes m_attr; ///< Specific media attributes
+	uint32_t m_size;   ///< Size of media in bytes (always starts at 0)
+	Attributes m_attr; ///< Specific media attributes
 };
 
 } // namespace IFS

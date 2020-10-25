@@ -17,9 +17,9 @@ namespace IFS
 class StdFileMedia : public Media
 {
 public:
-	StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, FSMediaAttributes attr);
+	StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, Media::Attributes attr);
 	~StdFileMedia() override;
-	FSMediaInfo getinfo() const override;
+	Media::Info getinfo() const override;
 	int read(uint32_t offset, uint32_t size, void* buffer) override;
 	int write(uint32_t offset, uint32_t size, const void* data) override;
 	int erase(uint32_t offset, uint32_t size) override;
