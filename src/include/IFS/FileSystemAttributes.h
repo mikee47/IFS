@@ -11,8 +11,9 @@
 
 namespace IFS
 {
-/** @brief Attribute flags for filing system
-  */
+/**
+ * @brief Attribute flags for filing system
+ */
 #define FILE_SYSTEM_ATTR_MAP(XX)                                                                                       \
 	XX(Mounted, "Filing system is mounted and in use")                                                                 \
 	XX(ReadOnly, "Writing not permitted to this volume")                                                               \
@@ -29,11 +30,12 @@ enum class FileSystemAttr {
 // The set of attributes
 using FileSystemAttributes = uint8_t;
 
-/** @brief Get the string representation for the given set of filesystem attributes
- *  @param attr
- *  @param buf
- *  @param bufSize
- *  @retval char* points to buf
+/**
+ * @brief Get the string representation for the given set of filesystem attributes
+ * @param attr
+ * @param buf
+ * @param bufSize
+ * @retval char* points to buf
  */
 char* fileSystemAttrToStr(FileSystemAttributes attr, char* buf, size_t bufSize);
 

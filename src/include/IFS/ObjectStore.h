@@ -17,12 +17,12 @@ namespace IFS
 /** @brief gives the identity and location of an FWFS object
  */
 struct FWObjRef {
-	uint32_t offset = 0; ///< Offset from start of image
-	FWObjectID id = 0;
-	uint8_t handle = 0;	///< SPIFFS object store requires handles
-	uint8_t storenum = 0;  ///< Object store number
-	uint8_t readCount = 0; ///< For profiling
-	uint8_t refCount = 0;  ///< For testing open/close correctness
+	uint32_t offset{0}; ///< Offset from start of image
+	FWObjectID id{0};
+	uint8_t handle{0};	///< SPIFFS object store requires handles
+	uint8_t storenum{0};  ///< Object store number
+	uint8_t readCount{0}; ///< For profiling
+	uint8_t refCount{0};  ///< For testing open/close correctness
 
 	FWObjRef()
 	{

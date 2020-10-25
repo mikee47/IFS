@@ -35,18 +35,18 @@ public:
 		if(objectCount < FWFS_CACHE_SPACING) {
 			return;
 		}
-		_offsetCount = (objectCount / FWFS_CACHE_SPACING) - 1;
-		_offsets = new uint32_t[_offsetCount];
-		if(_offsets == nullptr) {
-			_offsetCount = 0;
+		offsetCount = (objectCount / FWFS_CACHE_SPACING) - 1;
+		offsets = new uint32_t[offsetCount];
+		if(offsets == nullptr) {
+			offsetCount = 0;
 		}
 	}
 
 	void clear()
 	{
-		_offsetCount = 0;
-		delete[] _offsets;
-		_offsets = nullptr;
+		offsetCount = 0;
+		delete[] offsets;
+		offsets = nullptr;
 	}
 
 	void add(const FWObjRef& ref)
@@ -63,7 +63,7 @@ public:
 	uint32_t* getOffset(FWObjectID objIndex)
 	{
 		int pos = (objIndex / FWFS_CACHE_SPACING) - 1;
-		return (pos >= 0 && pos < _offsetCount) ? &_offsets[pos] : nullptr;
+		return (pos >= 0 && pos < offsetCount) ? &offsets[pos] : nullptr;
 	}
 
 	/** @brief see if the cache can get a better search position to find an object
@@ -87,8 +87,8 @@ public:
 	}
 
 private:
-	uint32_t* _offsets = nullptr;
-	FWObjectID _offsetCount = 0; ///< Number of cached offsets
+	uint32_t* offsets{nullptr};
+	FWObjectID offsetCount{0}; ///< Number of cached offsets
 };
 
 #endif

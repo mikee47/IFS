@@ -43,22 +43,23 @@ namespace IFS
 // Maximum file handle value
 #define FWFS_HANDLE_MAX (FWFS_HANDLE_MIN + FWFS_MAX_FDS - 1)
 
-/** @brief file descriptor attributes
- *  @note these are bit values, combine using _BV()
+/**
+ * @brief file descriptor attributes
+ * @note these are bit values, combine using _BV()
  */
 enum FWFileDescAttr {
 	fwfda_Allocated, ///< Descriptor in use
 };
 
-typedef uint8_t FWFileDescAttributes;
+using FWFileDescAttributes = uint8_t;
 
 /** @brief FWFS File Descriptor
  */
 struct FWFileDesc {
-	FWObjDesc odFile;	  ///< File object
-	uint32_t dataSize = 0; ///< Total size of data
-	uint32_t cursor = 0;   ///< Current read/write offset within file data
-	FWFileDescAttributes attr = 0;
+	FWObjDesc odFile;	 ///< File object
+	uint32_t dataSize{0}; ///< Total size of data
+	uint32_t cursor{0};   ///< Current read/write offset within file data
+	FWFileDescAttributes attr{0};
 };
 
 /** @brief FWFS Volume definition - identifies object store and volume object after mounting
@@ -87,10 +88,11 @@ public:
 		setVolume(0, store);
 	}
 
-	~FirmwareFileSystem() override
+	~FirmwareFileSystem()
 	{
-		for(auto& vol : volumes)
+		for(auto& vol : volumes) {
 			delete vol.store;
+		}
 	}
 
 	/** @brief Set object stores

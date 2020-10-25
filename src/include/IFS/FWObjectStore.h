@@ -17,8 +17,8 @@
 
 namespace IFS
 {
-/** @brief object store for read-only filesystem
- *
+/**
+ * @brief object store for read-only filesystem
  */
 class FWObjectStore : public ObjectStore
 {
@@ -27,7 +27,7 @@ public:
 	{
 	}
 
-	~FWObjectStore() override
+	~FWObjectStore()
 	{
 		delete media;
 	}
@@ -53,7 +53,7 @@ public:
 	}
 
 private:
-	Media* media = nullptr;
+	Media* media{nullptr};
 	FWObjRef lastFound;
 	struct Flags {
 		bool mounted;

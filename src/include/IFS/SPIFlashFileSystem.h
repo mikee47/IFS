@@ -50,24 +50,24 @@ struct FileMeta {
 	// FileAttr - default indicates content has changed
 	FileAttributes attr;
 	// Used internally, always 0xFF on disk
-	uint8_t __flags;
+	uint8_t flags_;
 	// Security
 	FileACL acl;
 
 	// We use '0' for dirty so when it's clear disk gets a '1', flash default
 	void setDirty()
 	{
-		bitClear(__flags, 0);
+		bitClear(flags_, 0);
 	}
 
 	void clearDirty()
 	{
-		bitSet(__flags, 0);
+		bitSet(flags_, 0);
 	}
 
 	bool isDirty()
 	{
-		return !bitRead(__flags, 0);
+		return !bitRead(flags_, 0);
 	}
 };
 
@@ -88,7 +88,7 @@ public:
 	{
 	}
 
-	~SPIFlashFileSystem() override;
+	~SPIFlashFileSystem();
 
 	int mount() override;
 	int getinfo(FileSystemInfo& info) override;
@@ -149,12 +149,12 @@ private:
 	}
 
 private:
-	Media* media = nullptr;
+	Media* media{nullptr};
 	SpiffsMetaBuffer metaCache[FFS_MAX_FILEDESC];
 	spiffs fs;
-	uint8_t* workBuffer = nullptr;
-	uint8_t* fileDescriptors = nullptr;
-	u8_t* cache = nullptr;
+	uint8_t* workBuffer{nullptr};
+	uint8_t* fileDescriptors{nullptr};
+	uint8_t* cache{nullptr};
 };
 
 } // namespace IFS

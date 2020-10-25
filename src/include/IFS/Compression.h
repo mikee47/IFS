@@ -11,7 +11,8 @@
 
 namespace IFS
 {
-/** @brief compression type
+/**
+ * @brief compression type
  */
 #define COMPRESSION_TYPE_MAP(XX)                                                                                       \
 	XX(None, "Normal file, no compression")                                                                            \
@@ -24,11 +25,12 @@ enum class CompressionType : uint8_t {
 		MAX ///< Actually maxmimum value + 1...
 };
 
-/** @brief Get the string representation for the given compression type
- *  @param type
- *  @param buf
- *  @param bufSize
- *  @retval char* points to buf
+/**
+ * @brief Get the string representation for the given compression type
+ * @param type
+ * @param buf
+ * @param bufSize
+ * @retval char* points to buf
  */
 char* compressionTypeToStr(CompressionType type, char* buf, size_t bufSize);
 

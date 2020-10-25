@@ -43,7 +43,8 @@ const FileOpenFlags eFO_Append = _BV(FileOpenFlag::Append);
 const FileOpenFlags eFO_Truncate = _BV(FileOpenFlag::Truncate);
 const FileOpenFlags eFO_CreateNewAlways = _BV(FileOpenFlag::Create) | _BV(FileOpenFlag::Truncate);
 
-/* @brief Get a string representation of a set of file open flags
+/**
+ * @brief Get a string representation of a set of file open flags
  * @param flags
  * @param buf
  * @param bufSize
