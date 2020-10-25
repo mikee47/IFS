@@ -17,13 +17,13 @@ namespace IFS
  *  @param fwfsImageData
  *  @retval IFileSystem* constructed filesystem object
  */
-IFileSystem* CreateFirmwareFilesystem(const void* fwfsImageData);
+IFileSystem* createFirmwareFilesystem(const void* fwfsImageData);
 
 /** @brief Create a hybrid filesystem
  *  @param fwfsImageData
  *  @retval IFileSystem* constructed filesystem object
  *  @note SPIFFS configuration is obtained via spiffs_get_storage_config()
  */
-IFileSystem* CreateHybridFilesystem(const void* fwfsImageData);
+IFileSystem* createHybridFilesystem(const void* fwfsImageData);
 
 } // namespace IFS
