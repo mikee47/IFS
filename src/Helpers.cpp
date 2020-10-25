@@ -28,7 +28,7 @@ time_t fsGetTimeUTC()
 	return SystemClock.now(eTZ_UTC);
 }
 
-IFileSystem* CreateFirmwareFilesystem(const void* fwfsImageData)
+IFileSystem* createFirmwareFilesystem(const void* fwfsImageData)
 {
 	auto fwMedia = new MediaType(fwfsImageData, eFMA_ReadOnly);
 	if(fwMedia == nullptr) {
@@ -49,7 +49,7 @@ IFileSystem* CreateFirmwareFilesystem(const void* fwfsImageData)
 	return fs;
 }
 
-IFileSystem* CreateHybridFilesystem(const void* fwfsImageData)
+IFileSystem* createHybridFilesystem(const void* fwfsImageData)
 {
 	auto fwMedia = new MediaType(fwfsImageData, eFMA_ReadOnly);
 	if(fwMedia == nullptr) {

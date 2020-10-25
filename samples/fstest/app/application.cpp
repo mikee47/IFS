@@ -21,23 +21,22 @@
 #include <assert.h>
 #include <esp_spi_flash.h>
 #include <IFS/HybridFileSystem.h>
+#include <IFS/StdFileMedia.h>
+#include <IFS/MemoryMedia.h>
 #include <IFS/FlashMedia.h>
 #include <IFS/FWObjectStore.h>
-
-#ifdef ARCH_HOST
-#include <IFS/StdFileMedia.h>
-#endif
-
-// We mount SPIFFS on a file so we can inspect if necessary
-const char* FLASHMEM_DMP = "flashmem.dmp";
+#include <IFS/Helpers.h>
+#include <HardwareSerial.h>
 
 using namespace IFS;
 
-// Global filesystem instance
-static IFileSystem* g_filesys;
+namespace
+{
+// We mount SPIFFS on a file so we can inspect if necessary
+const char* FLASHMEM_DMP = "out/flashmem.dmp";
 
-IMPORT_FSTR(fwfsImage1, "../../fwfiles1.bin")
-//IMPORT_FSTR(fwfsImage2, "../../fwfiles2.bin")
+IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
+//IMPORT_FSTR(fwfsImage2, PROJECT_DIR "/out/fwfsImage2.bin")
 
 // Flash Filesystem parameters
 #define FFS_SECTOR_COUNT 128
@@ -49,97 +48,116 @@ IMPORT_FSTR(fwfsImage1, "../../fwfiles1.bin")
 const char* getErrorText(IFileSystem* fs, int err)
 {
 	static char msg[64];
-	fs->geterrortext(err, msg, sizeof(msg));
+	if(fs == nullptr) {
+		IFS::fsGetErrorText(err, msg, sizeof(msg));
+	} else {
+		fs->geterrortext(err, msg, sizeof(msg));
+	}
 	return msg;
 }
 
-const char* getErrorText(int err)
-{
-	return getErrorText(g_filesys, err);
-}
-
-int copyfile(IFileSystem& dst, IFileSystem& src, const FileStat& stat)
+int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 {
 	if(bitRead(stat.attr, FileAttr::Directory)) {
 		return FSERR_NotSupported;
 	}
 
 	int res = FS_OK;
+	IFileSystem* fserr{};
 
-	file_t srcfile = src.fopen(stat, eFO_ReadOnly);
+	file_t srcfile = src->fopen(stat, eFO_ReadOnly);
 	if(srcfile < 0) {
 		res = srcfile;
+		fserr = src;
 	} else {
-		file_t dstfile = dst.open(stat.name, eFO_CreateNewAlways);
+		file_t dstfile = dst->open(stat.name, eFO_CreateNewAlways | eFO_WriteOnly);
 		if(dstfile < 0) {
 			res = dstfile;
+			fserr = dst;
 		} else {
 			uint8_t buffer[512];
 			for(;;) {
-				res = src.read(srcfile, buffer, sizeof(buffer));
+				res = src->read(srcfile, buffer, sizeof(buffer));
 				if(res <= 0) {
+					fserr = src;
 					break;
 				}
 				int nread = res;
 
-				res = dst.write(dstfile, buffer, nread);
+				res = dst->write(dstfile, buffer, nread);
 				if(res < 0) {
+					fserr = dst;
 					break;
 				}
 			}
-			dst.close(dstfile);
+			dst->close(dstfile);
 		}
-		src.close(srcfile);
+		src->close(srcfile);
 	}
 
-	debugf("Copy '%s': %s", stat.name.buffer, getErrorText(res));
+	debug_i("Copy '%s': %s", stat.name.buffer, getErrorText(fserr, res));
 
 	return res;
 }
 
-/* Copy some data into SPIFFS */
-void initSpiffs()
+IFileSystem* initSpiffs()
 {
-	// Mount source data image
-	//	flashmem_write(_fwfiles_data1, 0, _fwfiles_data1_len);
-	auto fwMedia1 = new FlashMedia(fwfsImage1.data(), eFMA_ReadOnly);
-	auto fwStore1 = new FWObjectStore(fwMedia1);
-	auto hfs = new FirmwareFileSystem(fwStore1);
+	// Mount SPIFFS
+	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+	auto ffs = new SPIFlashFileSystem(ffsMedia);
 
-	int res = hfs->mount();
-	if(res >= 0) {
-		// Mount SPIFFS
-		auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, eFMA_ReadWrite);
-		auto spf = new SPIFlashFileSystem(ffsMedia);
-
-		res = spf->mount();
-		if(res >= 0) {
-			filedir_t dir;
-			res = hfs->opendir(nullptr, &dir);
-			if(res >= 0) {
-				FileNameStat stat;
-				while((res = hfs->readdir(dir, &stat))) {
-					copyfile(*spf, *hfs, stat);
-				}
-				hfs->closedir(dir);
-			}
-		}
-
-		delete spf;
+	int err = ffs->mount();
+	if(err < 0) {
+		debug_e("Mount failed: %s", getErrorText(ffs, err));
+		delete ffs;
+		return nullptr;
 	}
 
-	delete hfs;
+	FileSystemInfo info;
+	err = ffs->getinfo(info);
+	if(err < 0) {
+		debug_e("Failed to get FS info: %s", getErrorText(ffs, err));
+		delete ffs;
+		return nullptr;
+	}
+
+	if(info.freeSpace < info.volumeSize) {
+		// Filesystem is populated
+		return ffs;
+	}
+
+	debug_i("SPIFFS is empty, copy some stuff from FWFS");
+
+	// Mount source data image
+	auto fwfs = createFirmwareFilesystem(fwfsImage1.data());
+	int res = fwfs->mount();
+	if(res < 0) {
+		debug_e("FWFS mount failed: %s", getErrorText(fwfs, err));
+	} else {
+		filedir_t dir;
+		err = fwfs->opendir(nullptr, &dir);
+		if(err < 0) {
+			debug_e("FWFS opendir failed: %s", getErrorText(fwfs, err));
+		} else {
+			FileNameStat stat;
+			while((err = fwfs->readdir(dir, &stat)) >= 0) {
+				copyfile(ffs, fwfs, stat);
+			}
+			fwfs->closedir(dir);
+		}
+	}
+	delete fwfs;
+
+	return ffs;
 }
 
 /** @brief initialise filesystem
  *  @param imgfile optional name of FWFS image to load
  *  @retval bool true on success
  */
-bool fsInit(const char* imgfile)
+IFileSystem* initFWFS(const char* imgfile)
 {
-	//	initSpiffs();
-
-	debugf("fwfiles_data = %p, len = 0x%08X", fwfsImage1.data(), fwfsImage1.length());
+	debug_i("fwfiles_data = %p, len = 0x%08X", fwfsImage1.data(), fwfsImage1.length());
 
 	IFS::Media* fwMedia;
 	if(imgfile != nullptr) {
@@ -179,33 +197,32 @@ bool fsInit(const char* imgfile)
 	if(err < 0) {
 		debug_e("Mount failed: %s", getErrorText(hfs, err));
 		delete hfs;
-		return false;
+		hfs = nullptr;
 	}
 
-	g_filesys = hfs;
-	return true;
+	return hfs;
 }
 
-void fsinfo()
+void printFsInfo(IFileSystem* fs)
 {
 	FileSystemInfo info;
-	int res = g_filesys->getinfo(info);
+	int res = fs->getinfo(info);
 	if(res < 0) {
-		debug_e("fileSystemGetInfo(): %s", getErrorText(res));
+		debug_e("fileSystemGetInfo(): %s", getErrorText(fs, res));
 		return;
 	}
 
 	char typeStr[10];
-	debugf("type:       %s", fileSystemTypeToStr(info.type, typeStr, sizeof(typeStr)));
+	debug_i("type:       %s", fileSystemTypeToStr(info.type, typeStr, sizeof(typeStr)));
 	if(info.media) {
-		debugf("mediaType:  %u", info.media->type());
-		debugf("bus:        %u", info.media->bus());
+		debug_i("mediaType:  %u", info.media->type());
+		debug_i("bus:        %u", info.media->bus());
 	}
-	debugf("attr:       0x%02X", info.attr);
-	debugf("volumeID:   0x%08X", info.volumeID);
-	debugf("name:       %s", info.name.buffer);
-	debugf("volumeSize: %u", info.volumeSize);
-	debugf("freeSpace:  %u", info.freeSpace);
+	debug_i("attr:       0x%02X", info.attr);
+	debug_i("volumeID:   0x%08X", info.volumeID);
+	debug_i("name:       %s", info.name.buffer);
+	debug_i("volumeSize: %u", info.volumeSize);
+	debug_i("freeSpace:  %u", info.freeSpace);
 }
 
 // Displays as local time
@@ -219,32 +236,34 @@ const char* timeToStr(char* buffer, time_t t, const char* dtsep)
 
 bool readFileTest(const FileStat& stat)
 {
-	int result = true;
+	int result{true};
 
 #ifdef READ_FILE_TEST
 
-	file_t file = g_filesys->fopen(stat, eFO_ReadOnly);
+	auto fs{stat.fs};
+
+	file_t file = fs->fopen(stat, eFO_ReadOnly);
 
 	if(file < 0) {
-		debug_w("fopen(): %s", getErrorText(file));
+		debug_w("fopen(): %s", getErrorText(fs, file));
 		return false;
 	}
 
 	{
 		FileStat stat2;
-		int res = g_filesys->fstat(file, &stat2);
+		int res = fs->fstat(file, &stat2);
 		if(res < 0) {
-			debug_w("fstat(): %s", getErrorText(res));
+			debug_w("fstat(): %s", getErrorText(fs, res));
 		}
 	}
 
 	char buf[1024];
-	uint32_t total = 0;
-	while(!g_filesys->eof(file)) {
-		int len = g_filesys->read(file, buf, sizeof(buf));
+	uint32_t total{0};
+	while(!fs->eof(file)) {
+		int len = fs->read(file, buf, sizeof(buf));
 		if(len <= 0) {
 			if(len < 0) {
-				debug_e("Error! %s", getErrorText(len));
+				debug_e("Error! %s", getErrorText(fs, len));
 				result = false;
 			}
 			break;
@@ -253,7 +272,7 @@ bool readFileTest(const FileStat& stat)
 		//			m_printHex("data", buf, len); //std::min(len, 32));
 		total += len;
 	}
-	g_filesys->close(file);
+	fs->close(file);
 
 	if(total != stat.size) {
 		debug_e("Size mismatch: stat reports %u bytes, read %u bytes", stat.size, total);
@@ -264,18 +283,18 @@ bool readFileTest(const FileStat& stat)
 	return result;
 }
 
-int scandir(const String& path)
+int scandir(IFileSystem* fs, const String& path)
 {
-	debugf("Scanning '%s'", path.c_str());
+	debug_i("Scanning '%s'", path.c_str());
 
 	filedir_t dir;
-	int res = g_filesys->opendir(path.c_str(), &dir);
+	int res = fs->opendir(path.c_str(), &dir);
 	if(res < 0) {
 		return res;
 	}
 
 	FileNameStat stat;
-	while((res = g_filesys->readdir(dir, &stat)) >= 0) {
+	while((res = fs->readdir(dir, &stat)) >= 0) {
 		FileSystemInfo info;
 		stat.fs->getinfo(info);
 		char typestr[5];
@@ -288,16 +307,16 @@ int scandir(const String& path)
 		compressionTypeToStr(stat.compression, cmpstr, sizeof(cmpstr));
 		char timestr[20];
 		timeToStr(timestr, stat.mtime, " ");
-		debugf("%-50s %6u %s #0x%04x %s %s %s %s", (const char*)stat.name, stat.size, typestr, stat.id, aclstr, attrstr,
-			   cmpstr, timestr);
+		debug_i("%-50s %6u %s #0x%04x %s %s %s %s", (const char*)stat.name, stat.size, typestr, stat.id, aclstr,
+				attrstr, cmpstr, timestr);
 
 		readFileTest(stat);
 
 		if(bitRead(stat.attr, FileAttr::Directory)) {
 			if(path.length() == 0) {
-				scandir(stat.name.buffer);
+				scandir(fs, stat.name.buffer);
 			} else {
-				scandir(path + '/' + stat.name.buffer);
+				scandir(fs, path + '/' + stat.name.buffer);
 			}
 			continue;
 		}
@@ -310,28 +329,28 @@ int scandir(const String& path)
 
 		{
 			// On the hybrid volume this will copy FW file onto SPIFFS
-			file_t file = g_filesys->open(stat, eFO_WriteOnly | eFO_Append);
+			file_t file = fs->open(stat, eFO_WriteOnly | eFO_Append);
 			if(file < 0)
 				debug_e("open('%s') failed, %s", stat.name.buffer, fileGetErrorString(file).c_str());
 			else {
-				g_filesys->write(file, nullptr, 0);
-				g_filesys->close(file);
+				fs->write(file, nullptr, 0);
+				fs->close(file);
 			}
 		}
 #endif
 	}
 
-	debugf("readdir('%s'): %s", path.c_str(), getErrorText(res));
+	debug_i("readdir('%s'): %s", path.c_str(), getErrorText(fs, res));
 
-	g_filesys->closedir(dir);
+	fs->closedir(dir);
 
 	return FS_OK;
 }
 
-void fstest()
+void fstest(IFileSystem* fs)
 {
-	int res = g_filesys->check();
-	debugf("check(): %s", getErrorText(res));
+	int res = fs->check();
+	debug_i("check(): %s", getErrorText(fs, res));
 
 	//  fs.format();
 
@@ -340,41 +359,53 @@ void fstest()
 
 	//  auto res = fs.deleteFile(".auth - Copy.json");
 	//  auto res = fs.remove("askfhsdfk");
-	//  debugf("remove: %d", res);
+	//  debug_i("remove: %d", res);
 
 	/*
 	FileStat stat;
 	int res = fileStats("iocontrol.js", &stat);
-	debugf("stat(): %s [%d]", fileGetErrorString(res).c_str(), res);
+	debug_i("stat(): %s [%d]", fileGetErrorString(res).c_str(), res);
 	FileStream stream(stat);
-	debugf("stream.isValid(): %d", stream.isValid());
+	debug_i("stream.isValid(): %d", stream.isValid());
 	char buffer[2048];
 	auto len = stream.readMemoryBlock(buffer, sizeof(buffer));
-	debugf("fs.read(%u): %d", sizeof(buffer), len);
+	debug_i("fs.read(%u): %d", sizeof(buffer), len);
 	if (len > 0)
 		m_printHex("Content", buffer, len);
 	stream.close();
 
 	res = fileStats("system.js", &stat);
-	debugf("stat(): %s [%d]", fileGetErrorString(res).c_str(), res);
+	debug_i("stat(): %s [%d]", fileGetErrorString(res).c_str(), res);
 */
 
-	scandir("");
+	scandir(fs, "");
 }
+
+} // namespace
 
 void init()
 {
+	Serial.begin();
+	Serial.systemDebugOutput(true);
+
 	//	const char* imgfile = (argc > 1) ? argv[1] : nullptr;
 	char* imgfile{nullptr};
 
-	if(!fsInit(imgfile)) {
-		debug_e("fs init failed");
-		System.restart();
+	Serial.println();
+	auto fs = initFWFS(imgfile);
+	if(fs != nullptr) {
+		printFsInfo(fs);
+		fstest(fs);
+		delete fs;
 	}
 
-	fsinfo();
+	Serial.println();
+	fs = initSpiffs();
+	if(fs != nullptr) {
+		printFsInfo(fs);
+		fstest(fs);
+		delete fs;
+	}
 
-	fstest();
-
-	delete g_filesys;
+	System.restart();
 }

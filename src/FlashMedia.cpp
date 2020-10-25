@@ -12,15 +12,19 @@
 
 namespace IFS
 {
+namespace
+{
 /** @brief obtain the maximum size for an extent starting at a specified address in flash memory
  *  @param startAddress offset from start of flash
  *  @retval uint32_t maximum size
  *  @note if startAddress is outside valid flash range then 0 is returned
  */
-static inline uint32_t getMaxSize(uint32_t startAddress)
+uint32_t getMaxSize(uint32_t startAddress)
 {
 	return (startAddress < (uint32_t)INTERNAL_FLASH_SIZE) ? (uint32_t)INTERNAL_FLASH_SIZE - startAddress : 0;
 }
+
+} // namespace
 
 FlashMedia::FlashMedia(uint32_t startAddress, uint32_t size, FSMediaAttributes attr)
 	: Media(std::min(size, getMaxSize(startAddress)), attr), m_startAddress(startAddress)
