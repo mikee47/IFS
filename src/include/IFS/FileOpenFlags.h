@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Types.h"
+#include "Data/BitSet.h"
 
 namespace IFS
 {
@@ -32,16 +33,18 @@ enum class FileOpenFlag {
 };
 
 // The set of flags
-using FileOpenFlags = uint8_t;
+using FileOpenFlags = BitSet<uint8_t, FileOpenFlag>;
 
 // Various file flag combinations
-const FileOpenFlags eFO_ReadOnly = _BV(FileOpenFlag::Read);
-const FileOpenFlags eFO_WriteOnly = _BV(FileOpenFlag::Write);
-const FileOpenFlags eFO_ReadWrite = eFO_ReadOnly | eFO_WriteOnly;
-const FileOpenFlags eFO_CreateIfNotExist = _BV(FileOpenFlag::Create);
-const FileOpenFlags eFO_Append = _BV(FileOpenFlag::Append);
-const FileOpenFlags eFO_Truncate = _BV(FileOpenFlag::Truncate);
-const FileOpenFlags eFO_CreateNewAlways = _BV(FileOpenFlag::Create) | _BV(FileOpenFlag::Truncate);
+constexpr FileOpenFlags eFO_ReadOnly{IFS::FileOpenFlag::Read};
+constexpr FileOpenFlags eFO_WriteOnly{IFS::FileOpenFlag::Write};
+constexpr FileOpenFlags eFO_ReadWrite{eFO_ReadOnly | eFO_WriteOnly};
+constexpr FileOpenFlags eFO_CreateIfNotExist{IFS::FileOpenFlag::Create};
+constexpr FileOpenFlags eFO_Append{IFS::FileOpenFlag::Append};
+constexpr FileOpenFlags eFO_Truncate{IFS::FileOpenFlag::Truncate};
+constexpr FileOpenFlags eFO_CreateNewAlways{eFO_CreateIfNotExist | eFO_Truncate};
+
+constexpr FileOpenFlags eFO_Banana = FileOpenFlag::Create | FileOpenFlag::Truncate;
 
 /**
  * @brief Get a string representation of a set of file open flags
