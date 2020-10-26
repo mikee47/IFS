@@ -1,11 +1,11 @@
 /*
- * FileAttr.cpp
+ * Attributes.cpp
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
  */
 
-#include "include/IFS/FileAttributes.h"
+#include "../include/IFS/File/Attributes.h"
 
 namespace IFS
 {
@@ -15,7 +15,7 @@ static const char attributeChars[] PROGMEM = {
 #undef XX
 };
 
-char* toString(FileAttributes attr, char* buf, size_t bufSize)
+char* toString(File::Attributes attr, char* buf, size_t bufSize)
 {
 	size_t len = 0;
 
@@ -24,7 +24,7 @@ char* toString(FileAttributes attr, char* buf, size_t bufSize)
 		if(len >= bufSize) {
 			break;
 		}
-		buf[len++] = attr[FileAttr(a)] ? chars[a] : '.';
+		buf[len++] = attr[File::Attribute(a)] ? chars[a] : '.';
 	}
 
 	if(len < bufSize) {

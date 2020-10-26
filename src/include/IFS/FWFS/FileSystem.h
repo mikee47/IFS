@@ -109,41 +109,41 @@ public:
 
 	// IFileSystem methods
 	int mount() override;
-	int getinfo(FileSystemInfo& info) override;
-	int opendir(const char* path, filedir_t* dir) override;
-	int fopendir(const FileStat* stat, filedir_t* dir) override;
-	int readdir(filedir_t dir, FileStat* stat) override;
-	int closedir(filedir_t dir) override;
+	int getinfo(Info& info) override;
+	int opendir(const char* path, DirHandle& dir) override;
+	int fopendir(const FileStat* stat, DirHandle& dir) override;
+	int readdir(DirHandle dir, FileStat& stat) override;
+	int closedir(DirHandle dir) override;
 	int stat(const char* path, FileStat* stat) override;
-	int fstat(file_t file, FileStat* stat) override;
-	int setacl(file_t file, FileACL* acl) override
+	int fstat(File::Handle file, FileStat* stat) override;
+	int setacl(File::Handle file, const File::ACL& acl) override
 	{
 		return Error::ReadOnly;
 	}
-	int setattr(file_t file, FileAttributes attr) override
+	int setattr(File::Handle file, File::Attributes attr) override
 	{
 		return Error::ReadOnly;
 	}
-	int settime(file_t file, time_t mtime) override
+	int settime(File::Handle file, time_t mtime) override
 	{
 		return Error::ReadOnly;
 	}
-	file_t open(const char* path, FileOpenFlags flags) override;
-	file_t fopen(const FileStat& stat, FileOpenFlags flags) override;
-	int close(file_t file) override;
-	int read(file_t file, void* data, size_t size) override;
-	int write(file_t file, const void* data, size_t size) override
+	File::Handle open(const char* path, File::OpenFlags flags) override;
+	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
+	int close(File::Handle file) override;
+	int read(File::Handle file, void* data, size_t size) override;
+	int write(File::Handle file, const void* data, size_t size) override
 	{
 		return Error::ReadOnly;
 	}
-	int lseek(file_t file, int offset, SeekOrigin origin) override;
-	int eof(file_t file) override;
-	int32_t tell(file_t file) override;
-	int truncate(file_t file, size_t new_size) override
+	int lseek(File::Handle file, int offset, File::SeekOrigin origin) override;
+	int eof(File::Handle file) override;
+	int32_t tell(File::Handle file) override;
+	int truncate(File::Handle file, size_t new_size) override
 	{
 		return Error::ReadOnly;
 	}
-	int flush(file_t file) override
+	int flush(File::Handle file) override
 	{
 		return Error::ReadOnly;
 	}
@@ -155,7 +155,7 @@ public:
 	{
 		return Error::ReadOnly;
 	}
-	int fremove(file_t file) override
+	int fremove(File::Handle file) override
 	{
 		return Error::ReadOnly;
 	}
@@ -170,17 +170,17 @@ public:
     	 * is better resolved externally using a hash of the entire firmware image. */
 		return Error::NotImplemented;
 	}
-	int isfile(file_t file) override;
+	int isfile(File::Handle file) override;
 
 	/** @brief get the full path of a file from its ID
 	 *  @param fileid
 	 *  @param path
 	 *  @retval int error code
 	 */
-	int getFilePath(fileid_t fileid, NameBuffer& path);
+	int getFilePath(File::ID fileid, NameBuffer& path);
 
 private:
-	int seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuffer& path);
+	int seekFilePath(FWObjDesc& parent, File::ID fileid, NameBuffer& path);
 
 	/** @brief Mount the given volume, scanning its contents for verification
 	 *  @param volume IN: identifies object store, OUT: contains volume object reference
@@ -289,14 +289,14 @@ private:
 	int resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
-	file_t allocateFileDescriptor(FWObjDesc& odFile);
+	File::Handle allocateFileDescriptor(FWObjDesc& odFile);
 	int fillStat(FileStat& stat, const FWObjDesc& entry);
 
 	void printObject(const FWObjDesc& od);
 
 private:
 	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
-	FileACL rootACL;
+	File::ACL rootACL;
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 };
 

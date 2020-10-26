@@ -29,7 +29,7 @@ enum class UserRole : uint8_t {
 /*
  * Get the string representation for the given access type.
  */
-char* userRoleToStr(UserRole role, char* buf, size_t bufSize);
+char* toString(UserRole role, char* buf, size_t bufSize);
 
 /*
  * Return the access type value for the given string.
@@ -47,18 +47,5 @@ char userRoleChar(UserRole access);
  * If the code isn't valid, return the given default.
  */
 UserRole getUserRole(char c, UserRole _default);
-
-/*
- * Role-based Access Control List.
- *
- * We only require two entries to explicitly define read/write access.
- */
-struct FileACL {
-	/* Minimum access permissions */
-	UserRole readAccess : 8;
-	UserRole writeAccess : 8;
-};
-
-char* fileAclToStr(FileACL acl, char* buf, size_t bufSize);
 
 } // namespace IFS

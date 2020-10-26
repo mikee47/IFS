@@ -58,19 +58,19 @@ const char* getErrorText(IFileSystem* fs, int err)
 
 int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 {
-	if(bitRead(stat.attr, FileAttr::Directory)) {
+	if(stat.attr[File::Attribute::Directory]) {
 		return IFS::Error::NotSupported;
 	}
 
 	int res = FS_OK;
 	IFileSystem* fserr{};
 
-	file_t srcfile = src->fopen(stat, FileOpenFlag::Read);
+	File::Handle srcfile = src->fopen(stat, File::OpenFlag::Read);
 	if(srcfile < 0) {
 		res = srcfile;
 		fserr = src;
 	} else {
-		file_t dstfile = dst->open(stat.name, FileOpenFlag::Create | FileOpenFlag::Write);
+		File::Handle dstfile = dst->open(stat.name, File::OpenFlag::Create | File::OpenFlag::Write);
 		if(dstfile < 0) {
 			res = dstfile;
 			fserr = dst;
@@ -113,7 +113,7 @@ IFileSystem* initSpiffs()
 		return nullptr;
 	}
 
-	FileSystemInfo info;
+	IFileSystem::Info info;
 	err = ffs->getinfo(info);
 	if(err < 0) {
 		debug_e("Failed to get FS info: %s", getErrorText(ffs, err));
@@ -134,13 +134,13 @@ IFileSystem* initSpiffs()
 	if(res < 0) {
 		debug_e("FWFS mount failed: %s", getErrorText(fwfs, err));
 	} else {
-		filedir_t dir;
-		err = fwfs->opendir(nullptr, &dir);
+		DirHandle dir;
+		err = fwfs->opendir(nullptr, dir);
 		if(err < 0) {
 			debug_e("FWFS opendir failed: %s", getErrorText(fwfs, err));
 		} else {
 			FileNameStat stat;
-			while((err = fwfs->readdir(dir, &stat)) >= 0) {
+			while((err = fwfs->readdir(dir, stat)) >= 0) {
 				copyfile(ffs, fwfs, stat);
 			}
 			fwfs->closedir(dir);
@@ -206,7 +206,7 @@ IFileSystem* initFWFS(const char* imgfile)
 void printFsInfo(IFileSystem* fs)
 {
 	char namebuf[256];
-	FileSystemInfo info(namebuf, sizeof(namebuf));
+	IFileSystem::Info info(namebuf, sizeof(namebuf));
 	int res = fs->getinfo(info);
 	if(res < 0) {
 		debug_e("fileSystemGetInfo(): %s", getErrorText(fs, res));
@@ -214,7 +214,7 @@ void printFsInfo(IFileSystem* fs)
 	}
 
 	char typeStr[10];
-	debug_i("type:       %s", fileSystemTypeToStr(info.type, typeStr, sizeof(typeStr)));
+	debug_i("type:       %s", toString(info.type, typeStr, sizeof(typeStr)));
 	if(info.media) {
 		debug_i("mediaType:  %u", info.media->type());
 		debug_i("bus:        %u", info.media->bus());
@@ -243,7 +243,7 @@ bool readFileTest(const FileStat& stat)
 
 	auto fs{stat.fs};
 
-	file_t file = fs->fopen(stat, FileOpenFlag::Read);
+	File::Handle file = fs->fopen(stat, File::OpenFlag::Read);
 
 	if(file < 0) {
 		debug_w("fopen(): %s", getErrorText(fs, file));
@@ -288,24 +288,24 @@ int scandir(IFileSystem* fs, const String& path)
 {
 	debug_i("Scanning '%s'", path.c_str());
 
-	filedir_t dir;
-	int res = fs->opendir(path.c_str(), &dir);
+	DirHandle dir{};
+	int res = fs->opendir(path.c_str(), dir);
 	if(res < 0) {
 		return res;
 	}
 
 	FileNameStat stat;
-	while((res = fs->readdir(dir, &stat)) >= 0) {
-		FileSystemInfo info;
+	while((res = fs->readdir(dir, stat)) >= 0) {
+		IFileSystem::Info info;
 		stat.fs->getinfo(info);
 		char typestr[5];
-		fileSystemTypeToStr(info.type, typestr, sizeof(typestr));
+		toString(info.type, typestr, sizeof(typestr));
 		char aclstr[5];
-		fileAclToStr(stat.acl, aclstr, sizeof(aclstr));
+		toString(stat.acl, aclstr, sizeof(aclstr));
 		char attrstr[10];
-		fileAttrToStr(stat.attr, attrstr, sizeof(attrstr));
+		toString(stat.attr, attrstr, sizeof(attrstr));
 		char cmpstr[10];
-		compressionTypeToStr(stat.compression, cmpstr, sizeof(cmpstr));
+		toString(stat.compression, cmpstr, sizeof(cmpstr));
 		char timestr[20];
 		timeToStr(timestr, stat.mtime, " ");
 		debug_i("%-50s %6u %s #0x%04x %s %s %s %s", (const char*)stat.name, stat.size, typestr, stat.id, aclstr,
@@ -313,7 +313,7 @@ int scandir(IFileSystem* fs, const String& path)
 
 		readFileTest(stat);
 
-		if(bitRead(stat.attr, FileAttr::Directory)) {
+		if(stat.attr[File::Attribute::Directory]) {
 			if(path.length() == 0) {
 				scandir(fs, stat.name.buffer);
 			} else {
@@ -324,13 +324,13 @@ int scandir(IFileSystem* fs, const String& path)
 
 #ifdef WRITE_THROUGH_TEST
 
-		if(bitRead(stat.attr, FileAttr::ReadOnly)) {
+		if(stat.attr[File::Attribute::ReadOnly]) {
 			continue;
 		}
 
 		{
 			// On the hybrid volume this will copy FW file onto SPIFFS
-			file_t file = fs->open(stat, FileOpenFlag::Write | FileOpenFlag::Append);
+			File::Handle file = fs->open(stat, File::OpenFlag::Write | File::OpenFlag::Append);
 			if(file < 0)
 				debug_e("open('%s') failed, %s", stat.name.buffer, fileGetErrorString(file).c_str());
 			else {
@@ -364,7 +364,7 @@ void fstest(IFileSystem* fs)
 
 	/*
 	FileStat stat;
-	int res = fileStats("iocontrol.js", &stat);
+	int res = fileStats("iocontrol.js", stat);
 	debug_i("stat(): %s [%d]", fileGetErrorString(res).c_str(), res);
 	FileStream stream(stat);
 	debug_i("stream.isValid(): %d", stream.isValid());
@@ -375,7 +375,7 @@ void fstest(IFileSystem* fs)
 		m_printHex("Content", buffer, len);
 	stream.close();
 
-	res = fileStats("system.js", &stat);
+	res = fileStats("system.js", stat);
 	debug_i("stat(): %s [%d]", fileGetErrorString(res).c_str(), res);
 */
 

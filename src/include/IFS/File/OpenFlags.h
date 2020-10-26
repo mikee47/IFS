@@ -1,5 +1,5 @@
 /*
- * FileFlags.h
+ * OpenFlags.h
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
@@ -7,21 +7,12 @@
 
 #pragma once
 
-#include "Types.h"
-#include "Data/BitSet.h"
+#include "../Types.h"
 
 namespace IFS
 {
-/** @brief File seek origin flags
- *  @note these values are fixed in stone so will never change. They only need to
- *  be remapped if a filing system uses different values.
- */
-enum class SeekOrigin {
-	Start = 0,   ///< Start of file
-	Current = 1, ///< Current position in file
-	End = 2		 ///< End of file
-};
-
+namespace File
+{
 /** @brief File open flag
  *  @note These are filing-system independent flags based on SPIFFS 0.3.7, however they
  *  may change so filing systems should map them.
@@ -35,7 +26,7 @@ enum class SeekOrigin {
 	XX(Read, "Read access")                                                                                            \
 	XX(Write, "Write access")
 
-enum class FileOpenFlag {
+enum class OpenFlag {
 #define XX(_tag, _comment) _tag,
 	FILE_OPEN_FLAG_MAP(XX)
 #undef XX
@@ -43,12 +34,14 @@ enum class FileOpenFlag {
 };
 
 // The set of flags
-using FileOpenFlags = BitSet<uint8_t, IFS::FileOpenFlag>;
+using OpenFlags = BitSet<uint8_t, OpenFlag>;
 
-inline constexpr FileOpenFlags operator|(FileOpenFlag a, FileOpenFlag b)
+inline constexpr OpenFlags operator|(OpenFlag a, OpenFlag b)
 {
-	return FileOpenFlags{a} | FileOpenFlags{b};
+	return OpenFlags{a} | OpenFlags{b};
 }
+
+} // namespace File
 
 /**
  * @brief Get a string representation of a set of file open flags
@@ -58,6 +51,6 @@ inline constexpr FileOpenFlags operator|(FileOpenFlag a, FileOpenFlag b)
  * @retval char* pointer to buffer
  * @note intended for debug output
  */
-char* toString(FileOpenFlags flags, char* buf, size_t bufSize);
+char* toString(File::OpenFlags flags, char* buf, size_t bufSize);
 
 } // namespace IFS

@@ -31,14 +31,14 @@ int toString(int err, char* buffer, unsigned size)
 		return Error::BadParam;
 	}
 
+	if(err < Error::USER) {
+		return snprintf(buffer, size, _F("FSERR #%u"), err);
+	}
+
 	if(err > 0) {
 		err = 0;
 	} else {
 		err = -err;
-	}
-
-	if(err >= Error::USER) {
-		return snprintf(buffer, size, _F("FSERR #%u"), err);
 	}
 
 	strncpy_P(buffer, errorStrings[err], size);

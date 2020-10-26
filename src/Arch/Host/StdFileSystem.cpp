@@ -26,22 +26,22 @@ int syserr()
 	return -errno;
 }
 
-int mapFlags(FileOpenFlags flags)
+int mapFlags(File::OpenFlags flags)
 {
 	int ret = 0;
-	if(flags[FileOpenFlag::Append]) {
+	if(flags[File::OpenFlag::Append]) {
 		ret |= O_APPEND;
 	}
-	if(flags[FileOpenFlag::Create]) {
+	if(flags[File::OpenFlag::Create]) {
 		ret |= O_CREAT;
 	}
-	if(flags[FileOpenFlag::Read]) {
+	if(flags[File::OpenFlag::Read]) {
 		ret |= O_RDONLY;
 	}
-	if(flags[FileOpenFlag::Truncate]) {
+	if(flags[File::OpenFlag::Truncate]) {
 		ret |= O_TRUNC;
 	}
-	if(flags[FileOpenFlag::Write]) {
+	if(flags[File::OpenFlag::Write]) {
 		ret |= O_WRONLY;
 	}
 	return ret;
@@ -54,7 +54,7 @@ struct FileDir {
 	DIR* d;
 };
 
-int StdFileSystem::getinfo(FileSystemInfo& info)
+int StdFileSystem::getinfo(Info& info)
 {
 	return Error::NotImplemented;
 }
@@ -68,14 +68,14 @@ int StdFileSystem::geterrortext(int err, char* buffer, size_t size)
 	return strlen(buffer);
 }
 
-int StdFileSystem::opendir(const char* path, filedir_t* dir)
+int StdFileSystem::opendir(const char* path, DirHandle& dir)
 {
 	auto d = new FileDir;
 
 	d->d = ::opendir(path);
 	if(d->d != nullptr) {
 		strcpy(d->path, path);
-		*dir = reinterpret_cast<filedir_t>(d);
+		dir = d;
 		return FS_OK;
 	}
 
@@ -84,39 +84,36 @@ int StdFileSystem::opendir(const char* path, filedir_t* dir)
 	return res;
 }
 
-int StdFileSystem::readdir(filedir_t dir, FileStat* stat)
+int StdFileSystem::readdir(DirHandle dir, FileStat& stat)
 {
 	int res;
 	dirent* e = ::readdir(dir->d);
 	if(e == nullptr) {
 		res = syserr();
-	} else if(stat) {
+	} else {
 		char path[PATH_MAX];
 		strcpy(path, dir->path);
 		strcat(path, "/");
 		strcat(path, e->d_name);
-		res = this->stat(path, stat);
+		res = this->stat(path, &stat);
 #ifdef __WIN32
 		if(e->d_type & _A_SUBDIR) {
-			stat->attr |= FileAttr::Directory;
+			stat.attr |= File::Attribute::Directory;
 		}
 		if(e->d_type & _A_RDONLY) {
-			stat->attr |= FileAttr::ReadOnly;
+			stat.attr |= File::Attribute::ReadOnly;
 		}
 		if(e->d_type & _A_ARCH) {
-			stat->attr |= FileAttr::Archive;
+			stat.attr |= File::Attribute::Archive;
 		}
 #endif
 		//		stat->name.copy(e->d_name, e->d_namlen);
-	} else {
-		// not returning anything, but ::readdir succeeded
-		res = 0;
 	}
 
 	return res;
 }
 
-int StdFileSystem::closedir(filedir_t dir)
+int StdFileSystem::closedir(DirHandle dir)
 {
 	auto d = reinterpret_cast<DIR*>(dir);
 	int res = ::closedir(d);
@@ -128,7 +125,7 @@ void StdFileSystem::fillStat(const struct stat& s, FileStat& stat)
 	stat.clear();
 	stat.fs = this;
 	if(S_ISDIR(s.st_mode)) {
-		stat.attr |= FileAttr::Directory;
+		stat.attr |= File::Attribute::Directory;
 	}
 	stat.mtime = s.st_mtime;
 }
@@ -137,7 +134,7 @@ int StdFileSystem::stat(const char* path, FileStat* stat)
 {
 	struct stat s;
 	int res = ::stat(path, &s);
-	if(res >= 0 && stat) {
+	if(res >= 0 && stat != nullptr) {
 		fillStat(s, *stat);
 		const char* lastSep = strrchr(path, '/');
 		stat->name.copy(lastSep ? lastSep + 1 : path);
@@ -146,7 +143,7 @@ int StdFileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int StdFileSystem::fstat(file_t file, FileStat* stat)
+int StdFileSystem::fstat(File::Handle file, FileStat* stat)
 {
 	struct stat s;
 	int res = ::fstat(file, &s);
@@ -157,33 +154,33 @@ int StdFileSystem::fstat(file_t file, FileStat* stat)
 	return res;
 }
 
-file_t StdFileSystem::open(const char* path, FileOpenFlags flags)
+File::Handle StdFileSystem::open(const char* path, File::OpenFlags flags)
 {
 	int res = ::open(path, mapFlags(flags));
 	return res;
 }
 
-file_t StdFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
+File::Handle StdFileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 {
 	return Error::NotImplemented;
 }
 
-int StdFileSystem::close(file_t file)
+int StdFileSystem::close(File::Handle file)
 {
 	return ::close(file);
 }
 
-int StdFileSystem::read(file_t file, void* data, size_t size)
+int StdFileSystem::read(File::Handle file, void* data, size_t size)
 {
 	return ::read(file, data, size);
 }
 
-int StdFileSystem::lseek(file_t file, int offset, SeekOrigin origin)
+int StdFileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
 {
 	return ::lseek(file, offset, uint8_t(origin));
 }
 
-int StdFileSystem::eof(file_t file)
+int StdFileSystem::eof(File::Handle file)
 {
 	// POSIX doesn't appear to have eof()
 
@@ -201,12 +198,12 @@ int StdFileSystem::eof(file_t file)
 	return (pos >= stat.st_size) ? 1 : 0;
 }
 
-int32_t StdFileSystem::tell(file_t file)
+int32_t StdFileSystem::tell(File::Handle file)
 {
 	return ::lseek(file, 0, SEEK_CUR);
 }
 
-int StdFileSystem::truncate(file_t file, size_t new_size)
+int StdFileSystem::truncate(File::Handle file, size_t new_size)
 {
 	return ::ftruncate(file, new_size);
 }

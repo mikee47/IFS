@@ -12,99 +12,39 @@
 
 #pragma once
 
-#include <time.h>
-#include <string.h>
-#include "FileFlags.h"
-#include "FileSystemType.h"
-#include "FileSystemAttributes.h"
-#include "FileAttributes.h"
-#include "Types.h"
-#include "Access.h"
-#include "Compression.h"
+#include "File/Stat.h"
+#include "File/OpenFlags.h"
+#include "File/SeekOrigin.h"
 #include "Media.h"
 #include "Error.h"
-#include "NameBuffer.h"
+
+/**
+ * @brief Four-character tag to identify type of filing system
+ * @note As new filing systems are incorporated into IFS, update this enumeration
+ */
+#define FILESYSTEM_TYPE_MAP(XX)                                                                                        \
+	XX(Unknown, NULL, "Unknown")                                                                                       \
+	XX(FWFS, FWFS, "Firmware File System")                                                                             \
+	XX(SPIFFS, SPIF, "SPI Flash File System (SPIFFS)")                                                                 \
+	XX(Hybrid, HYFS, "Hybrid File System")
+
+/**
+ * @brief Attribute flags for filing system
+ */
+#define FILE_SYSTEM_ATTR_MAP(XX)                                                                                       \
+	XX(Mounted, "Filing system is mounted and in use")                                                                 \
+	XX(ReadOnly, "Writing not permitted to this volume")                                                               \
+	XX(Virtual, "Virtual filesystem, doesn't host files directly")                                                     \
+	XX(Check, "Volume check recommended")
 
 namespace IFS
 {
-/*
- * File handle
- *
- * References an open file
- */
-using file_t = int16_t;
-
-/*
- * File identifier
- *
- * Contained within FileStat, uniquely identifies any file on the file system.
- */
-using fileid_t = uint32_t;
-
 class IFileSystem;
 
 /*
- * File Status structure
+ * Opaque structure for directory reading
  */
-struct FileStat {
-	IFileSystem* fs{nullptr}; ///< The filing system owning this file
-	NameBuffer name;		  ///< Name of file
-	uint32_t size{0};		  ///< Size of file in bytes
-	fileid_t id{0};			  ///< Internal file identifier
-	Compression compression{};
-	FileAttributes attr{};
-	FileACL acl = {UserRole::None, UserRole::None}; ///< Access Control
-	time_t mtime{0};								///< File modification time
-
-	FileStat()
-	{
-	}
-
-	FileStat(char* namebuf, uint16_t bufsize) : name(namebuf, bufsize)
-	{
-	}
-
-	/** @brief assign content from another FileStat structure
-	 *  @note All fields are copied as for a normal assignment, except for 'name', where
-	 *  rhs.name contents are copied into our name buffer.
-	 */
-	FileStat& operator=(const FileStat& rhs)
-	{
-		fs = rhs.fs;
-		name.copy(rhs.name);
-		size = rhs.size;
-		id = rhs.id;
-		compression = rhs.compression;
-		attr = rhs.attr;
-		acl = rhs.acl;
-		mtime = rhs.mtime;
-		return *this;
-	}
-
-	void clear()
-	{
-		*this = FileStat{};
-	}
-};
-
-/**
- * @brief version of FileStat with integrated name buffer
- * @note provide for convenience
- */
-struct FileNameStat : public FileStat {
-public:
-	FileNameStat() : FileStat(buffer, sizeof(buffer))
-	{
-	}
-
-private:
-	char buffer[256];
-};
-
-/**
- * @brief Opaque structure for directory reading
- */
-using filedir_t = struct FileDir*;
+using DirHandle = struct FileDir*;
 
 /**
  * @brief Get current timestamp in UTC
@@ -113,44 +53,6 @@ using filedir_t = struct FileDir*;
  * Use this function; makes porting easier.
  */
 time_t fsGetTimeUTC();
-
-/**
- * @brief Basic information about filing system
- */
-struct FileSystemInfo {
-	FileSystemType type{};		 ///< The filing system type identifier
-	const Media* media{nullptr}; ///< WARNING: can be null for virtual file systems
-	FileSystemAttributes attr{}; ///< Attribute flags
-	uint32_t volumeID{0};		 ///< Unique identifier for volume
-	NameBuffer name;			 ///< Buffer for name
-	uint32_t volumeSize{0};		 ///< Size of volume, in bytes
-	uint32_t freeSpace{0};		 ///< Available space, in bytes
-
-	FileSystemInfo()
-	{
-	}
-
-	FileSystemInfo(char* namebuf, unsigned buflen) : name(namebuf, buflen)
-	{
-	}
-
-	FileSystemInfo& operator=(const FileSystemInfo& rhs)
-	{
-		type = rhs.type;
-		media = rhs.media;
-		attr = rhs.attr;
-		volumeID = rhs.volumeID;
-		name.copy(rhs.name);
-		volumeSize = rhs.volumeSize;
-		freeSpace = rhs.freeSpace;
-		return *this;
-	}
-
-	void clear()
-	{
-		*this = FileSystemInfo{};
-	}
-};
 
 #if DEBUG_BUILD
 #define debug_ifserr(_err, _func, ...)                                                                                 \
@@ -166,8 +68,9 @@ struct FileSystemInfo {
 	} while(0)
 #endif
 
-/** @brief Installable File System base class
- *  @note The 'I' implies Installable but could be for Interface :-)
+/**
+ * @brief Installable File System base class
+ * @note The 'I' implies Installable but could be for Interface :-)
  *
  * Construction and initialisation of a filing system is implementation-dependent so there
  * are no methods here for that.
@@ -180,6 +83,61 @@ struct FileSystemInfo {
 class IFileSystem
 {
 public:
+	enum class Type {
+#define XX(_name, _tag, _desc) _name,
+		FILESYSTEM_TYPE_MAP(XX)
+#undef XX
+			MAX
+	};
+
+	enum class Attribute {
+#define XX(_tag, _comment) _tag,
+		FILE_SYSTEM_ATTR_MAP(XX)
+#undef XX
+			MAX
+	};
+
+	// The set of attributes
+	using Attributes = BitSet<uint8_t, Attribute>;
+
+	/**
+	 * @brief Basic information about filing system
+	 */
+	struct Info {
+		Type type{};				 ///< The filing system type identifier
+		const Media* media{nullptr}; ///< WARNING: can be null for virtual file systems
+		Attributes attr{};			 ///< Attribute flags
+		uint32_t volumeID{0};		 ///< Unique identifier for volume
+		NameBuffer name;			 ///< Buffer for name
+		uint32_t volumeSize{0};		 ///< Size of volume, in bytes
+		uint32_t freeSpace{0};		 ///< Available space, in bytes
+
+		Info()
+		{
+		}
+
+		Info(char* namebuf, unsigned buflen) : name(namebuf, buflen)
+		{
+		}
+
+		Info& operator=(const Info& rhs)
+		{
+			type = rhs.type;
+			media = rhs.media;
+			attr = rhs.attr;
+			volumeID = rhs.volumeID;
+			name.copy(rhs.name);
+			volumeSize = rhs.volumeSize;
+			freeSpace = rhs.freeSpace;
+			return *this;
+		}
+
+		void clear()
+		{
+			*this = Info{};
+		}
+	};
+
 	/**
 	 * @brief Filing system implementations should dismount and cleanup here
 	 */
@@ -198,7 +156,7 @@ public:
      * @param info structure to read information into
      * @retval int error code
      */
-	virtual int getinfo(FileSystemInfo& info) = 0;
+	virtual int getinfo(Info& info) = 0;
 
 	/**
 	 * @brief get the text for a returned error code
@@ -220,7 +178,7 @@ public:
      * @param dir returns a pointer to the directory object
      * @retval int error code
      */
-	virtual int opendir(const char* path, filedir_t* dir) = 0;
+	virtual int opendir(const char* path, DirHandle& dir) = 0;
 
 	/**
 	 * @brief open a directory for reading
@@ -228,7 +186,7 @@ public:
      * @param dir returns a pointer to the directory object
      * @retval int error code
      */
-	virtual int fopendir(const FileStat* stat, filedir_t* dir)
+	virtual int fopendir(const File::Stat* stat, DirHandle& dir)
 	{
 		return opendir(stat == nullptr ? nullptr : stat->name.buffer, dir);
 	}
@@ -241,14 +199,14 @@ public:
      * @note File system allocates entries structure as it usually needs
      * to track other information. It releases memory when closedir() is called.
      */
-	virtual int readdir(filedir_t dir, FileStat* stat) = 0;
+	virtual int readdir(DirHandle dir, File::Stat& stat) = 0;
 
 	/**
 	 * @brief close a directory object
      * @param dir directory to close
      * @retval int error code
      */
-	virtual int closedir(filedir_t dir) = 0;
+	virtual int closedir(DirHandle dir) = 0;
 
 	/**
 	 * @brief get file information
@@ -256,7 +214,7 @@ public:
      * @param stat structure to return information in, may be null to do a simple file existence check
      * @retval int error code
      */
-	virtual int stat(const char* path, FileStat* stat) = 0;
+	virtual int stat(const char* path, File::Stat* stat) = 0;
 
 	/**
 	 * @brief get file information
@@ -264,30 +222,30 @@ public:
      * @param stat structure to return information in, may be null
      * @retval int error code
      */
-	virtual int fstat(file_t file, FileStat* stat) = 0;
+	virtual int fstat(File::Handle file, File::Stat* stat) = 0;
 
 	/**
 	 * @brief open a file by name/path
      * @param path full path to file
      * @param flags opens for opening file
-     * @retval file_t file handle or error code
+     * @retval File::Handle file handle or error code
      */
-	virtual file_t open(const char* path, FileOpenFlags flags) = 0;
+	virtual File::Handle open(const char* path, File::OpenFlags flags) = 0;
 
 	/**
 	 * @brief open a file from it's stat structure
      * @param stat obtained from readdir()
      * @param flags opens for opening file
-     * @retval file_t file handle or error code
+     * @retval File::Handle file handle or error code
      */
-	virtual file_t fopen(const FileStat& stat, FileOpenFlags flags) = 0;
+	virtual File::Handle fopen(const File::Stat& stat, File::OpenFlags flags) = 0;
 
 	/**
 	 * @brief close an open file
      * @param file handle to open file
      * @retval int error code
      */
-	virtual int close(file_t file) = 0;
+	virtual int close(File::Handle file) = 0;
 
 	/**
 	 * @brief read content from a file and advance cursor
@@ -296,7 +254,7 @@ public:
      * @param size size of file buffer, maximum number of bytes to read
      * @retval int number of bytes read or error code
      */
-	virtual int read(file_t file, void* data, size_t size) = 0;
+	virtual int read(File::Handle file, void* data, size_t size) = 0;
 
 	/**
 	 * @brief write content to a file at current position and advance cursor
@@ -305,7 +263,7 @@ public:
      * @param size number of bytes to write
      * @retval int number of bytes written or error code
      */
-	virtual int write(file_t file, const void* data, size_t size) = 0;
+	virtual int write(File::Handle file, const void* data, size_t size) = 0;
 
 	/**
 	 * @brief change file read/write position
@@ -314,21 +272,21 @@ public:
      * @param origin where to seek from (start/end or current position)
      * @retval int current position or error code
      */
-	virtual int lseek(file_t file, int offset, SeekOrigin origin) = 0;
+	virtual int lseek(File::Handle file, int offset, File::SeekOrigin origin) = 0;
 
 	/**
 	 * @brief determine if current file position is at end of file
      * @param file handle to open file
      * @retval int 0 - not EOF, > 0 - at EOF, < 0 - error
      */
-	virtual int eof(file_t file) = 0;
+	virtual int eof(File::Handle file) = 0;
 
 	/**
 	 * @brief get current file position
      * @param file handle to open file
      * @retval int32_t current position relative to start of file, or error code
      */
-	virtual int32_t tell(file_t file) = 0;
+	virtual int32_t tell(File::Handle file) = 0;
 
 	/**
 	 * @brief Truncate the file at the current cursor position
@@ -336,28 +294,30 @@ public:
      * @retval int new file size, or error code
      * @note Changes the file size
      */
-	virtual int truncate(file_t file, size_t new_size) = 0;
+	virtual int truncate(File::Handle file, size_t new_size) = 0;
 
 	/**
 	 * @brief flush any buffered data to physical media
      * @param file handle to open file
      * @retval int error code
      */
-	virtual int flush(file_t file) = 0;
+	virtual int flush(File::Handle file) = 0;
 
 	/**
 	 * @brief Set access control information for file
      * @param file handle to open file
+     * @param acl
      * @retval int error code
      */
-	virtual int setacl(file_t file, FileACL* acl) = 0;
+	virtual int setacl(File::Handle file, const File::ACL& acl) = 0;
 
 	/**
 	 * @brief Set file attributes
      * @param file handle to open file, must have write access
+     * @param attr
      * @retval int error code
      */
-	virtual int setattr(file_t file, FileAttributes attr) = 0;
+	virtual int setattr(File::Handle file, File::Attributes attr) = 0;
 
 	/**
 	 * @brief Set access control information for file
@@ -365,7 +325,7 @@ public:
      * @retval int error code
      * @note any writes to file will reset this to current time
      */
-	virtual int settime(file_t file, time_t mtime) = 0;
+	virtual int settime(File::Handle file, time_t mtime) = 0;
 
 	/**
 	 * @brief rename a file
@@ -387,7 +347,7 @@ public:
      * @param file handle to open file
      * @retval int error code
      */
-	virtual int fremove(file_t file) = 0;
+	virtual int fremove(File::Handle file) = 0;
 
 	/**
 	 * @brief format the filing system
@@ -417,8 +377,27 @@ public:
 	 * @note error code typically Error::InvalidHandle if handle is outside valid range,
 	 * or Error::FileNotOpen if handle range is valid but handle not in use
 	 */
-	virtual int isfile(file_t file) = 0;
+	virtual int isfile(File::Handle file) = 0;
 };
+
+/**
+ * @brief get string for filesystem type
+ * @param type
+ * @param buf buffer to store tag
+ * @param bufSize space in buffer
+ * @retval char* destination buffer
+ * @note if buffer more than 4 characters then nul will be appended
+ */
+char* toString(IFileSystem::Type type, char* buf, unsigned bufSize);
+
+/**
+ * @brief Get the string representation for the given set of filesystem attributes
+ * @param attr
+ * @param buf
+ * @param bufSize
+ * @retval char* points to buf
+ */
+char* toString(IFileSystem::Attributes attr, char* buf, size_t bufSize);
 
 } // namespace IFS
 

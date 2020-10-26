@@ -99,16 +99,16 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 		} else {
 			switch(child.obj.type()) {
 			case Object::Type::FileAttr:
-				stat.attr |= FileAttributes{child.obj.data8.fileAttributes.attr};
+				stat.attr |= File::Attributes{child.obj.data8.fileAttributes.attr};
 				break;
 
 			case Object::Type::ObjectStore:
-				stat.attr |= _BV(FileAttr::MountPoint) | _BV(FileAttr::Directory);
+				stat.attr |= _BV(File::Attribute::MountPoint) | _BV(File::Attribute::Directory);
 				break;
 
 			case Object::Type::Compression:
 				stat.compression = child.obj.data8.compression.type;
-				bitSet(stat.attr, FileAttr::Compressed);
+				stat.attr|= File::Attribute::Compressed;
 				break;
 
 			case Object::Type::ReadACE:
@@ -127,7 +127,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 	}
 
 	if(entry.obj.type() == Object::Type::Directory) {
-		bitSet(stat.attr, FileAttr::Directory);
+		stat.attr |= File::Attribute::Directory;
 	}
 
 	return readObjectName(entry, stat.name);
@@ -144,7 +144,7 @@ int FileSystem::findUnusedDescriptor()
 	return Error::OutOfFileDescs;
 }
 
-int FileSystem::read(file_t file, void* data, size_t size)
+int FileSystem::read(File::Handle file, void* data, size_t size)
 {
 	GET_FD();
 
@@ -189,14 +189,14 @@ int FileSystem::read(file_t file, void* data, size_t size)
 	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
 }
 
-int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
+int FileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
 {
 	GET_FD();
 
 	int newOffset = offset;
-	if(origin == SeekOrigin::Current) {
+	if(origin == File::SeekOrigin::Current) {
 		newOffset += (int)fd.cursor;
-	} else if(origin == SeekOrigin::End) {
+	} else if(origin == File::SeekOrigin::End) {
 		newOffset += (int)fd.dataSize;
 	}
 
@@ -313,15 +313,15 @@ int FileSystem::openRootObject(const FWVolume& volume, FWObjDesc& odRoot)
 	return res;
 }
 
-int FileSystem::getinfo(FileSystemInfo& info)
+int FileSystem::getinfo(Info& info)
 {
 	int res = FS_OK;
 
 	auto& volume = volumes[0];
 
 	info.clear();
-	info.type = FileSystemType::FWFS;
-	info.attr = _BV(FileAttr::ReadOnly);
+	info.type = Type::FWFS;
+	info.attr = Attribute::ReadOnly;
 	if(volume.store) {
 		info.media = volume.store->getMedia();
 		info.volumeSize = info.media->mediaSize();
@@ -337,7 +337,7 @@ int FileSystem::getinfo(FileSystemInfo& info)
 				info.volumeID = od.obj.data8.id32.value;
 			}
 		}
-		bitSet(info.attr, FileSystemAttr::Mounted);
+		info.attr |= Attribute::Mounted;
 	}
 
 	return res;
@@ -458,9 +458,9 @@ int FileSystem::readObjectName(const FWObjDesc& od, NameBuffer& name)
 
 /** @brief We have a file object, now get the other details to complete the descriptor
  *  @param od the file object descriptor
- *  @retval file_t file handle, or error code
+ *  @retval File::Handle file handle, or error code
  */
-file_t FileSystem::allocateFileDescriptor(FWObjDesc& odFile)
+File::Handle FileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 {
 	int descriptorIndex = findUnusedDescriptor();
 	if(descriptorIndex < 0) {
@@ -501,22 +501,19 @@ file_t FileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 	return FWFS_HANDLE_MIN + descriptorIndex;
 }
 
-int FileSystem::opendir(const char* path, filedir_t* dir)
+int FileSystem::opendir(const char* path, DirHandle& dir)
 {
 	CHECK_MOUNTED();
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
 	if(res >= 0) {
-		file_t handle = allocateFileDescriptor(od);
+		File::Handle handle = allocateFileDescriptor(od);
 		if(handle < 0) {
 			res = handle;
 			closeObject(od);
 		} else {
-			*dir = reinterpret_cast<filedir_t>(handle);
+			dir = reinterpret_cast<DirHandle>(handle);
 		}
 	}
 
@@ -526,7 +523,7 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
 /*
  * TODO: To implement this we could do with storing the directory offset in `stat`.
  */
-int FileSystem::fopendir(const FileStat* stat, filedir_t* dir)
+int FileSystem::fopendir(const FileStat* stat, DirHandle& dir)
 {
 	return Error::NotImplemented;
 	/*
@@ -540,12 +537,12 @@ int FileSystem::fopendir(const FileStat* stat, filedir_t* dir)
 	int res = findObject
 	int res = findObjectByPath(path, od);
 	if(res >= 0) {
-		file_t handle = allocateFileDescriptor(od);
+		File::Handle handle = allocateFileDescriptor(od);
 		if(handle < 0) {
 			res = handle;
 			closeObject(od);
 		} else {
-			*dir = reinterpret_cast<filedir_t>(handle);
+			*dir = reinterpret_cast<DirHandle>(handle);
 		}
 	}
 
@@ -557,7 +554,7 @@ int FileSystem::fopendir(const FileStat* stat, filedir_t* dir)
  * The XXXdir() methods will work on any named objects, including files, although
  * these don't normally contain named children.
  */
-int FileSystem::readdir(filedir_t dir, FileStat* stat)
+int FileSystem::readdir(DirHandle dir, FileStat& stat)
 {
 	CHECK_MOUNTED();
 
@@ -580,13 +577,11 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 	FWObjDesc od(ref);
 	while((res = readChildObjectHeader(odDir, od)) >= 0) {
 		if(od.obj.isNamed()) {
-			if(stat) {
-				FWObjDesc child;
-				res = openChildObject(odDir, od, child);
-				if(res >= 0) {
-					res = fillStat(*stat, child);
-					closeObject(child);
-				}
+			FWObjDesc child;
+			res = openChildObject(odDir, od, child);
+			if(res >= 0) {
+				res = fillStat(stat, child);
+				closeObject(child);
 			}
 			od.next();
 			break;
@@ -606,7 +601,7 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 	return res == Error::EndOfObjects ? Error::NoMoreFiles : res;
 }
 
-int FileSystem::closedir(filedir_t dir)
+int FileSystem::closedir(DirHandle dir)
 {
 	return close(reinterpret_cast<int>(dir));
 }
@@ -663,7 +658,7 @@ int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 	return res;
 }
 
-file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
+File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 {
 	CHECK_MOUNTED();
 	if(stat.fs != this) {
@@ -682,7 +677,7 @@ file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	return res;
 }
 
-file_t FileSystem::open(const char* path, FileOpenFlags flags)
+File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 {
 	CHECK_MOUNTED();
 
@@ -700,7 +695,7 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	return res;
 }
 
-int FileSystem::close(file_t file)
+int FileSystem::close(File::Handle file)
 {
 	GET_FD();
 
@@ -727,14 +722,14 @@ int FileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int FileSystem::fstat(file_t file, FileStat* stat)
+int FileSystem::fstat(File::Handle file, FileStat* stat)
 {
 	GET_FD();
 
 	return stat ? fillStat(*stat, fd.odFile) : Error::BadParam;
 }
 
-int FileSystem::eof(file_t file)
+int FileSystem::eof(File::Handle file)
 {
 	GET_FD();
 
@@ -742,14 +737,14 @@ int FileSystem::eof(file_t file)
 	return fd.cursor >= fd.dataSize ? 1 : 0;
 }
 
-int32_t FileSystem::tell(file_t file)
+int32_t FileSystem::tell(File::Handle file)
 {
 	GET_FD();
 
 	return fd.cursor;
 }
 
-int FileSystem::isfile(file_t file)
+int FileSystem::isfile(File::Handle file)
 {
 	GET_FD();
 
@@ -763,7 +758,7 @@ int FileSystem::isfile(file_t file)
  * searching for the file. Not pretty, but then the only reason this method is provided is
  * for the hybrid filesystem, which needs to match full file paths across filesystems.
  */
-int FileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
+int FileSystem::getFilePath(File::ID fileid, NameBuffer& path)
 {
 	int res = FS_OK;
 
@@ -798,7 +793,7 @@ int FileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
  * @retval error code
  * @note name buffer overrun does not return an error; we check for this in getFilePath()
  */
-int FileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuffer& path)
+int FileSystem::seekFilePath(FWObjDesc& parent, File::ID fileid, NameBuffer& path)
 {
 	auto addPathSeg = [&](FWObjDesc& child) {
 		path.addSep();

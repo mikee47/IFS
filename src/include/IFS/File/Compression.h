@@ -7,9 +7,11 @@
 
 #pragma once
 
-#include "Types.h"
+#include "../Types.h"
 
 namespace IFS
+{
+namespace File
 {
 /**
  * @brief compression type
@@ -25,6 +27,8 @@ enum class Compression : uint8_t {
 		MAX ///< Actually maxmimum value + 1...
 };
 
+} // namespace File
+
 /**
  * @brief Get the string representation for the given compression type
  * @param type
@@ -32,6 +36,6 @@ enum class Compression : uint8_t {
  * @param bufSize
  * @retval char* points to buf
  */
-char* compressionTypeToStr(Compression type, char* buf, size_t bufSize);
+char* toString(File::Compression type, char* buf, size_t bufSize);
 
 } // namespace IFS

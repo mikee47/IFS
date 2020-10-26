@@ -1,12 +1,12 @@
 /*
- * FileOpenFlags.cpp
+ * File::OpenFlags.cpp
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
  */
 
-#include "include/IFS/FileFlags.h"
-#include "Flags.h"
+#include "../include/IFS/File/OpenFlags.h"
+#include "../Flags.h"
 
 namespace IFS
 {
@@ -18,7 +18,7 @@ FILE_OPEN_FLAG_MAP(XX)
 static PGM_P const flagStrings[] PROGMEM = {FILE_OPEN_FLAG_MAP(XX)};
 #undef XX
 
-char* toString(FileOpenFlags flags, char* buf, size_t bufSize)
+char* toString(File::OpenFlags flags, char* buf, size_t bufSize)
 {
 	return flagsToStr(flags.getValue(), flagStrings, ARRAY_SIZE(flagStrings), buf, bufSize);
 }

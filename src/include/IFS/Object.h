@@ -59,9 +59,9 @@
 
 #pragma once
 
-#include "FileAttributes.h"
-#include "Compression.h"
-#include "Access.h"
+#include "File/Attributes.h"
+#include "File/Compression.h"
+#include "UserRole.h"
 
 namespace IFS
 {
@@ -212,12 +212,12 @@ struct Object {
 
 				// Object attributes
 				struct {
-					uint8_t attr; // FileAttributes
+					uint8_t attr; // File::Attributes
 				} fileAttributes;
 
 				// Compression descriptor
 				struct {
-					Compression type;
+					File::Compression type;
 				} compression;
 
 				// ReadACE, WriteACE

@@ -14,7 +14,7 @@ namespace IFS
 {
 /**
  * @brief defines a 'safe' name buffer
- * @note Instead of including a fixed name array in FileStat (and FileSystemInfo) structures,
+ * @note Instead of including a fixed name array in FileStat (and IFileSystem::Info) structures,
  * we use a NameBuffer to identify a separate buffer. This has several advantages:
  *
  *		- Maximum size is not fixed

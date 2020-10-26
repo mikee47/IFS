@@ -1,13 +1,13 @@
 /*
- * access.cpp
+ * UserRole.cpp
  *
  *  Created on: 6 Jun 2018
  *      Author: mikee47
  *
- * Access control definitions
+ * User roles used for access control
  */
 
-#include "include/IFS/Access.h"
+#include "include/IFS/UserRole.h"
 
 namespace IFS
 {
@@ -23,7 +23,7 @@ static PGM_P const accessStrings[] PROGMEM = {USER_ROLE_MAP(XX)};
 static DEFINE_PSTR(accessChars, {USER_ROLE_MAP(XX)});
 #undef XX
 
-char* userRoleToStr(UserRole role, char* buf, size_t bufSize)
+char* toString(UserRole role, char* buf, size_t bufSize)
 {
 	if(buf && bufSize) {
 		if(role < UserRole::MAX) {
@@ -61,20 +61,6 @@ UserRole getUserRole(char c, UserRole _default)
 	USER_ROLE_MAP(XX)
 #undef XX
 	return _default;
-}
-
-char* fileAclToStr(FileACL acl, char* buf, size_t bufSize)
-{
-	if(buf && bufSize) {
-		if(bufSize < 3)
-			buf[0] = '\0';
-		else {
-			buf[0] = userRoleChar(acl.readAccess);
-			buf[1] = userRoleChar(acl.writeAccess);
-			buf[2] = '\0';
-		}
-	}
-	return buf;
 }
 
 } // namespace IFS

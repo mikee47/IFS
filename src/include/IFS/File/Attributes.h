@@ -1,5 +1,5 @@
 /*
- * FileAttr.h
+ * Attributes.h
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
@@ -7,10 +7,11 @@
 
 #pragma once
 
-#include "Types.h"
-#include <Data/BitSet.h>
+#include "../Types.h"
 
 namespace IFS
+{
+namespace File
 {
 /**
  * @brief file attributes
@@ -29,7 +30,7 @@ namespace IFS
 	XX(Directory, 'D', "Object is a directory entry")                                                                  \
 	XX(MountPoint, 'M', "Directs to another object store")
 
-enum class FileAttr : uint8_t {
+enum class Attribute {
 #define XX(_tag, _char, _comment) _tag,
 	FILEATTR_MAP(XX)
 #undef XX
@@ -38,7 +39,9 @@ enum class FileAttr : uint8_t {
 /**
  * @brief File attributes are stored as a bitmask
  */
-using FileAttributes = BitSet<uint8_t, FileAttr>;
+using Attributes = BitSet<uint8_t, Attribute>;
+
+} // namespace File
 
 /**
  * @brief Get the string representation for the given set of file attributes
@@ -47,6 +50,6 @@ using FileAttributes = BitSet<uint8_t, FileAttr>;
  * @param bufSize
  * @retval char* points to buf
  */
-char* toString(FileAttributes attr, char* buf, size_t bufSize);
+char* toString(File::Attributes attr, char* buf, size_t bufSize);
 
 } // namespace IFS

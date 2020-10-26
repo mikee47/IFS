@@ -5,8 +5,7 @@
  *      Author: mikee47
  */
 
-#include "include/IFS/Compression.h"
-#include "include/IFS/Types.h"
+#include "../include/IFS/File/Compression.h"
 
 namespace IFS
 {
@@ -18,10 +17,10 @@ COMPRESSION_TYPE_MAP(XX)
 static PGM_P const __strings[] PROGMEM = {COMPRESSION_TYPE_MAP(XX)};
 #undef XX
 
-char* compressionTypeToStr(Compression type, char* buf, size_t bufSize)
+char* toString(File::Compression type, char* buf, size_t bufSize)
 {
 	if(buf && bufSize) {
-		if(type < Compression::MAX) {
+		if(type < File::Compression::MAX) {
 			strncpy_P(buf, __strings[(unsigned)type], bufSize);
 			buf[bufSize - 1] = '\0';
 		} else {

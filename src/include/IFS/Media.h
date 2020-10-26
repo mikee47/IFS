@@ -11,7 +11,6 @@
 
 #include "Error.h"
 #include "Types.h"
-#include <Data/BitSet.h>
 
 namespace IFS
 {
@@ -40,13 +39,13 @@ struct Extent {
 		if(!checkExtent(off, sz)) {                                                                                    \
 			debug_e("%s(0x%08x, %u): Bad Extent, media size = 0x%08x", __PRETTY_FUNCTION__, off, sz, m_size);          \
 			assert(false);                                                                                             \
-			return Error::BadExtent;                                                                                    \
+			return Error::BadExtent;                                                                                   \
 		}                                                                                                              \
 	}
 
 #define FS_CHECK_WRITEABLE()                                                                                           \
 	if(m_attr[Attribute::ReadOnly]) {                                                                                  \
-		return Error::ReadOnly;                                                                                         \
+		return Error::ReadOnly;                                                                                        \
 	}
 
 /** @brief virtual base class to access physical filesystem media
