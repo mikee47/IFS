@@ -65,12 +65,12 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 	int res = FS_OK;
 	IFileSystem* fserr{};
 
-	file_t srcfile = src->fopen(stat, eFO_ReadOnly);
+	file_t srcfile = src->fopen(stat, FileOpenFlag::Read);
 	if(srcfile < 0) {
 		res = srcfile;
 		fserr = src;
 	} else {
-		file_t dstfile = dst->open(stat.name, eFO_CreateNewAlways | eFO_WriteOnly);
+		file_t dstfile = dst->open(stat.name, FileOpenFlag::Create | FileOpenFlag::Write);
 		if(dstfile < 0) {
 			res = dstfile;
 			fserr = dst;
@@ -243,7 +243,7 @@ bool readFileTest(const FileStat& stat)
 
 	auto fs{stat.fs};
 
-	file_t file = fs->fopen(stat, eFO_ReadOnly);
+	file_t file = fs->fopen(stat, FileOpenFlag::Read);
 
 	if(file < 0) {
 		debug_w("fopen(): %s", getErrorText(fs, file));
@@ -330,7 +330,7 @@ int scandir(IFileSystem* fs, const String& path)
 
 		{
 			// On the hybrid volume this will copy FW file onto SPIFFS
-			file_t file = fs->open(stat, eFO_WriteOnly | eFO_Append);
+			file_t file = fs->open(stat, FileOpenFlag::Write | FileOpenFlag::Append);
 			if(file < 0)
 				debug_e("open('%s') failed, %s", stat.name.buffer, fileGetErrorString(file).c_str());
 			else {

@@ -29,19 +29,19 @@ int syserr()
 int mapFlags(FileOpenFlags flags)
 {
 	int ret = 0;
-	if(bitRead(flags, FileOpenFlag::Append)) {
+	if(flags[FileOpenFlag::Append]) {
 		ret |= O_APPEND;
 	}
-	if(bitRead(flags, FileOpenFlag::Create)) {
+	if(flags[FileOpenFlag::Create]) {
 		ret |= O_CREAT;
 	}
-	if(bitRead(flags, FileOpenFlag::Read)) {
+	if(flags[FileOpenFlag::Read]) {
 		ret |= O_RDONLY;
 	}
-	if(bitRead(flags, FileOpenFlag::Truncate)) {
+	if(flags[FileOpenFlag::Truncate]) {
 		ret |= O_TRUNC;
 	}
-	if(bitRead(flags, FileOpenFlag::Write)) {
+	if(flags[FileOpenFlag::Write]) {
 		ret |= O_WRONLY;
 	}
 	return ret;
@@ -178,9 +178,9 @@ int StdFileSystem::read(file_t file, void* data, size_t size)
 	return ::read(file, data, size);
 }
 
-int StdFileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int StdFileSystem::lseek(file_t file, int offset, SeekOrigin origin)
 {
-	return ::lseek(file, offset, origin);
+	return ::lseek(file, offset, uint8_t(origin));
 }
 
 int StdFileSystem::eof(file_t file)

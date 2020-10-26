@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Types.h"
+#include "Data/BitSet.h"
 
 namespace IFS
 {
@@ -32,16 +33,12 @@ enum class FileOpenFlag {
 };
 
 // The set of flags
-using FileOpenFlags = uint8_t;
+using FileOpenFlags = BitSet<uint8_t, IFS::FileOpenFlag>;
 
-// Various file flag combinations
-const FileOpenFlags eFO_ReadOnly = _BV(FileOpenFlag::Read);
-const FileOpenFlags eFO_WriteOnly = _BV(FileOpenFlag::Write);
-const FileOpenFlags eFO_ReadWrite = eFO_ReadOnly | eFO_WriteOnly;
-const FileOpenFlags eFO_CreateIfNotExist = _BV(FileOpenFlag::Create);
-const FileOpenFlags eFO_Append = _BV(FileOpenFlag::Append);
-const FileOpenFlags eFO_Truncate = _BV(FileOpenFlag::Truncate);
-const FileOpenFlags eFO_CreateNewAlways = _BV(FileOpenFlag::Create) | _BV(FileOpenFlag::Truncate);
+inline constexpr FileOpenFlags operator|(FileOpenFlag a, FileOpenFlag b)
+{
+	return FileOpenFlags{a} | FileOpenFlags{b};
+}
 
 /**
  * @brief Get a string representation of a set of file open flags
@@ -51,6 +48,6 @@ const FileOpenFlags eFO_CreateNewAlways = _BV(FileOpenFlag::Create) | _BV(FileOp
  * @retval char* pointer to buffer
  * @note intended for debug output
  */
-char* fileOpenFlagsToStr(FileOpenFlags flags, char* buf, size_t bufSize);
+char* toString(FileOpenFlags flags, char* buf, size_t bufSize);
 
 } // namespace IFS

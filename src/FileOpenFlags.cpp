@@ -18,9 +18,9 @@ FILE_OPEN_FLAG_MAP(XX)
 static PGM_P const flagStrings[] PROGMEM = {FILE_OPEN_FLAG_MAP(XX)};
 #undef XX
 
-char* fileOpenFlagsToStr(FileOpenFlags flags, char* buf, size_t bufSize)
+char* toString(FileOpenFlags flags, char* buf, size_t bufSize)
 {
-	return flagsToStr(flags, flagStrings, ARRAY_SIZE(flagStrings), buf, bufSize);
+	return flagsToStr(flags.getValue(), flagStrings, ARRAY_SIZE(flagStrings), buf, bufSize);
 }
 
 } // namespace IFS

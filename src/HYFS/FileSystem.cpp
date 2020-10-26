@@ -283,10 +283,10 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	}
 
 	// OK, so no FFS file exists. Get the FW file.
-	file_t fwfile = fwfs.open(path, eFO_ReadOnly);
+	file_t fwfile = fwfs.open(path, FileOpenFlag::Read);
 
 	// If we're only reading the file then return FW file directly
-	if((flags & ~eFO_ReadOnly) == 0) {
+	if(flags == FileOpenFlag::Read) {
 		return fwfile;
 	}
 
@@ -304,7 +304,7 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 
 	// Now copy FW file to FFS
 	if(fwfile >= 0) {
-		flags = flags | eFO_CreateIfNotExist | eFO_ReadWrite;
+		flags |= FileOpenFlag::Create | FileOpenFlag::Read | FileOpenFlag::Write;
 	}
 	file_t ffsfile = ffs.open(path, flags);
 
@@ -327,8 +327,8 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	}
 
 	// If not truncating then copy content into FFS file
-	if(!(flags & eFO_Truncate)) {
-		ffs.lseek(ffsfile, 0, eSO_FileStart);
+	if(!flags[FileOpenFlag::Truncate]) {
+		ffs.lseek(ffsfile, 0, SeekOrigin::Start);
 		uint8_t buffer[512];
 		while(fwfs.eof(fwfile) == 0) {
 			int len = fwfs.read(fwfile, buffer, sizeof(buffer));
@@ -346,8 +346,8 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 			}
 		}
 		// Move back to beginning if we're not appending
-		if((flags & eFO_Append) == 0) {
-			ffs.lseek(ffsfile, 0, eSO_FileStart);
+		if(!flags[FileOpenFlag::Append]) {
+			ffs.lseek(ffsfile, 0, SeekOrigin::Start);
 		}
 	}
 
@@ -372,7 +372,7 @@ file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	}
 
 	// If we're only reading the file then return FW file directly
-	if((flags & ~eFO_ReadOnly) == 0) {
+	if(flags == FileOpenFlag::Read) {
 		return fwfs.fopen(stat, flags);
 	}
 
@@ -464,7 +464,7 @@ int FileSystem::write(file_t file, const void* data, size_t size)
 	return fs->write(file, data, size);
 }
 
-int FileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
 {
 	GET_FS(file)
 	int res = fs->lseek(file, offset, origin);
@@ -505,7 +505,7 @@ int FileSystem::flush(file_t file)
 int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	// Make sure file exists on FFS
-	auto file = open(oldpath, eFO_ReadWrite);
+	auto file = open(oldpath, FileOpenFlag::Read | FileOpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}

@@ -63,7 +63,7 @@ public:
 	int close(file_t file) override;
 	int read(file_t file, void* data, size_t size) override;
 	int write(file_t file, const void* data, size_t size) override;
-	int lseek(file_t file, int offset, SeekOriginFlags origin) override;
+	int lseek(file_t file, int offset, SeekOrigin origin) override;
 	int eof(file_t file) override;
 	int32_t tell(file_t file) override;
 	int truncate(file_t file, size_t new_size) override;

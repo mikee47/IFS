@@ -189,14 +189,14 @@ int FileSystem::read(file_t file, void* data, size_t size)
 	return (res == FS_OK) || (res == FSERR_EndOfObjects) ? readTotal : res;
 }
 
-int FileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
 {
 	GET_FD();
 
 	int newOffset = offset;
-	if(origin == eSO_CurrentPos) {
+	if(origin == SeekOrigin::Current) {
 		newOffset += (int)fd.cursor;
-	} else if(origin == eSO_FileEnd) {
+	} else if(origin == SeekOrigin::End) {
 		newOffset += (int)fd.dataSize;
 	}
 

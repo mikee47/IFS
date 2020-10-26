@@ -55,21 +55,22 @@ static inline FileOpenFlags mapFileOpenFlags(FileOpenFlags flags, spiffs_flags& 
 {
 	sflags = 0;
 
-	auto map = [&](FileOpenFlags flag, spiffs_flags sflag) {
-		if(flags & flag) {
+	auto map = [&](FileOpenFlag flag, spiffs_flags sflag) {
+		if(flags[flag]) {
 			sflags |= sflag;
-			flags = flags - flag;
+			flags -= flag;
 		}
 	};
 
-	map(eFO_Append, SPIFFS_O_APPEND);
-	map(eFO_Truncate, SPIFFS_O_TRUNC);
-	map(eFO_CreateIfNotExist, SPIFFS_O_CREAT);
-	map(eFO_ReadOnly, SPIFFS_O_RDONLY);
-	map(eFO_WriteOnly, eFO_WriteOnly);
+	map(FileOpenFlag::Append, SPIFFS_O_APPEND);
+	map(FileOpenFlag::Truncate, SPIFFS_O_TRUNC);
+	map(FileOpenFlag::Create, SPIFFS_O_CREAT);
+	map(FileOpenFlag::Read, SPIFFS_O_RDONLY);
+	map(FileOpenFlag::Write, SPIFFS_O_WRONLY);
 
-	if(flags)
-		debug_w("Unknown FileOpenFlags: 0x%02X", flags);
+	if(flags.any()) {
+		debug_w("Unknown FileOpenFlags: 0x%02X", flags.getValue());
+	}
 
 	return flags;
 }
@@ -310,7 +311,7 @@ file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	}
 
 	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags, sflags) != 0) {
+	if(mapFileOpenFlags(flags, sflags).any()) {
 		return (file_t)FSERR_NotSupported;
 	}
 
@@ -320,7 +321,7 @@ file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	} else {
 		cacheMeta(file);
 		// File affected without write so update timestamp
-		if(flags & eFO_Truncate) {
+		if(flags[FileOpenFlag::Truncate]) {
 			touch(file);
 		}
 	}
@@ -338,7 +339,7 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	//  debug_i("%s('%s', %s)", __FUNCTION__, fileName.c_str(), fileOpenFlagsToStr(flags).c_str());
 
 	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags, sflags) != 0) {
+	if(mapFileOpenFlags(flags, sflags).any()) {
 		return (file_t)FSERR_NotSupported;
 	}
 
@@ -348,13 +349,13 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	} else {
 		auto smb = cacheMeta(file);
 		// If file is marked read-only, fail write requests !!! @todo bit late if we've got a truncate flag...
-		if(smb && bitRead(smb->meta.attr, FileSystemAttr::ReadOnly) && (flags & ~eFO_ReadOnly)) {
+		if(smb && bitRead(smb->meta.attr, FileSystemAttr::ReadOnly) && (flags == FileOpenFlag::Read)) {
 			SPIFFS_close(handle(), file);
 			return FSERR_ReadOnly;
 		}
 
 		// File affected without write so update timestamp
-		if(flags & eFO_Truncate) {
+		if(flags[FileOpenFlag::Truncate]) {
 			touch(file);
 		}
 	}
@@ -412,9 +413,9 @@ int FileSystem::write(file_t file, const void* data, size_t size)
 	return err;
 }
 
-int FileSystem::lseek(file_t file, int offset, SeekOriginFlags origin)
+int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
 {
-	int res = SPIFFS_lseek(handle(), file, offset, origin);
+	int res = SPIFFS_lseek(handle(), file, offset, int(origin));
 	if(res < 0) {
 		debug_ifserr(res, "lseek()");
 		return res;

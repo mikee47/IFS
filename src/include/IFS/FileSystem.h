@@ -45,10 +45,10 @@ using fileid_t = uint32_t;
  *  @note these values are fixed in stone so will never change. They only need to
  *  be remapped if a filing system uses different values.
  */
-enum SeekOriginFlags {
-	eSO_FileStart = 0,  ///< Start of file
-	eSO_CurrentPos = 1, ///< Current position in file
-	eSO_FileEnd = 2		///< End of file
+enum class SeekOrigin {
+	Start = 0,   ///< Start of file
+	Current = 1, ///< Current position in file
+	End = 2		 ///< End of file
 };
 
 class IFileSystem;
@@ -324,7 +324,7 @@ public:
      * @param origin where to seek from (start/end or current position)
      * @retval int current position or error code
      */
-	virtual int lseek(file_t file, int offset, SeekOriginFlags origin) = 0;
+	virtual int lseek(file_t file, int offset, SeekOrigin origin) = 0;
 
 	/**
 	 * @brief determine if current file position is at end of file
