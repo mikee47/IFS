@@ -33,7 +33,7 @@ using namespace IFS;
 namespace
 {
 // We mount SPIFFS on a file so we can inspect if necessary
-const char* FLASHMEM_DMP = "flashmem.dmp";
+const char* FLASHMEM_DMP = "out/flashmem.dmp";
 
 IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 //IMPORT_FSTR(fwfsImage2, PROJECT_DIR "/out/fwfsImage2.bin")
