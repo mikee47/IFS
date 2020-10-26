@@ -18,7 +18,7 @@ namespace IFS
 	XX(None, "Normal file, no compression")                                                                            \
 	XX(GZip, "GZIP compressed for serving via HTTP")
 
-enum class CompressionType : uint8_t {
+enum class Compression : uint8_t {
 #define XX(_tag, _comment) _tag,
 	COMPRESSION_TYPE_MAP(XX)
 #undef XX
@@ -32,6 +32,6 @@ enum class CompressionType : uint8_t {
  * @param bufSize
  * @retval char* points to buf
  */
-char* compressionTypeToStr(CompressionType type, char* buf, size_t bufSize);
+char* compressionTypeToStr(Compression type, char* buf, size_t bufSize);
 
 } // namespace IFS

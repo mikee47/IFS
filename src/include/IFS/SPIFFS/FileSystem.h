@@ -49,8 +49,8 @@ namespace SPIFFS
 struct FileMeta {
 	// Modification time
 	time_t mtime;
-	// FileAttr - default indicates content has changed
-	FileAttributes attr;
+	// FileAttributes - default indicates content has changed
+	uint8_t attr;
 	// Used internally, always 0xFF on disk
 	uint8_t flags_;
 	// Security

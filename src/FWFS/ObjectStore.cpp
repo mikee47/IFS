@@ -17,7 +17,7 @@ namespace FWFS
 int ObjectStore::initialise()
 {
 	if(!media)
-		return FSERR_NoMedia;
+		return Error::NoMedia;
 
 	uint32_t marker;
 	int res = media->read(0, sizeof(marker), &marker);
@@ -27,7 +27,7 @@ int ObjectStore::initialise()
 
 	if(marker != FWFILESYS_START_MARKER) {
 		debug_e("Filesys start marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_START_MARKER);
-		return FSERR_BadFileSystem;
+		return Error::BadFileSystem;
 	}
 
 	return FS_OK;
@@ -42,7 +42,7 @@ int ObjectStore::mounted(const FWObjDesc& od)
 	if(res >= 0) {
 		if(marker != FWFILESYS_END_MARKER) {
 			debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
-			return FSERR_BadFileSystem;
+			return Error::BadFileSystem;
 		}
 	}
 
@@ -76,8 +76,8 @@ int ObjectStore::open(FWObjDesc& od)
 
 	if(res >= 0) {
 		lastFound = od.ref;
-	} else if(res == FSERR_NoMoreFiles) {
-		res = FSERR_NotFound;
+	} else if(res == Error::NoMoreFiles) {
+		res = Error::NotFound;
 	}
 
 	return res;
@@ -97,10 +97,10 @@ int ObjectStore::openChild(const FWObjDesc& parent, const FWObjDesc& child, FWOb
 	if(res >= 0) {
 		if(od.obj.type() != child.obj.type()) {
 			// Reference must point to object of same type
-			res = FSERR_BadObject;
+			res = Error::BadObject;
 		} else if(od.obj.isRef()) {
 			// Reference must point to an actual object, not another reference
-			res = FSERR_BadObject;
+			res = Error::BadObject;
 		}
 	}
 
@@ -135,7 +135,7 @@ int ObjectStore::readHeader(FWObjDesc& od)
 	// This check is only applicable to FWRO
 	if(od.ref.id < lastObjectID) {
 		debug_e("FWFS object ID mismatch at 0x%08X: found %u, last ID was %u", od.ref.offset, od.ref.id, lastObjectID);
-		res = FSERR_BadFileSystem;
+		res = Error::BadFileSystem;
 		break;
 	}
 	lastObjectID = od.ref.id;
@@ -157,7 +157,7 @@ int ObjectStore::readHeader(FWObjDesc& od)
 int ObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
 {
 	if(child.ref.offset >= parent.obj.childTableSize()) {
-		return FSERR_EndOfObjects;
+		return Error::EndOfObjects;
 	}
 
 	// Get the absolute offset for the child object

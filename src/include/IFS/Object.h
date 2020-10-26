@@ -212,12 +212,12 @@ struct Object {
 
 				// Object attributes
 				struct {
-					FileAttributes attr;
+					uint8_t attr; // FileAttributes
 				} fileAttributes;
 
 				// Compression descriptor
 				struct {
-					CompressionType type;
+					Compression type;
 				} compression;
 
 				// ReadACE, WriteACE

@@ -10,6 +10,8 @@
 
 namespace IFS
 {
+namespace Error
+{
 /* @brief Define string table for standard IFS error codes
  *
  */
@@ -23,10 +25,10 @@ static PGM_P const errorStrings[] PROGMEM = {
 #undef XX
 };
 
-int fsGetErrorText(int err, char* buffer, unsigned size)
+int toString(int err, char* buffer, unsigned size)
 {
 	if(buffer == nullptr || size == 0) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	if(err > 0) {
@@ -35,7 +37,7 @@ int fsGetErrorText(int err, char* buffer, unsigned size)
 		err = -err;
 	}
 
-	if(err >= eFSERR_MAX) {
+	if(err >= Error::USER) {
 		return snprintf(buffer, size, _F("FSERR #%u"), err);
 	}
 
@@ -44,4 +46,5 @@ int fsGetErrorText(int err, char* buffer, unsigned size)
 	return strlen(buffer);
 }
 
+} // namespace Error
 } // namespace IFS

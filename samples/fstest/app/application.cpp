@@ -49,7 +49,7 @@ const char* getErrorText(IFileSystem* fs, int err)
 {
 	static char msg[64];
 	if(fs == nullptr) {
-		IFS::fsGetErrorText(err, msg, sizeof(msg));
+		IFS::Error::toString(err, msg, sizeof(msg));
 	} else {
 		fs->geterrortext(err, msg, sizeof(msg));
 	}
@@ -59,7 +59,7 @@ const char* getErrorText(IFileSystem* fs, int err)
 int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 {
 	if(bitRead(stat.attr, FileAttr::Directory)) {
-		return FSERR_NotSupported;
+		return IFS::Error::NotSupported;
 	}
 
 	int res = FS_OK;

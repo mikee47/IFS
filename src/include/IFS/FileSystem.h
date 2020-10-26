@@ -14,7 +14,7 @@
 
 #include <time.h>
 #include <string.h>
-#include "FileOpenFlags.h"
+#include "FileFlags.h"
 #include "FileSystemType.h"
 #include "FileSystemAttributes.h"
 #include "FileAttributes.h"
@@ -41,16 +41,6 @@ using file_t = int16_t;
  */
 using fileid_t = uint32_t;
 
-/** @brief File seek origin flags
- *  @note these values are fixed in stone so will never change. They only need to
- *  be remapped if a filing system uses different values.
- */
-enum class SeekOrigin {
-	Start = 0,   ///< Start of file
-	Current = 1, ///< Current position in file
-	End = 2		 ///< End of file
-};
-
 class IFileSystem;
 
 /*
@@ -61,8 +51,8 @@ struct FileStat {
 	NameBuffer name;		  ///< Name of file
 	uint32_t size{0};		  ///< Size of file in bytes
 	fileid_t id{0};			  ///< Internal file identifier
-	CompressionType compression{};
-	FileAttributes attr{0};
+	Compression compression{};
+	FileAttributes attr{};
 	FileACL acl = {UserRole::None, UserRole::None}; ///< Access Control
 	time_t mtime{0};								///< File modification time
 
@@ -183,7 +173,7 @@ struct FileSystemInfo {
  * are no methods here for that.
  *
  * Methods are defined as virtual abstract unless we actually have a default base implementation.
- * Whilst some methods could just return FSERR_NotImplemented by default, keeping them abstract forces
+ * Whilst some methods could just return Error::NotImplemented by default, keeping them abstract forces
  * all file system implementations to consider them so provides an extra check for completeness.
  *
  */
@@ -221,7 +211,7 @@ public:
      */
 	virtual int geterrortext(int err, char* buffer, size_t size)
 	{
-		return fsGetErrorText(err, buffer, size);
+		return Error::toString(err, buffer, size);
 	}
 
 	/**
@@ -417,15 +407,15 @@ public:
      */
 	virtual int check()
 	{
-		return FSERR_NotImplemented;
+		return Error::NotImplemented;
 	}
 
 	/**
 	 * @brief Determine if the given file handle is valid
 	 * @param file handle to check
 	 * @retval int error code
-	 * @note error code typically FSERR_InvalidHandle if handle is outside valid range,
-	 * or FSERR_FileNotOpen if handle range is valid but handle not in use
+	 * @note error code typically Error::InvalidHandle if handle is outside valid range,
+	 * or Error::FileNotOpen if handle range is valid but handle not in use
 	 */
 	virtual int isfile(file_t file) = 0;
 };

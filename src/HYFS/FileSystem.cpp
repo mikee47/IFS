@@ -171,7 +171,7 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
 {
 	auto d = new FileDir;
 	if(d == nullptr) {
-		return FSERR_NoMem;
+		return Error::NoMem;
 	}
 
 	// Open directories on both filing systems
@@ -196,7 +196,7 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
 int FileSystem::readdir(filedir_t dir, FileStat* stat)
 {
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	int res;
@@ -228,7 +228,7 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 		// End of FFS files
 		dir->fs = &fwfs;
 	} else if(dir->fs != &fwfs) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	do {
@@ -244,7 +244,7 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 int FileSystem::closedir(filedir_t dir)
 {
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	fwfs.closedir(dir->fw);
@@ -293,8 +293,8 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
 		int err = fwfs.fstat(fwfile, &stat);
-		if(err >= 0 && bitRead(stat.attr, FileAttr::ReadOnly)) {
-			err = FSERR_ReadOnly;
+		if(err >= 0 && stat.attr[FileAttr::ReadOnly]) {
+			err = Error::ReadOnly;
 		}
 		if(err < 0) {
 			fwfs.close(fwfile);
@@ -364,7 +364,7 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
 	if(stat.fs == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	if(stat.fs == &ffs) {
@@ -399,7 +399,7 @@ int FileSystem::remove(const char* path)
 	int res = ffs.remove(path);
 	if(hideFWFile(path, false) == FS_OK) {
 		if(res == SPIFFS_ERR_NOT_FOUND) {
-			res = FSERR_ReadOnly;
+			res = Error::ReadOnly;
 		}
 	}
 	return res;

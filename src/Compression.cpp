@@ -18,10 +18,10 @@ COMPRESSION_TYPE_MAP(XX)
 static PGM_P const __strings[] PROGMEM = {COMPRESSION_TYPE_MAP(XX)};
 #undef XX
 
-char* compressionTypeToStr(CompressionType type, char* buf, size_t bufSize)
+char* compressionTypeToStr(Compression type, char* buf, size_t bufSize)
 {
 	if(buf && bufSize) {
-		if(type < CompressionType::MAX) {
+		if(type < Compression::MAX) {
 			strncpy_P(buf, __strings[(unsigned)type], bufSize);
 			buf[bufSize - 1] = '\0';
 		} else {

@@ -5,7 +5,7 @@
  *      Author: mikee47
  */
 
-#include "include/IFS/FileOpenFlags.h"
+#include "include/IFS/FileFlags.h"
 #include "Flags.h"
 
 namespace IFS

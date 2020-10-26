@@ -15,7 +15,7 @@ static const char attributeChars[] PROGMEM = {
 #undef XX
 };
 
-char* fileAttrToStr(FileAttributes attr, char* buf, size_t bufSize)
+char* toString(FileAttributes attr, char* buf, size_t bufSize)
 {
 	size_t len = 0;
 
@@ -24,7 +24,7 @@ char* fileAttrToStr(FileAttributes attr, char* buf, size_t bufSize)
 		if(len >= bufSize) {
 			break;
 		}
-		buf[len++] = bitRead(attr, a) ? chars[a] : '.';
+		buf[len++] = attr[FileAttr(a)] ? chars[a] : '.';
 	}
 
 	if(len < bufSize) {

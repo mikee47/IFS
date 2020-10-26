@@ -59,7 +59,7 @@ struct NameBuffer {
 			memcpy(buffer, src, copylen);
 		}
 		terminate();
-		return (copylen == srclen) ? FS_OK : FSERR_BufferTooSmall;
+		return (copylen == srclen) ? FS_OK : Error::BufferTooSmall;
 	}
 
 	int copy(const char* src)
@@ -91,7 +91,7 @@ struct NameBuffer {
 		}
 
 		++length;
-		return FSERR_BufferTooSmall;
+		return Error::BufferTooSmall;
 	}
 
 	/**

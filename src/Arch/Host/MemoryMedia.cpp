@@ -21,7 +21,7 @@ MemoryMedia::MemoryMedia(const void* startPtr, Media::Attributes attr)
 int MemoryMedia::setExtent(uint32_t size)
 {
 	if(size > MAX_MEMORY_SIZE) {
-		return FSERR_BadExtent;
+		return Error::BadExtent;
 	}
 
 	return Media::setExtent(size);

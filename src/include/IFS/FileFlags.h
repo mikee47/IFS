@@ -1,5 +1,5 @@
 /*
- * FileOpenFlags.h
+ * FileFlags.h
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
@@ -12,6 +12,16 @@
 
 namespace IFS
 {
+/** @brief File seek origin flags
+ *  @note these values are fixed in stone so will never change. They only need to
+ *  be remapped if a filing system uses different values.
+ */
+enum class SeekOrigin {
+	Start = 0,   ///< Start of file
+	Current = 1, ///< Current position in file
+	End = 2		 ///< End of file
+};
+
 /** @brief File open flag
  *  @note These are filing-system independent flags based on SPIFFS 0.3.7, however they
  *  may change so filing systems should map them.

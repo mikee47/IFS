@@ -118,15 +118,15 @@ public:
 	int fstat(file_t file, FileStat* stat) override;
 	int setacl(file_t file, FileACL* acl) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int setattr(file_t file, FileAttributes attr) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int settime(file_t file, time_t mtime) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	file_t open(const char* path, FileOpenFlags flags) override;
 	file_t fopen(const FileStat& stat, FileOpenFlags flags) override;
@@ -134,41 +134,41 @@ public:
 	int read(file_t file, void* data, size_t size) override;
 	int write(file_t file, const void* data, size_t size) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int lseek(file_t file, int offset, SeekOrigin origin) override;
 	int eof(file_t file) override;
 	int32_t tell(file_t file) override;
 	int truncate(file_t file, size_t new_size) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int flush(file_t file) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int rename(const char* oldpath, const char* newpath) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int remove(const char* path) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int fremove(file_t file) override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int format() override
 	{
-		return FSERR_ReadOnly;
+		return Error::ReadOnly;
 	}
 	int check() override
 	{
 		/* We could implement this, but since problems would indicate corrupted firmware
     	 * there isn't much we can do other than suggest a re-flashing. This sort of issue
     	 * is better resolved externally using a hash of the entire firmware image. */
-		return FSERR_NotImplemented;
+		return Error::NotImplemented;
 	}
 	int isfile(file_t file) override;
 
@@ -193,10 +193,10 @@ private:
 	int getStore(const ObjRef& ref, IObjectStore*& store)
 	{
 		if(ref.storenum >= FWFS_MAX_VOLUMES) {
-			return FSERR_BadStore;
+			return Error::BadStore;
 		}
 		store = volumes[ref.storenum].store;
-		return store ? FS_OK : FSERR_NotMounted;
+		return store ? FS_OK : Error::NotMounted;
 	}
 
 	int getStore(const FWObjDesc& od, IObjectStore*& store)

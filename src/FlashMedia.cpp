@@ -44,7 +44,7 @@ FlashMedia::FlashMedia(const void* startPtr, Media::Attributes attr)
 int FlashMedia::setExtent(uint32_t size)
 {
 	if((m_startAddress + size) > (uint32_t)INTERNAL_FLASH_SIZE)
-		return FSERR_BadExtent;
+		return Error::BadExtent;
 
 	return Media::setExtent(size);
 }
@@ -67,7 +67,7 @@ int FlashMedia::read(uint32_t offset, uint32_t size, void* buffer)
 
 	//	m_printf("%u\n", res);
 
-	return (res == size) ? FS_OK : FSERR_ReadFailure;
+	return (res == size) ? FS_OK : Error::ReadFailure;
 }
 
 int FlashMedia::write(uint32_t offset, uint32_t size, const void* data)
@@ -76,7 +76,7 @@ int FlashMedia::write(uint32_t offset, uint32_t size, const void* data)
 	FS_CHECK_WRITEABLE();
 
 	uint32_t res = flashmem_write(data, m_startAddress + offset, size);
-	return (res == size) ? FS_OK : FSERR_WriteFailure;
+	return (res == size) ? FS_OK : Error::WriteFailure;
 }
 
 int FlashMedia::erase(uint32_t offset, uint32_t size)
@@ -88,7 +88,7 @@ int FlashMedia::erase(uint32_t offset, uint32_t size)
 	uint32_t sect_last = sect_first;
 	while(sect_first <= sect_last) {
 		if(!flashmem_erase_sector(sect_first++)) {
-			return FSERR_EraseFailure;
+			return Error::EraseFailure;
 		}
 	}
 

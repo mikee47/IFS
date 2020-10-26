@@ -21,17 +21,17 @@ namespace FWFS
 
 #define CHECK_MOUNTED()                                                                                                \
 	if(!volumes[0].isMounted()) {                                                                                      \
-		return FSERR_NotMounted;                                                                                       \
+		return Error::NotMounted;                                                                                      \
 	}
 
 #define GET_FD()                                                                                                       \
 	CHECK_MOUNTED()                                                                                                    \
 	if(file < FWFS_HANDLE_MIN || file > FWFS_HANDLE_MAX) {                                                             \
-		return FSERR_InvalidHandle;                                                                                    \
+		return Error::InvalidHandle;                                                                                   \
 	}                                                                                                                  \
 	auto& fd = fileDescriptors[file - FWFS_HANDLE_MIN];                                                                \
 	if(!bitRead(fd.attr, fwfda_Allocated)) {                                                                           \
-		return FSERR_FileNotOpen;                                                                                      \
+		return Error::FileNotOpen;                                                                                     \
 	}
 
 void FileSystem::printObject(const FWObjDesc& od)
@@ -99,7 +99,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 		} else {
 			switch(child.obj.type()) {
 			case Object::Type::FileAttr:
-				stat.attr |= child.obj.data8.fileAttributes.attr;
+				stat.attr |= FileAttributes{child.obj.data8.fileAttributes.attr};
 				break;
 
 			case Object::Type::ObjectStore:
@@ -141,7 +141,7 @@ int FileSystem::findUnusedDescriptor()
 		}
 	}
 
-	return FSERR_OutOfFileDescs;
+	return Error::OutOfFileDescs;
 }
 
 int FileSystem::read(file_t file, void* data, size_t size)
@@ -186,7 +186,7 @@ int FileSystem::read(file_t file, void* data, size_t size)
 		child.next();
 	}
 
-	return (res == FS_OK) || (res == FSERR_EndOfObjects) ? readTotal : res;
+	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
 }
 
 int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
@@ -203,7 +203,7 @@ int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
 	//	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
 
 	if((uint32_t)newOffset > fd.dataSize) {
-		return FSERR_SeekBounds;
+		return Error::SeekBounds;
 	}
 
 	fd.cursor = newOffset;
@@ -213,7 +213,7 @@ int FileSystem::lseek(file_t file, int offset, SeekOrigin origin)
 int FileSystem::setVolume(uint8_t num, IObjectStore* store)
 {
 	if(num >= FWFS_MAX_VOLUMES) {
-		return FSERR_BadStore;
+		return Error::BadStore;
 	}
 
 	auto& vol = volumes[num];
@@ -250,7 +250,7 @@ int FileSystem::mount()
 int FileSystem::mountVolume(FWVolume& volume)
 {
 	if(volume.store == nullptr) {
-		return FSERR_StoreNotMounted;
+		return Error::StoreNotMounted;
 	}
 
 	int res = volume.store->initialise();
@@ -285,7 +285,7 @@ int FileSystem::mountVolume(FWVolume& volume)
 
 	//	if(!_rootDirectory.isValid()) {
 	//		debug_e("root directory missing");
-	//		return FSERR_BadFileSystem;
+	//		return Error::BadFileSystem;
 	//	}
 
 	// Having scanned all the objects, let the store know where the end is
@@ -355,7 +355,7 @@ int FileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child,
 		od.next();
 	}
 
-	return res == FSERR_EndOfObjects ? FSERR_NotFound : res;
+	return res == Error::EndOfObjects ? Error::NotFound : res;
 }
 
 int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved)
@@ -372,7 +372,7 @@ int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odRe
 	// Volume #0 is the primary and already mounted, also avoid circular references
 	auto storenum = odStore.obj.data8.objectStore.storenum;
 	if(storenum == 0 || storenum == odMountPoint.ref.storenum || storenum >= FWFS_MAX_VOLUMES) {
-		return FSERR_BadStore;
+		return Error::BadStore;
 	}
 
 	auto& vol = volumes[storenum];
@@ -431,7 +431,7 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 		od.next();
 	}
 
-	return res == FSERR_EndOfObjects ? FSERR_NotFound : res;
+	return res == Error::EndOfObjects ? Error::NotFound : res;
 }
 
 /** @brief read an object name into a buffer, which might be smaller than required.
@@ -505,7 +505,7 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
 {
 	CHECK_MOUNTED();
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	FWObjDesc od;
@@ -528,12 +528,12 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
  */
 int FileSystem::fopendir(const FileStat* stat, filedir_t* dir)
 {
-	return FSERR_NotImplemented;
+	return Error::NotImplemented;
 	/*
 
 	CHECK_MOUNTED();
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	FWObjDesc od;
@@ -603,7 +603,7 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 
 	//	debug_d("readdir(), res = %d, od.seekCount = %u", res, od.ref.readCount);
 
-	return res == FSERR_EndOfObjects ? FSERR_NoMoreFiles : res;
+	return res == Error::EndOfObjects ? Error::NoMoreFiles : res;
 }
 
 int FileSystem::closedir(filedir_t dir)
@@ -667,7 +667,7 @@ file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
 	CHECK_MOUNTED();
 	if(stat.fs != this) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	FWObjDesc od(stat.id);
@@ -731,7 +731,7 @@ int FileSystem::fstat(file_t file, FileStat* stat)
 {
 	GET_FD();
 
-	return stat ? fillStat(*stat, fd.odFile) : FSERR_BadParam;
+	return stat ? fillStat(*stat, fd.odFile) : Error::BadParam;
 }
 
 int FileSystem::eof(file_t file)
@@ -783,7 +783,7 @@ int FileSystem::getFilePath(fileid_t fileid, NameBuffer& path)
 	path.terminate();
 
 	if(res >= 0 && path.overflow()) {
-		res = FSERR_BufferTooSmall;
+		res = Error::BufferTooSmall;
 	}
 
 	debug_d("getFilePath(%u) returned %d, '%s'", fileid, res, path.buffer);
@@ -866,7 +866,7 @@ int FileSystem::seekFilePath(FWObjDesc& parent, fileid_t fileid, NameBuffer& pat
 
 	closeObject(parent);
 
-	return res == FSERR_EndOfObjects ? FSERR_NotFound : res;
+	return res == Error::EndOfObjects ? Error::NotFound : res;
 }
 
 } // namespace FWFS

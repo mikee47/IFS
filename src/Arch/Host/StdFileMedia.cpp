@@ -18,14 +18,14 @@
 
 #define CHECK_FILE()                                                                                                   \
 	if(m_file < 0) {                                                                                                   \
-		return FSERR_NoMedia;                                                                                          \
+		return Error::NoMedia;                                                                                          \
 	}
 
 #define SEEK(_offset)                                                                                                  \
 	{                                                                                                                  \
 		auto off = _offset;                                                                                            \
 		if(lseek(m_file, off, SEEK_SET) != (int)off)                                                                   \
-			return FSERR_BadExtent;                                                                                    \
+			return Error::BadExtent;                                                                                    \
 	}
 
 namespace IFS
@@ -38,7 +38,7 @@ StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSi
 	int file = open(filename, O_BINARY | O_CREAT | (attr[Media::Attribute::ReadOnly] ? O_RDONLY : O_RDWR), 0644);
 	if(file < 0) {
 		debug_e("Failed to open '%s'", filename);
-		return; // FSERR_NotFound;
+		return; // Error::NotFound;
 	}
 
 	int len = lseek(file, 0, SEEK_END);
@@ -87,7 +87,7 @@ int StdFileMedia::read(uint32_t offset, uint32_t size, void* buffer)
 	FS_CHECK_EXTENT(offset, size);
 	SEEK(offset);
 	int n = ::read(m_file, buffer, size);
-	return (n == (int)size) ? FS_OK : FSERR_ReadFailure;
+	return (n == (int)size) ? FS_OK : Error::ReadFailure;
 }
 
 int StdFileMedia::write(uint32_t offset, uint32_t size, const void* data)
@@ -97,7 +97,7 @@ int StdFileMedia::write(uint32_t offset, uint32_t size, const void* data)
 	FS_CHECK_WRITEABLE();
 	SEEK(offset);
 	int n = ::write(m_file, data, size);
-	return (n == (int)size) ? FS_OK : FSERR_WriteFailure;
+	return (n == (int)size) ? FS_OK : Error::WriteFailure;
 }
 
 int StdFileMedia::erase(uint32_t offset, uint32_t size)

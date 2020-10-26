@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Types.h"
+#include <Data/BitSet.h>
 
 namespace IFS
 {
@@ -37,7 +38,7 @@ enum class FileAttr : uint8_t {
 /**
  * @brief File attributes are stored as a bitmask
  */
-using FileAttributes = uint8_t;
+using FileAttributes = BitSet<uint8_t, FileAttr>;
 
 /**
  * @brief Get the string representation for the given set of file attributes
@@ -46,6 +47,6 @@ using FileAttributes = uint8_t;
  * @param bufSize
  * @retval char* points to buf
  */
-char* fileAttrToStr(FileAttributes attr, char* buf, size_t bufSize);
+char* toString(FileAttributes attr, char* buf, size_t bufSize);
 
 } // namespace IFS

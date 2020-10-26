@@ -13,13 +13,13 @@ namespace IFS
 int Media::readname(char* buffer, unsigned bufsize, uint32_t offset, unsigned len)
 {
 	if(buffer == nullptr || bufsize == 0) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	int err = FS_OK;
 	if(len >= bufsize) {
 		len = bufsize - 1;
-		err = FSERR_NameTooLong;
+		err = Error::NameTooLong;
 	}
 
 	int res = len ? read(offset, len, buffer) : FS_OK;

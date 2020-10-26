@@ -56,7 +56,7 @@ struct FileDir {
 
 int StdFileSystem::getinfo(FileSystemInfo& info)
 {
-	return FSERR_NotImplemented;
+	return Error::NotImplemented;
 }
 
 int StdFileSystem::geterrortext(int err, char* buffer, size_t size)
@@ -98,13 +98,13 @@ int StdFileSystem::readdir(filedir_t dir, FileStat* stat)
 		res = this->stat(path, stat);
 #ifdef __WIN32
 		if(e->d_type & _A_SUBDIR) {
-			bitSet(stat->attr, FileAttr::Directory);
+			stat->attr |= FileAttr::Directory;
 		}
 		if(e->d_type & _A_RDONLY) {
-			bitSet(stat->attr, FileAttr::ReadOnly);
+			stat->attr |= FileAttr::ReadOnly;
 		}
 		if(e->d_type & _A_ARCH) {
-			bitSet(stat->attr, FileAttr::Archive);
+			stat->attr |= FileAttr::Archive;
 		}
 #endif
 		//		stat->name.copy(e->d_name, e->d_namlen);
@@ -128,7 +128,7 @@ void StdFileSystem::fillStat(const struct stat& s, FileStat& stat)
 	stat.clear();
 	stat.fs = this;
 	if(S_ISDIR(s.st_mode)) {
-		bitSet(stat.attr, FileAttr::Directory);
+		stat.attr |= FileAttr::Directory;
 	}
 	stat.mtime = s.st_mtime;
 }
@@ -165,7 +165,7 @@ file_t StdFileSystem::open(const char* path, FileOpenFlags flags)
 
 file_t StdFileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 {
-	return FSERR_NotImplemented;
+	return Error::NotImplemented;
 }
 
 int StdFileSystem::close(file_t file)

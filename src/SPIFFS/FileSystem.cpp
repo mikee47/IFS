@@ -145,7 +145,7 @@ static s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
 int FileSystem::mount()
 {
 	if(!media)
-		return FSERR_NoMedia;
+		return Error::NoMedia;
 
 	uint32_t blockSize = media->blockSize();
 	if(blockSize < MIN_BLOCKSIZE)
@@ -178,7 +178,7 @@ int FileSystem::mount()
 	cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
 
 	if(!workBuffer || !fileDescriptors || !cache) {
-		return FSERR_NoMem;
+		return Error::NoMem;
 	}
 
 	auto res = _mount(cfg);
@@ -306,13 +306,13 @@ file_t FileSystem::fopen(const FileStat& stat, FileOpenFlags flags)
 	 * a mechanism for an application to circumvent this flag if it becomes
 	 * necessary to change  a file.
 	 */
-	if(bitRead(stat.attr, FileAttr::ReadOnly)) {
-		return FSERR_ReadOnly;
+	if(stat.attr[FileAttr::ReadOnly]) {
+		return Error::ReadOnly;
 	}
 
 	spiffs_flags sflags;
 	if(mapFileOpenFlags(flags, sflags).any()) {
-		return (file_t)FSERR_NotSupported;
+		return (file_t)Error::NotSupported;
 	}
 
 	auto file = SPIFFS_open_by_id(handle(), stat.id, sflags, 0);
@@ -333,14 +333,14 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 {
 	FS_CHECK_PATH(path);
 	if(path == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	//  debug_i("%s('%s', %s)", __FUNCTION__, fileName.c_str(), fileOpenFlagsToStr(flags).c_str());
 
 	spiffs_flags sflags;
 	if(mapFileOpenFlags(flags, sflags).any()) {
-		return (file_t)FSERR_NotSupported;
+		return (file_t)Error::NotSupported;
 	}
 
 	auto file = SPIFFS_open(handle(), path, sflags, 0);
@@ -349,9 +349,9 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 	} else {
 		auto smb = cacheMeta(file);
 		// If file is marked read-only, fail write requests !!! @todo bit late if we've got a truncate flag...
-		if(smb && bitRead(smb->meta.attr, FileSystemAttr::ReadOnly) && (flags == FileOpenFlag::Read)) {
+		if(smb && FileAttributes{smb->meta.attr}[FileAttr::ReadOnly] && (flags == FileOpenFlag::Read)) {
 			SPIFFS_close(handle(), file);
-			return FSERR_ReadOnly;
+			return Error::ReadOnly;
 		}
 
 		// File affected without write so update timestamp
@@ -366,7 +366,7 @@ file_t FileSystem::open(const char* path, FileOpenFlags flags)
 int FileSystem::close(file_t file)
 {
 	if(file < 0) {
-		return FSERR_FileNotOpen;
+		return Error::FileNotOpen;
 	}
 
 	//    debug_i("%s(%d, '%s')", __FUNCTION__, m_fd, name().c_str());
@@ -453,7 +453,7 @@ int FileSystem::getMeta(file_t file, SpiffsMetaBuffer*& meta)
 	unsigned off = SPIFFS_FH_UNOFFS(handle(), file) - 1;
 	if(off >= FFS_MAX_FILEDESC) {
 		debug_e("getMeta(%d) - bad file", file);
-		return FSERR_InvalidHandle;
+		return Error::InvalidHandle;
 	}
 	meta = &metaCache[off];
 	return FS_OK;
@@ -538,7 +538,7 @@ int FileSystem::fstat(file_t file, FileStat* stat)
 int FileSystem::setacl(file_t file, FileACL* acl)
 {
 	if(acl == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	SpiffsMetaBuffer* smb;
@@ -554,7 +554,7 @@ int FileSystem::setattr(file_t file, FileAttributes attr)
 {
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
-	if(res >= 0 && smb->meta.attr != attr) {
+	if(res >= 0 && FileAttributes{smb->meta.attr} != attr) {
 		smb->meta.setDirty();
 	}
 	return res;
@@ -574,7 +574,7 @@ int FileSystem::settime(file_t file, time_t mtime)
 int FileSystem::opendir(const char* path, filedir_t* dir)
 {
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	FS_CHECK_PATH(path);
@@ -582,13 +582,13 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
 	if(path != nullptr) {
 		pathlen = strlen(path);
 		if(pathlen >= sizeof(FileDir::path)) {
-			return FSERR_NameTooLong;
+			return Error::NameTooLong;
 		}
 	}
 
 	auto d = new FileDir;
 	if(d == nullptr) {
-		return FSERR_NoMem;
+		return Error::NoMem;
 	}
 
 	if(SPIFFS_opendir(handle(), nullptr, &d->d) == nullptr) {
@@ -610,7 +610,7 @@ int FileSystem::opendir(const char* path, filedir_t* dir)
 int FileSystem::readdir(filedir_t dir, FileStat* stat)
 {
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	spiffs_dirent e;
@@ -618,7 +618,7 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 		if(SPIFFS_readdir(&dir->d, &e) == nullptr) {
 			int err = SPIFFS_errno(handle());
 			if(err == SPIFFS_VIS_END) {
-				err = FSERR_NoMoreFiles;
+				err = Error::NoMoreFiles;
 			}
 			return err;
 		}
@@ -686,7 +686,7 @@ int FileSystem::readdir(filedir_t dir, FileStat* stat)
 int FileSystem::closedir(filedir_t dir)
 {
 	if(dir == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	int res = SPIFFS_closedir(&dir->d);
@@ -699,7 +699,7 @@ int FileSystem::rename(const char* oldpath, const char* newpath)
 	FS_CHECK_PATH(oldpath);
 	FS_CHECK_PATH(newpath);
 	if(oldpath == nullptr || newpath == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	return SPIFFS_rename(handle(), oldpath, newpath);
@@ -709,7 +709,7 @@ int FileSystem::remove(const char* path)
 {
 	FS_CHECK_PATH(path);
 	if(path == nullptr) {
-		return FSERR_BadParam;
+		return Error::BadParam;
 	}
 
 	auto res = SPIFFS_remove(handle(), path);

@@ -40,13 +40,13 @@ struct Extent {
 		if(!checkExtent(off, sz)) {                                                                                    \
 			debug_e("%s(0x%08x, %u): Bad Extent, media size = 0x%08x", __PRETTY_FUNCTION__, off, sz, m_size);          \
 			assert(false);                                                                                             \
-			return FSERR_BadExtent;                                                                                    \
+			return Error::BadExtent;                                                                                    \
 		}                                                                                                              \
 	}
 
 #define FS_CHECK_WRITEABLE()                                                                                           \
 	if(m_attr[Attribute::ReadOnly]) {                                                                                  \
-		return FSERR_ReadOnly;                                                                                         \
+		return Error::ReadOnly;                                                                                         \
 	}
 
 /** @brief virtual base class to access physical filesystem media
@@ -116,7 +116,7 @@ public:
 	virtual int setExtent(uint32_t size)
 	{
 		if(size > m_size) {
-			return FSERR_BadExtent;
+			return Error::BadExtent;
 		}
 
 		m_size = size;
