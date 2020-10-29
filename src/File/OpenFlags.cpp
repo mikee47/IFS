@@ -6,7 +6,7 @@
  */
 
 #include "../include/IFS/File/OpenFlags.h"
-#include "../Flags.h"
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
@@ -18,9 +18,9 @@ FILE_OPEN_FLAG_MAP(XX)
 DEFINE_FSTR_VECTOR_LOCAL(flagStrings, FSTR::String, FILE_OPEN_FLAG_MAP(XX))
 #undef XX
 
-String toString(File::OpenFlags flags)
+String toString(File::OpenFlag flag)
 {
-	return flagsToStr(flags.getValue(), flagStrings);
+	return return flagStrings[unsigned(flag)];
 }
 
 } // namespace IFS

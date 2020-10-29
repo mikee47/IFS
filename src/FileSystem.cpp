@@ -6,7 +6,7 @@
  */
 
 #include "include/IFS/FileSystem.h"
-#include "Flags.h"
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
@@ -18,6 +18,13 @@ FILESYSTEM_TYPE_MAP(XX)
 DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FILESYSTEM_TYPE_MAP(XX))
 #undef XX
 
+String toString(IFileSystem::Type type)
+{
+	if(type >= IFileSystem::Type::MAX) {
+		type = IFileSystem::Type::Unknown;
+	}
+	return typeStrings[(unsigned)type];
+}
 #define XX(tag, comment) DEFINE_FSTR_LOCAL(attrstr_##tag, #tag)
 FILE_SYSTEM_ATTR_MAP(XX)
 #undef XX
@@ -26,17 +33,9 @@ FILE_SYSTEM_ATTR_MAP(XX)
 DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILE_SYSTEM_ATTR_MAP(XX))
 #undef XX
 
-String toString(IFileSystem::Attributes attr)
+String toString(IFileSystem::Attribute attr)
 {
-	return flagsToStr(attr.getValue(), attributeStrings);
-}
-
-String toString(IFileSystem::Type type)
-{
-	if(type >= IFileSystem::Type::MAX) {
-		type = IFileSystem::Type::Unknown;
-	}
-	return typeStrings[(unsigned)type];
+	return attributeStrings[unsigned(attr)];
 }
 
 } // namespace IFS

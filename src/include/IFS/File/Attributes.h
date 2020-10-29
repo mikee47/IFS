@@ -34,14 +34,13 @@ enum class Attribute {
 #define XX(_tag, _char, _comment) _tag,
 	FILEATTR_MAP(XX)
 #undef XX
+		MAX
 };
 
 /**
  * @brief File attributes are stored as a bitmask
  */
-using Attributes = BitSet<uint8_t, Attribute>;
-
-} // namespace File
+using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
 
 /**
  * @brief Get the string representation for the given set of file attributes
@@ -49,6 +48,13 @@ using Attributes = BitSet<uint8_t, Attribute>;
  * @param attr
  * @retval String
  */
-String toString(File::Attributes attr);
+String getAttributeString(File::Attributes attr);
+
+} // namespace File
+
+/**
+ * @brief Get descriptive String for a given file attribute
+ */
+String toString(File::Attribute attr);
 
 } // namespace IFS

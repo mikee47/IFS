@@ -14,7 +14,7 @@ namespace IFS
 DEFINE_FSTR_LOCAL(attributeChars, FILEATTR_MAP(XX))
 #undef XX
 
-String toString(File::Attributes attr)
+String getAttributeString(File::Attributes attr)
 {
 	String s = attributeChars;
 
@@ -25,6 +25,19 @@ String toString(File::Attributes attr)
 	}
 
 	return s;
+}
+
+#define XX(tag, ch, comment) DEFINE_FSTR_LOCAL(attstr_##tag, #tag)
+FILEATTR_MAP(XX)
+#undef XX
+
+#define XX(tag, ch, comment) &attstr_##tag,
+DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILEATTR_MAP(XX))
+#undef XX
+
+String toString(File::Attribute attr)
+{
+	return attributeStrings[unsigned(bus)];
 }
 
 } // namespace IFS

@@ -34,21 +34,13 @@ enum class OpenFlag {
 };
 
 // The set of flags
-using OpenFlags = BitSet<uint8_t, OpenFlag>;
-
-inline constexpr OpenFlags operator|(OpenFlag a, OpenFlag b)
-{
-	return OpenFlags(OpenFlags::bitVal(a) | OpenFlags::bitVal(b));
-}
+using OpenFlags = BitSet<uint8_t, OpenFlag, size_t(OpenFlag::MAX)>;
 
 } // namespace File
 
 /**
- * @brief Get a string representation of a set of file open flags
- * @param flags
- * @retval String
- * @note intended for debug output
+ * @brief Get a string representation of a flag
  */
-String toString(File::OpenFlags flags);
+String toString(File::OpenFlag flag);
 
 } // namespace IFS

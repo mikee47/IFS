@@ -96,7 +96,7 @@ public:
 	};
 
 	// The set of attributes
-	using Attributes = BitSet<uint8_t, Attribute>;
+	using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
 
 	/**
 	 * @brief Basic information about filing system
@@ -374,18 +374,14 @@ public:
 };
 
 /**
- * @brief get string for filesystem type
- * @param type
- * @retval String
+ * @brief Get String for filesystem type
  */
 String toString(IFileSystem::Type type);
 
 /**
- * @brief Get the string representation for the given set of filesystem attributes
- * @param attr
- * @retval String
+ * @brief Get String for a filesystem attribute
  */
-String toString(IFileSystem::Attributes attr);
+String toString(IFileSystem::Attribute attr);
 
 } // namespace IFS
 

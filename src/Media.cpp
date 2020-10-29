@@ -7,7 +7,7 @@
 
 #include "include/IFS/Media.h"
 #include "include/IFS/Error.h"
-#include "Flags.h"
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
@@ -68,11 +68,6 @@ DEFINE_FSTR_VECTOR_LOCAL(attrStrings, FSTR::String, IFS_MEDIA_ATTRIBUTE_MAP(XX))
 String toString(Media::Attribute attr)
 {
 	return attrStrings[unsigned(attr)];
-}
-
-String toString(Media::Attributes attr)
-{
-	return flagsToStr(attr.getValue(), attrStrings);
 }
 
 } // namespace IFS

@@ -99,9 +99,10 @@ public:
 #define XX(tag, comment) tag,
 		IFS_MEDIA_ATTRIBUTE_MAP(XX)
 #undef XX
+			MAX
 	};
 
-	using Attributes = BitSet<uint8_t, Attribute>;
+	using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
 	static constexpr Attributes ReadWrite{};
 	static constexpr Attributes ReadOnly{Attribute::ReadOnly};
 
@@ -218,6 +219,5 @@ protected:
 String toString(Media::Type type);
 String toString(Media::Bus bus);
 String toString(Media::Attribute attr);
-String toString(Media::Attributes attr);
 
 } // namespace IFS
