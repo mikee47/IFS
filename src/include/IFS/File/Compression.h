@@ -28,11 +28,10 @@ enum class Compression : uint8_t {
 };
 
 } // namespace File
+} // namespace IFS
 
 /**
  * @brief Get the string representation for the given compression type
  * @retval String
  */
-String toString(File::Compression type);
-
-} // namespace IFS
+String toString(IFS::File::Compression type);

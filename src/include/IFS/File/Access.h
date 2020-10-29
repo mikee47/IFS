@@ -25,6 +25,7 @@ struct ACL {
 };
 
 } // namespace File
+} // namespace IFS
 
 /**
  * @brief Return a brief textual representation for an ACL
@@ -32,6 +33,4 @@ struct ACL {
  * @param acl
  * @retval String
  */
-String toString(const File::ACL& acl);
-
-} // namespace IFS
+String toString(const IFS::File::ACL& acl);

@@ -9,14 +9,10 @@
 
 #include "../include/IFS/File/Access.h"
 
-namespace IFS
-{
-String toString(const File::ACL& acl)
+String toString(const IFS::File::ACL& acl)
 {
 	String s;
-	s += getChar(acl.readAccess);
-	s += getChar(acl.writeAccess);
+	s += IFS::getChar(acl.readAccess);
+	s += IFS::getChar(acl.writeAccess);
 	return s;
 }
-
-} // namespace IFS

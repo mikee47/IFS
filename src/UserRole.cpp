@@ -10,7 +10,7 @@
 #include "include/IFS/UserRole.h"
 #include <FlashString/Vector.hpp>
 
-namespace IFS
+namespace
 {
 #define XX(tag, char, comment) DEFINE_FSTR_LOCAL(str_##tag, #tag)
 USER_ROLE_MAP(XX)
@@ -23,12 +23,10 @@ DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, USER_ROLE_MAP(XX))
 #define XX(tag, ch, comment) #ch
 DEFINE_FSTR_LOCAL(userRoleChars, USER_ROLE_MAP(XX))
 #undef XX
+} // namespace
 
-String toString(UserRole role)
+namespace IFS
 {
-	return userRoleStrings[unsigned(role)];
-}
-
 UserRole getUserRole(const char* str, UserRole defaultRole)
 {
 	int i = userRoleStrings.indexOf(str);
@@ -50,3 +48,8 @@ UserRole getUserRole(char code, UserRole defaultRole)
 }
 
 } // namespace IFS
+
+String toString(IFS::UserRole role)
+{
+	return userRoleStrings[unsigned(role)];
+}

@@ -373,6 +373,9 @@ struct Object {
 
 #pragma pack()
 
-char* toString(Object::Type obt, char* buffer, size_t bufSize);
-
 } // namespace IFS
+
+/**
+ * @brief Get descriptive String for an object type
+ */
+String toString(IFS::Object::Type obt);

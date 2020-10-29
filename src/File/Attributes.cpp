@@ -6,14 +6,28 @@
  */
 
 #include "../include/IFS/File/Attributes.h"
-#include <FlashString/Array.hpp>
+#include <FlashString/Vector.hpp>
 
-namespace IFS
+namespace
 {
 #define XX(tag, ch, comment) #ch
 DEFINE_FSTR_LOCAL(attributeChars, FILEATTR_MAP(XX))
 #undef XX
 
+#define XX(tag, ch, comment) DEFINE_FSTR_LOCAL(attstr_##tag, #tag)
+FILEATTR_MAP(XX)
+#undef XX
+
+#define XX(tag, ch, comment) &attstr_##tag,
+DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILEATTR_MAP(XX))
+#undef XX
+
+} // namespace
+
+namespace IFS
+{
+namespace File
+{
 String getAttributeString(File::Attributes attr)
 {
 	String s = attributeChars;
@@ -27,17 +41,10 @@ String getAttributeString(File::Attributes attr)
 	return s;
 }
 
-#define XX(tag, ch, comment) DEFINE_FSTR_LOCAL(attstr_##tag, #tag)
-FILEATTR_MAP(XX)
-#undef XX
-
-#define XX(tag, ch, comment) &attstr_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILEATTR_MAP(XX))
-#undef XX
-
-String toString(File::Attribute attr)
-{
-	return attributeStrings[unsigned(bus)];
-}
-
+} // namespace File
 } // namespace IFS
+
+String toString(IFS::File::Attribute attr)
+{
+	return attributeStrings[unsigned(attr)];
+}

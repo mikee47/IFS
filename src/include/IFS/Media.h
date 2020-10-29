@@ -216,8 +216,8 @@ protected:
 	Attributes m_attr; ///< Specific media attributes
 };
 
-String toString(Media::Type type);
-String toString(Media::Bus bus);
-String toString(Media::Attribute attr);
-
 } // namespace IFS
+
+String toString(IFS::Media::Type type);
+String toString(IFS::Media::Bus bus);
+String toString(IFS::Media::Attribute attr);

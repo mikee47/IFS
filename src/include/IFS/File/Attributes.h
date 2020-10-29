@@ -51,10 +51,9 @@ using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
 String getAttributeString(File::Attributes attr);
 
 } // namespace File
+} // namespace IFS
 
 /**
  * @brief Get descriptive String for a given file attribute
  */
-String toString(File::Attribute attr);
-
-} // namespace IFS
+String toString(IFS::File::Attribute attr);

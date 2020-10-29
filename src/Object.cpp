@@ -6,31 +6,33 @@
  */
 
 #include "include/IFS/Object.h"
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
 constexpr uint8_t Object::FWOBT_REF;
+}
 
-#define XX(_value, _tag, _text) DEFINE_PSTR(__str_##_tag, #_tag)
+namespace
+{
+#define XX(value, tag, text) DEFINE_FSTR_LOCAL(str_##tag, #tag)
 FWFS_OBJTYPE_MAP(XX)
 #undef XX
 
-char* toString(Object::Type obt, char* buffer, size_t bufSize)
+#define XX(value, tag, text) &str_##tag,
+DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FWFS_OBJTYPE_MAP(XX))
+#undef XX
+
+} // namespace
+
+String toString(IFS::Object::Type obt)
 {
-	if(buffer == nullptr || bufSize == 0) {
-		return buffer;
+	String s = typeStrings[unsigned(obt)];
+	if(!s) {
+		// Custom object type?
+		s = '#';
+		s += unsigned(obt);
 	}
 
-#define XX(value, tag, text)                                                                                           \
-	if(obt == Object::Type::tag)                                                                                       \
-		strncpy_P(buffer, __str_##tag, bufSize);                                                                       \
-	else
-	FWFS_OBJTYPE_MAP(XX)
-#undef XX
-	snprintf(buffer, bufSize, _F("#%u"), obt);
-
-	buffer[bufSize - 1] = '\0';
-	return buffer;
+	return s;
 }
-
-} // namespace IFS

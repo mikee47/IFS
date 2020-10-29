@@ -373,16 +373,16 @@ public:
 	virtual int isfile(File::Handle file) = 0;
 };
 
+} // namespace IFS
+
 /**
  * @brief Get String for filesystem type
  */
-String toString(IFileSystem::Type type);
+String toString(IFS::IFileSystem::Type type);
 
 /**
  * @brief Get String for a filesystem attribute
  */
-String toString(IFileSystem::Attribute attr);
-
-} // namespace IFS
+String toString(IFS::IFileSystem::Attribute attr);
 
 /** @} */

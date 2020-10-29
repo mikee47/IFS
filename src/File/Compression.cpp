@@ -9,7 +9,7 @@
 #include <FlashString/String.hpp>
 #include <FlashString/Vector.hpp>
 
-namespace IFS
+namespace
 {
 #define XX(tag, comment) DEFINE_FSTR_LOCAL(str_##tag, #tag)
 COMPRESSION_TYPE_MAP(XX)
@@ -19,9 +19,9 @@ COMPRESSION_TYPE_MAP(XX)
 DEFINE_FSTR_VECTOR_LOCAL(strings, FSTR::String, COMPRESSION_TYPE_MAP(XX))
 #undef XX
 
-String toString(File::Compression type)
+} // namespace
+
+String toString(IFS::File::Compression type)
 {
 	return strings[unsigned(type)];
 }
-
-} // namespace IFS

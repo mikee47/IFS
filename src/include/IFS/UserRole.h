@@ -27,11 +27,6 @@ enum class UserRole : uint8_t {
 };
 
 /*
- * Get the string representation for the given access type.
- */
-String toString(UserRole role);
-
-/*
  * @brief Return the access type value for the given string.
  * @param str
  * @param defaultRole Returned if string isn't recognsed
@@ -55,3 +50,8 @@ char getChar(UserRole role);
 UserRole getUserRole(char code, UserRole defaultRole);
 
 } // namespace IFS
+
+/*
+ * Get the string representation for the given access type.
+ */
+String toString(IFS::UserRole role);

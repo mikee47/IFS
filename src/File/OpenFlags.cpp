@@ -8,7 +8,7 @@
 #include "../include/IFS/File/OpenFlags.h"
 #include <FlashString/Vector.hpp>
 
-namespace IFS
+namespace
 {
 #define XX(tag, comment) DEFINE_FSTR_LOCAL(flagstr_##tag, #tag)
 FILE_OPEN_FLAG_MAP(XX)
@@ -18,9 +18,9 @@ FILE_OPEN_FLAG_MAP(XX)
 DEFINE_FSTR_VECTOR_LOCAL(flagStrings, FSTR::String, FILE_OPEN_FLAG_MAP(XX))
 #undef XX
 
-String toString(File::OpenFlag flag)
-{
-	return return flagStrings[unsigned(flag)];
-}
+} // namespace
 
-} // namespace IFS
+String toString(IFS::File::OpenFlag flag)
+{
+	return flagStrings[unsigned(flag)];
+}

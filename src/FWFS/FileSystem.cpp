@@ -36,8 +36,6 @@ namespace FWFS
 
 void FileSystem::printObject(const FWObjDesc& od)
 {
-	char idstr[20];
-	toString(od.obj.type(), idstr, sizeof(idstr));
 	char name[260];
 	if(od.obj.isNamed()) {
 		name[0] = ' ';
@@ -55,8 +53,8 @@ void FileSystem::printObject(const FWObjDesc& od)
 	} else {
 		name[0] = '\0';
 	}
-	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.type_, od.obj.size(), idstr,
-			name);
+	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.type_, od.obj.size(),
+			toString(od.obj.type()).c_str(), name);
 	//	if (od.obj.size() <= 4)
 	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());
 }
@@ -108,7 +106,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 
 			case Object::Type::Compression:
 				stat.compression = child.obj.data8.compression.type;
-				stat.attr|= File::Attribute::Compressed;
+				stat.attr |= File::Attribute::Compressed;
 				break;
 
 			case Object::Type::ReadACE:

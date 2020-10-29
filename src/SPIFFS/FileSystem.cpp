@@ -69,7 +69,7 @@ static inline File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_fla
 	map(File::OpenFlag::Write, SPIFFS_O_WRONLY);
 
 	if(flags.any()) {
-		debug_w("Unknown File::OpenFlags: 0x%02X", flags.getValue());
+		debug_w("Unknown File::OpenFlags: 0x%02X", flags.value());
 	}
 
 	return flags;
