@@ -26,6 +26,12 @@ struct ACL {
 
 } // namespace File
 
-char* toString(const File::ACL& acl, char* buf, size_t bufSize);
+/**
+ * @brief Return a brief textual representation for an ACL
+ * Suitable for inclusion in a file listing
+ * @param acl
+ * @retval String
+ */
+String toString(const File::ACL& acl);
 
 } // namespace IFS

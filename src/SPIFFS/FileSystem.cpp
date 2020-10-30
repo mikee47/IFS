@@ -259,14 +259,13 @@ int FileSystem::getinfo(Info& info)
 	return FS_OK;
 }
 
-int FileSystem::geterrortext(int err, char* buffer, size_t size)
+String FileSystem::getErrorString(int err)
 {
-	int res = spiffsErrorToStr(err, buffer, size);
-	if(res == 0) {
-		res = IFileSystem::geterrortext(err, buffer, size);
+	String s = spiffsErrorToStr(err);
+	if(!s) {
+		s = IFileSystem::getErrorString(err);
 	}
-
-	return res;
+	return s;
 }
 
 static spiffs_file SPIFFS_open_by_id(spiffs* fs, spiffs_obj_id obj_id, spiffs_flags flags, spiffs_mode mode)

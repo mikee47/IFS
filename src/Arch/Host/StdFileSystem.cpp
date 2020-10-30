@@ -59,13 +59,14 @@ int StdFileSystem::getinfo(Info& info)
 	return Error::NotImplemented;
 }
 
-int StdFileSystem::geterrortext(int err, char* buffer, size_t size)
+String StdFileSystem::getErrorString(int err)
 {
-	auto res = strerror_r(err, buffer, size);
+	char buffer[256];
+	auto res = strerror_r(err, buffer, sizeof(buffer));
 	if(int(res) <= 0) {
-		strcpy(buffer, "Unknown");
+		return F("Unknown");
 	}
-	return strlen(buffer);
+	return String(buffer);
 }
 
 int StdFileSystem::opendir(const char* path, DirHandle& dir)

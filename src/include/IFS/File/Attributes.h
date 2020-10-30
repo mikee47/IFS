@@ -24,11 +24,11 @@ namespace File
  * flag before closing a file will prevent any metadata changes being flushed to disk.
  */
 #define FILEATTR_MAP(XX)                                                                                               \
-	XX(Compressed, 'C', "File content is compressed")                                                                  \
-	XX(Archive, 'A', "File modified flag")                                                                             \
-	XX(ReadOnly, 'R', "File may not be modified or deleted")                                                           \
-	XX(Directory, 'D', "Object is a directory entry")                                                                  \
-	XX(MountPoint, 'M', "Directs to another object store")
+	XX(Compressed, C, "File content is compressed")                                                                    \
+	XX(Archive, A, "File modified flag")                                                                               \
+	XX(ReadOnly, R, "File may not be modified or deleted")                                                             \
+	XX(Directory, D, "Object is a directory entry")                                                                    \
+	XX(MountPoint, M, "Directs to another object store")
 
 enum class Attribute {
 #define XX(_tag, _char, _comment) _tag,
@@ -45,11 +45,10 @@ using Attributes = BitSet<uint8_t, Attribute>;
 
 /**
  * @brief Get the string representation for the given set of file attributes
+ * suitable for inclusion in a file listing
  * @param attr
- * @param buf
- * @param bufSize
- * @retval char* points to buf
+ * @retval String
  */
-char* toString(File::Attributes attr, char* buf, size_t bufSize);
+String toString(File::Attributes attr);
 
 } // namespace IFS

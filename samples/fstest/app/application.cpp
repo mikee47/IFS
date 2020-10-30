@@ -45,15 +45,13 @@ IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 // Arbitrary limit on file size
 #define FWFILE_MAX_SIZE 0x100000
 
-const char* getErrorText(IFileSystem* fs, int err)
+String getErrorString(IFileSystem* fs, int err)
 {
-	static char msg[64];
 	if(fs == nullptr) {
-		IFS::Error::toString(err, msg, sizeof(msg));
+		return IFS::Error::toString(err);
 	} else {
-		fs->geterrortext(err, msg, sizeof(msg));
+		return fs->getErrorString(err);
 	}
-	return msg;
 }
 
 int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
@@ -95,7 +93,7 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 		src->close(srcfile);
 	}
 
-	debug_i("Copy '%s': %s", stat.name.buffer, getErrorText(fserr, res));
+	debug_i("Copy '%s': %s", stat.name.buffer, getErrorString(fserr, res).c_str());
 
 	return res;
 }
@@ -108,7 +106,7 @@ IFileSystem* initSpiffs()
 
 	int err = ffs->mount();
 	if(err < 0) {
-		debug_e("Mount failed: %s", getErrorText(ffs, err));
+		debug_e("Mount failed: %s", getErrorString(ffs, err).c_str());
 		delete ffs;
 		return nullptr;
 	}
@@ -116,7 +114,7 @@ IFileSystem* initSpiffs()
 	IFileSystem::Info info;
 	err = ffs->getinfo(info);
 	if(err < 0) {
-		debug_e("Failed to get FS info: %s", getErrorText(ffs, err));
+		debug_e("Failed to get FS info: %s", getErrorString(ffs, err).c_str());
 		delete ffs;
 		return nullptr;
 	}
@@ -132,12 +130,12 @@ IFileSystem* initSpiffs()
 	auto fwfs = createFirmwareFilesystem(fwfsImage1.data());
 	int res = fwfs->mount();
 	if(res < 0) {
-		debug_e("FWFS mount failed: %s", getErrorText(fwfs, err));
+		debug_e("FWFS mount failed: %s", getErrorString(fwfs, err).c_str());
 	} else {
 		DirHandle dir;
 		err = fwfs->opendir(nullptr, dir);
 		if(err < 0) {
-			debug_e("FWFS opendir failed: %s", getErrorText(fwfs, err));
+			debug_e("FWFS opendir failed: %s", getErrorString(fwfs, err).c_str());
 		} else {
 			FileNameStat stat;
 			while((err = fwfs->readdir(dir, stat)) >= 0) {
@@ -195,7 +193,7 @@ IFileSystem* initFWFS(const char* imgfile)
 
 	int err = hfs->mount();
 	if(err < 0) {
-		debug_e("Mount failed: %s", getErrorText(hfs, err));
+		debug_e("Mount failed: %s", getErrorString(hfs, err).c_str());
 		delete hfs;
 		hfs = nullptr;
 	}
@@ -209,17 +207,16 @@ void printFsInfo(IFileSystem* fs)
 	IFileSystem::Info info(namebuf, sizeof(namebuf));
 	int res = fs->getinfo(info);
 	if(res < 0) {
-		debug_e("fileSystemGetInfo(): %s", getErrorText(fs, res));
+		debug_e("fileSystemGetInfo(): %s", getErrorString(fs, res).c_str());
 		return;
 	}
 
-	char typeStr[10];
-	debug_i("type:       %s", toString(info.type, typeStr, sizeof(typeStr)));
+	debug_i("type:       %s", toString(info.type).c_str());
 	if(info.media) {
-		debug_i("mediaType:  %u", info.media->type());
-		debug_i("bus:        %u", info.media->bus());
+		debug_i("mediaType:  %s", toString(info.media->type()).c_str());
+		debug_i("bus:        %s", toString(info.media->bus()).c_str());
 	}
-	debug_i("attr:       0x%02X", info.attr);
+	debug_i("attr:       %s", toString(info.attr).c_str());
 	debug_i("volumeID:   0x%08X", info.volumeID);
 	debug_i("name:       %s", info.name.buffer);
 	debug_i("volumeSize: %u", info.volumeSize);
@@ -227,11 +224,12 @@ void printFsInfo(IFileSystem* fs)
 }
 
 // Displays as local time
-const char* timeToStr(char* buffer, time_t t, const char* dtsep)
+String timeToStr(time_t t, const char* dtsep)
 {
 	struct tm* tm = localtime(&t);
-	sprintf(buffer, "%02d/%02d/%04d%s%02d:%02d:%02d", tm->tm_mday, tm->tm_mon + 1, 1900 + tm->tm_year, dtsep,
-			tm->tm_hour, tm->tm_min, tm->tm_sec);
+	char buffer[64];
+	m_snprintf(buffer, sizeof(buffer), "%02u/%02u/%04u%s%02u:%02u:%02u", tm->tm_mday, tm->tm_mon + 1,
+			   1900 + tm->tm_year, dtsep, tm->tm_hour, tm->tm_min, tm->tm_sec);
 	return buffer;
 }
 
@@ -246,7 +244,7 @@ bool readFileTest(const FileStat& stat)
 	File::Handle file = fs->fopen(stat, File::OpenFlag::Read);
 
 	if(file < 0) {
-		debug_w("fopen(): %s", getErrorText(fs, file));
+		debug_w("fopen(): %s", getErrorString(fs, file).c_str());
 		return false;
 	}
 
@@ -254,7 +252,7 @@ bool readFileTest(const FileStat& stat)
 		FileStat stat2;
 		int res = fs->fstat(file, &stat2);
 		if(res < 0) {
-			debug_w("fstat(): %s", getErrorText(fs, res));
+			debug_w("fstat(): %s", getErrorString(fs, res).c_str());
 		}
 	}
 
@@ -264,7 +262,7 @@ bool readFileTest(const FileStat& stat)
 		int len = fs->read(file, buf, sizeof(buf));
 		if(len <= 0) {
 			if(len < 0) {
-				debug_e("Error! %s", getErrorText(fs, len));
+				debug_e("Error! %s", getErrorString(fs, len).c_str());
 				result = false;
 			}
 			break;
@@ -298,26 +296,17 @@ int scandir(IFileSystem* fs, const String& path)
 	while((res = fs->readdir(dir, stat)) >= 0) {
 		IFileSystem::Info info;
 		stat.fs->getinfo(info);
-		char typestr[5];
-		toString(info.type, typestr, sizeof(typestr));
-		char aclstr[5];
-		toString(stat.acl, aclstr, sizeof(aclstr));
-		char attrstr[10];
-		toString(stat.attr, attrstr, sizeof(attrstr));
-		char cmpstr[10];
-		toString(stat.compression, cmpstr, sizeof(cmpstr));
-		char timestr[20];
-		timeToStr(timestr, stat.mtime, " ");
-		debug_i("%-50s %6u %s #0x%04x %s %s %s %s", (const char*)stat.name, stat.size, typestr, stat.id, aclstr,
-				attrstr, cmpstr, timestr);
+		debug_i("%-50s %6u %s #0x%04x %s %s %s %s", stat.name.c_str(), stat.size, toString(info.type).c_str(), stat.id,
+				toString(stat.acl).c_str(), toString(stat.attr).c_str(), toString(stat.compression).c_str(),
+				timeToStr(stat.mtime, " ").c_str());
 
 		readFileTest(stat);
 
 		if(stat.attr[File::Attribute::Directory]) {
 			if(path.length() == 0) {
-				scandir(fs, stat.name.buffer);
+				scandir(fs, stat.name);
 			} else {
-				scandir(fs, path + '/' + stat.name.buffer);
+				scandir(fs, path + '/' + stat.name);
 			}
 			continue;
 		}
@@ -341,7 +330,7 @@ int scandir(IFileSystem* fs, const String& path)
 #endif
 	}
 
-	debug_i("readdir('%s'): %s", path.c_str(), getErrorText(fs, res));
+	debug_i("readdir('%s'): %s", path.c_str(), getErrorString(fs, res).c_str());
 
 	fs->closedir(dir);
 
@@ -351,7 +340,7 @@ int scandir(IFileSystem* fs, const String& path)
 void fstest(IFileSystem* fs)
 {
 	int res = fs->check();
-	debug_i("check(): %s", getErrorText(fs, res));
+	debug_i("check(): %s", getErrorString(fs, res).c_str());
 
 	//  fs.format();
 

@@ -94,7 +94,7 @@ public:
 
 	int mount() override;
 	int getinfo(Info& info) override;
-	int geterrortext(int err, char* buffer, size_t size) override;
+	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
 	int readdir(DirHandle dir, FileStat& stat) override;
 	int closedir(DirHandle dir) override;

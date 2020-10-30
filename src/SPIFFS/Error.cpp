@@ -7,6 +7,7 @@
 
 #include "../include/IFS/SPIFFS/Error.h"
 #include "../include/IFS/Types.h"
+#include <FlashString/Map.hpp>
 
 namespace IFS
 {
@@ -75,27 +76,17 @@ struct spiffs_error_t {
 	PGM_P tag;
 };
 
-#define XX(_tag, _value) DEFINE_PSTR_LOCAL(errstr_##_tag, #_tag)
+#define XX(tag, value) DEFINE_FSTR_LOCAL(str_##tag, #tag)
 SPIFFS_ERROR_MAP(XX)
 #undef XX
 
-static const spiffs_error_t errorStrings[] PROGMEM = {
-#define XX(_tag, _value) {_value, errstr_##_tag},
-	SPIFFS_ERROR_MAP(XX)
+#define XX(tag, value) {value, &str_##tag},
+DEFINE_FSTR_MAP_LOCAL(errorMap, int, FlashString, SPIFFS_ERROR_MAP(XX))
 #undef XX
-};
 
-int spiffsErrorToStr(int err, char* buffer, unsigned size)
+String spiffsErrorToStr(int err)
 {
-	if(buffer != nullptr && size != 0) {
-		for(auto& e : errorStrings)
-			if(e.err == err) {
-				strncpy_P(buffer, e.tag, size);
-				return strlen(buffer);
-			}
-	}
-
-	return 0;
+	return errorMap[err].content();
 }
 
 } // namespace SPIFFS

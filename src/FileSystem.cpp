@@ -10,35 +10,33 @@
 
 namespace IFS
 {
-#define XX(_name, _tag, _desc) DEFINE_PSTR_LOCAL(typestr_##_name, #_tag)
+#define XX(name, tag, desc) DEFINE_FSTR_LOCAL(typestr_##name, #tag)
 FILESYSTEM_TYPE_MAP(XX)
 #undef XX
 
-static PGM_P const typeStrings[] PROGMEM = {
-#define XX(_name, _tag, _desc) typestr_##_name,
-	FILESYSTEM_TYPE_MAP(XX)
+#define XX(name, tag, desc) &typestr_##name,
+DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FILESYSTEM_TYPE_MAP(XX))
 #undef XX
-};
 
-#define XX(_tag, _comment) DEFINE_PSTR_LOCAL(attrstr_##_tag, #_tag)
+#define XX(tag, comment) DEFINE_FSTR_LOCAL(attrstr_##tag, #tag)
 FILE_SYSTEM_ATTR_MAP(XX)
 #undef XX
 
-#define XX(_tag, _comment) attrstr_##_tag,
-static PGM_P const attributeStrings[] PROGMEM = {FILE_SYSTEM_ATTR_MAP(XX)};
+#define XX(tag, comment) &attrstr_##tag,
+DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILE_SYSTEM_ATTR_MAP(XX))
 #undef XX
 
-char* toString(IFileSystem::Attributes attr, char* buf, size_t bufSize)
+String toString(IFileSystem::Attributes attr)
 {
-	return flagsToStr(attr.getValue(), attributeStrings, ARRAY_SIZE(attributeStrings), buf, bufSize);
+	return flagsToStr(attr.getValue(), attributeStrings);
 }
 
-char* toString(IFileSystem::Type type, char* buf, unsigned bufSize)
+String toString(IFileSystem::Type type)
 {
 	if(type >= IFileSystem::Type::MAX) {
 		type = IFileSystem::Type::Unknown;
 	}
-	return strncpy_P(buf, typeStrings[(unsigned)type], bufSize);
+	return typeStrings[(unsigned)type];
 }
 
 } // namespace IFS

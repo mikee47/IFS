@@ -8,17 +8,17 @@
 #pragma once
 
 #include "include/IFS/Types.h"
+#include <FlashString/String.hpp>
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
-/** @brief convert a set of flags into a comma-separated list
- *  @param flags
- *  @param strings table of PROGMEM string pointers
- *  @param flagCount flags start at 0 and go to flagCount - 1
- *  @param buf
- *  @param bufSize
- *  @retval char* pointer to buf
+/**
+ * @brief convert a set of flags into a comma-separated list
+ * @param flags
+ * @param strings 0-based vector of strings corresponding to bit values
+ * @retval String
  */
-char* flagsToStr(uint32_t flags, PGM_P const* strings, unsigned flagCount, char* buf, size_t bufSize);
+String flagsToStr(uint32_t flags, const FSTR::Vector<FSTR::String>& strings);
 
 } // namespace IFS

@@ -53,7 +53,7 @@ Media::Info FlashMedia::getinfo() const
 {
 	return Media::Info{
 		.type = Type::Flash,
-		.bus = Bus::HSPI,
+		.bus = Bus::SPI,
 		.blockSize = INTERNAL_FLASH_SECTOR_SIZE,
 	};
 }

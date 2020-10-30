@@ -7,10 +7,12 @@
 
 #pragma once
 
+#include "../Types.h"
+
 namespace IFS
 {
 namespace SPIFFS
 {
-int spiffsErrorToStr(int err, char* buffer, unsigned size);
+String spiffsErrorToStr(int err);
 }
 } // namespace IFS

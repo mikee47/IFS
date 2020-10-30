@@ -6,33 +6,25 @@
  */
 
 #include "../include/IFS/File/Attributes.h"
+#include <FlashString/Array.hpp>
 
 namespace IFS
 {
-static const char attributeChars[] PROGMEM = {
-#define XX(_tag, _char, _comment) _char,
-	FILEATTR_MAP(XX)
+#define XX(tag, ch, comment) #ch
+DEFINE_FSTR_LOCAL(attributeChars, FILEATTR_MAP(XX))
 #undef XX
-};
 
-char* toString(File::Attributes attr, char* buf, size_t bufSize)
+String toString(File::Attributes attr)
 {
-	size_t len = 0;
+	String s = attributeChars;
 
-	LOAD_PSTR(chars, attributeChars);
-	for(unsigned a = 0; a < ARRAY_SIZE(attributeChars); ++a) {
-		if(len >= bufSize) {
-			break;
+	for(unsigned a = 0; a < s.length(); ++a) {
+		if(!attr[File::Attribute(a)]) {
+			s[a] = '.';
 		}
-		buf[len++] = attr[File::Attribute(a)] ? chars[a] : '.';
 	}
 
-	if(len < bufSize) {
-		buf[len] = '\0';
-	} else if(bufSize != 0) {
-		buf[bufSize - 1] = '\0';
-	}
-	return buf;
+	return s;
 }
 
 } // namespace IFS

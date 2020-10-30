@@ -9,30 +9,24 @@
 
 namespace IFS
 {
-char* flagsToStr(uint32_t flags, PGM_P const* strings, unsigned flagCount, char* buf, size_t bufSize)
+String flagsToStr(uint32_t flags, const FSTR::Vector<FlashString>& strings)
 {
-	size_t off = 0;
-	for(unsigned f = 0; f < flagCount; ++f) {
-		if(!bitRead(flags, f)) {
+	String s;
+	unsigned f = 0;
+	for(auto& fs : strings) {
+		if(!bitRead(flags, f++)) {
 			continue;
 		}
 
-		if(off && (off + 2) < bufSize) {
-			buf[off++] = ',';
-			buf[off++] = ' ';
+		if(s) {
+			s += ',';
+			s += ' ';
 		}
 
-		PGM_P pstr = strings[f];
-		int len = strlen_P(pstr);
-		if(off + len > bufSize) {
-			len = bufSize - off;
-		}
-		memcpy_P(&buf[off], pstr, len);
-		off += len;
+		s += fs;
 	}
 
-	buf[off] = '\0';
-	return buf;
+	return s;
 }
 
 } // namespace IFS

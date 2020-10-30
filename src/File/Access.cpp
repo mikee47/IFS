@@ -11,18 +11,12 @@
 
 namespace IFS
 {
-char* toString(const File::ACL& acl, char* buf, size_t bufSize)
+String toString(const File::ACL& acl)
 {
-	if(buf && bufSize) {
-		if(bufSize < 3)
-			buf[0] = '\0';
-		else {
-			buf[0] = userRoleChar(acl.readAccess);
-			buf[1] = userRoleChar(acl.writeAccess);
-			buf[2] = '\0';
-		}
-	}
-	return buf;
+	String s;
+	s += getChar(acl.readAccess);
+	s += getChar(acl.writeAccess);
+	return s;
 }
 
 } // namespace IFS

@@ -46,11 +46,9 @@ inline constexpr OpenFlags operator|(OpenFlag a, OpenFlag b)
 /**
  * @brief Get a string representation of a set of file open flags
  * @param flags
- * @param buf
- * @param bufSize
- * @retval char* pointer to buffer
+ * @retval String
  * @note intended for debug output
  */
-char* toString(File::OpenFlags flags, char* buf, size_t bufSize);
+String toString(File::OpenFlags flags);
 
 } // namespace IFS

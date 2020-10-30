@@ -10,17 +10,17 @@
 
 namespace IFS
 {
-#define XX(_tag, _comment) DEFINE_PSTR_LOCAL(flagstr_##_tag, #_tag)
+#define XX(tag, comment) DEFINE_FSTR_LOCAL(flagstr_##tag, #tag)
 FILE_OPEN_FLAG_MAP(XX)
 #undef XX
 
-#define XX(_tag, _comment) flagstr_##_tag,
-static PGM_P const flagStrings[] PROGMEM = {FILE_OPEN_FLAG_MAP(XX)};
+#define XX(tag, comment) &flagstr_##tag,
+DEFINE_FSTR_VECTOR_LOCAL(flagStrings, FSTR::String, FILE_OPEN_FLAG_MAP(XX))
 #undef XX
 
-char* toString(File::OpenFlags flags, char* buf, size_t bufSize)
+String toString(File::OpenFlags flags)
 {
-	return flagsToStr(flags.getValue(), flagStrings, ARRAY_SIZE(flagStrings), buf, bufSize);
+	return flagsToStr(flags.getValue(), flagStrings);
 }
 
 } // namespace IFS

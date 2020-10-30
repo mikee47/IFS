@@ -14,6 +14,25 @@
 
 namespace IFS
 {
+#define IFS_MEDIA_TYPE_MAP(XX)                                                                                         \
+	XX(Unknown, "Unknown")                                                                                             \
+	XX(RAM, "RAM")                                                                                                     \
+	XX(Flash, "Flash memory (no wear levelling)")                                                                      \
+	XX(SDCard, "SD card - flash with wear levelling")                                                                  \
+	XX(Disk, "Physical disk")
+
+#define IFS_MEDIA_BUS_MAP(XX)                                                                                          \
+	XX(Unknown, "Unknown")                                                                                             \
+	XX(System, "System bus (e.g. memory controller)")                                                                  \
+	XX(SDIO, "SD card interfaces")                                                                                     \
+	XX(SPI, "Serial Peripheral bus")                                                                                   \
+	XX(I2C, "I2C bus")                                                                                                 \
+	XX(Modbus, "Modbus")                                                                                               \
+	XX(Ethernet, "Wired network")                                                                                      \
+	XX(WiFi, "Wireless network")
+
+#define IFS_MEDIA_ATTRIBUTE_MAP(XX) XX(ReadOnly, "Prevent write/erase operations")
+
 /** @brief defines an address range */
 struct Extent {
 	uint32_t start{0};
@@ -62,29 +81,24 @@ public:
 	 * @note We'll use the term 'disk' when referring to physical media
 	 */
 	enum class Type {
-		Unknown,
-		Flash,  ///< Flash memory (no wear levelling)
-		SDCard, ///< SD card - flash with wear levelling
-		Disk,   ///< Physical disk
+#define XX(tag, comment) tag,
+		IFS_MEDIA_TYPE_MAP(XX)
+#undef XX
 	};
 
 	/**
 	 * @brief Transport mechanism for physical media
 	 */
 	enum class Bus {
-		Unknown,
-		System,   ///< System bus (e.g. memory controller)
-		SDIO,	 ///< SD card interfaces
-		SPI,	  ///< Serial Peripheral bus
-		HSPI,	 ///< Hardware SPI
-		I2C,	  ///< I2C bus
-		Modbus,   ///< Modbus
-		Ethernet, ///< Wired network
-		WiFi,	 ///< Wireless network
+#define XX(tag, comment) tag,
+		IFS_MEDIA_BUS_MAP(XX)
+#undef XX
 	};
 
 	enum class Attribute {
-		ReadOnly, ///< Prevent write/erase operations
+#define XX(tag, comment) tag,
+		IFS_MEDIA_ATTRIBUTE_MAP(XX)
+#undef XX
 	};
 
 	using Attributes = BitSet<uint8_t, Attribute>;
@@ -200,5 +214,10 @@ protected:
 	uint32_t m_size;   ///< Size of media in bytes (always starts at 0)
 	Attributes m_attr; ///< Specific media attributes
 };
+
+String toString(Media::Type type);
+String toString(Media::Bus bus);
+String toString(Media::Attribute attr);
+String toString(Media::Attributes attr);
 
 } // namespace IFS

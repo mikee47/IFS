@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "Types.h"
+
 namespace IFS
 {
 using ErrorCode = int;
@@ -78,12 +80,9 @@ constexpr ErrorCode USER{-64}; // Start of user-defined codes
 /**
  * @brief get text for an error code
  * @param err
- * @param buffer
- * @param size
- * @retval length of message, excluding nul terminator
- * @note message is always nul terminated
+ * @retval String
  */
-int toString(int err, char* buffer, unsigned size);
+String toString(int err);
 
 } // namespace Error
 

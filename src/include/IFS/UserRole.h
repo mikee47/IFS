@@ -13,11 +13,11 @@ namespace IFS
 {
 // Access Control level
 #define USER_ROLE_MAP(XX)                                                                                              \
-	XX(None, '-', "No assigned role")                                                                                  \
-	XX(Guest, 'g', "User-type access without authentication")                                                          \
-	XX(User, 'u', "Normal user")                                                                                       \
-	XX(Manager, 'm', "Perform restricted system functions, reset user passwords, etc.")                                \
-	XX(Admin, 'a', "Full access")
+	XX(None, -, "No assigned role")                                                                                    \
+	XX(Guest, g, "User-type access without authentication")                                                            \
+	XX(User, u, "Normal user")                                                                                         \
+	XX(Manager, m, "Perform restricted system functions, reset user passwords, etc.")                                  \
+	XX(Admin, a, "Full access")
 
 enum class UserRole : uint8_t {
 #define XX(_tag, _char, _comment) _tag,
@@ -29,23 +29,29 @@ enum class UserRole : uint8_t {
 /*
  * Get the string representation for the given access type.
  */
-char* toString(UserRole role, char* buf, size_t bufSize);
+String toString(UserRole role);
 
 /*
- * Return the access type value for the given string.
- * If the string isn't recognised, return the given default value.
+ * @brief Return the access type value for the given string.
+ * @param str
+ * @param defaultRole Returned if string isn't recognsed
+ * @retval UserRole
  */
-UserRole getUserRole(const char* str, UserRole _default);
+UserRole getUserRole(const char* str, UserRole defaultRole);
 
 /*
- * Get the character code representing the given access type.
+ * @brief Get the character code representing the given access type
+ * @param role
+ * @retval char
  */
-char userRoleChar(UserRole access);
+char getChar(UserRole role);
 
 /*
- * Return the access type corresponding to the given code.
- * If the code isn't valid, return the given default.
+ * @brief Return the access type corresponding to the given code.
+ * @param code
+ * @param defaultRole Returned if code isn't recognised
+ * @retval UserRole
  */
-UserRole getUserRole(char c, UserRole _default);
+UserRole getUserRole(char code, UserRole defaultRole);
 
 } // namespace IFS

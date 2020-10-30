@@ -58,9 +58,7 @@ time_t fsGetTimeUTC();
 #define debug_ifserr(_err, _func, ...)                                                                                 \
 	do {                                                                                                               \
 		int err = _err;                                                                                                \
-		char buf[64];                                                                                                  \
-		geterrortext(err, buf, sizeof(buf));                                                                           \
-		debug_e(_func ": %s (%d)", ##__VA_ARGS__, buf, err);                                                           \
+		debug_e(_func ": %s (%d)", ##__VA_ARGS__, getErrorString(err).c_str(), err);                                   \
 	} while(0)
 #else
 #define debug_ifserr(_err, _func, ...)                                                                                 \
@@ -160,16 +158,11 @@ public:
 
 	/**
 	 * @brief get the text for a returned error code
-     * @param buffer to place text
-     * @param size bytes available in buffer
-     * @retval int length of text, excluding nul terminator, or negative error code
-     * @note nul terminator must always be written to buffer, even on error, unless
-     * buffer is null and/or size is 0. File system implementations should call
-     * this method if unable to resolve the error code.
+     * @retval String
      */
-	virtual int geterrortext(int err, char* buffer, size_t size)
+	virtual String getErrorString(int err)
 	{
-		return Error::toString(err, buffer, size);
+		return Error::toString(err);
 	}
 
 	/**
@@ -383,21 +376,16 @@ public:
 /**
  * @brief get string for filesystem type
  * @param type
- * @param buf buffer to store tag
- * @param bufSize space in buffer
- * @retval char* destination buffer
- * @note if buffer more than 4 characters then nul will be appended
+ * @retval String
  */
-char* toString(IFileSystem::Type type, char* buf, unsigned bufSize);
+String toString(IFileSystem::Type type);
 
 /**
  * @brief Get the string representation for the given set of filesystem attributes
  * @param attr
- * @param buf
- * @param bufSize
- * @retval char* points to buf
+ * @retval String
  */
-char* toString(IFileSystem::Attributes attr, char* buf, size_t bufSize);
+String toString(IFileSystem::Attributes attr);
 
 } // namespace IFS
 

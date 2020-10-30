@@ -8,59 +8,45 @@
  */
 
 #include "include/IFS/UserRole.h"
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
-#define XX(_tag, _char, _comment) DEFINE_PSTR_LOCAL(accstr_##_tag, #_tag)
+#define XX(tag, char, comment) DEFINE_FSTR_LOCAL(str_##tag, #tag)
 USER_ROLE_MAP(XX)
 #undef XX
 
-#define XX(_tag, _char, _comment) accstr_##_tag,
-static PGM_P const accessStrings[] PROGMEM = {USER_ROLE_MAP(XX)};
+#define XX(tag, char, comment) &str_##tag,
+DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, USER_ROLE_MAP(XX))
 #undef XX
 
-#define XX(_tag, _char, _comment) _char,
-static DEFINE_PSTR(accessChars, {USER_ROLE_MAP(XX)});
+#define XX(tag, ch, comment) #ch
+DEFINE_FSTR_LOCAL(userRoleChars, USER_ROLE_MAP(XX))
 #undef XX
 
-char* toString(UserRole role, char* buf, size_t bufSize)
+String toString(UserRole role)
 {
-	if(buf && bufSize) {
-		if(role < UserRole::MAX) {
-			strncpy_P(buf, accessStrings[(unsigned)role], bufSize);
-			buf[bufSize - 1] = '\0';
-		} else
-			buf[0] = '\0';
-	}
-	return buf;
+	return userRoleStrings[unsigned(role)];
 }
 
-UserRole getUserRole(const char* str, UserRole _default)
+UserRole getUserRole(const char* str, UserRole defaultRole)
 {
-	for(unsigned i = 0; i < ARRAY_SIZE(accessStrings); ++i) {
-		if(strcasecmp_P(str, accessStrings[i]) == 0) {
-			return UserRole(i);
-		}
-	}
-
-	return _default;
+	int i = userRoleStrings.indexOf(str);
+	return (i < 0) ? defaultRole : UserRole(i);
 }
 
-char userRoleChar(UserRole role)
+char getChar(UserRole role)
 {
-	LOAD_PSTR(chars, accessChars);
+	String s = userRoleChars;
 	// Return 'x' if unknown
-	return (role < UserRole::MAX) ? chars[(unsigned)role] : 'x';
+	return (role < UserRole::MAX) ? s[(unsigned)role] : 'x';
 }
 
-UserRole getUserRole(char c, UserRole _default)
+UserRole getUserRole(char code, UserRole defaultRole)
 {
-#define XX(_tag, _char, _comment)                                                                                      \
-	if(c == _char)                                                                                                     \
-		return UserRole::_tag;
-	USER_ROLE_MAP(XX)
-#undef XX
-	return _default;
+	String s = userRoleChars;
+	int i = s.indexOf(code);
+	return (i < 0) ? defaultRole : UserRole(i);
 }
 
 } // namespace IFS

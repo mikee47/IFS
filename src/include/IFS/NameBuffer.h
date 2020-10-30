@@ -40,6 +40,13 @@ struct NameBuffer {
 	{
 	}
 
+	/**
+	 * @brief Make a NameBuffer point to contents of a String
+	 */
+	NameBuffer(String& s) : buffer(s.begin()), size(s.length()), length(s.length())
+	{
+	}
+
 	operator const char*() const
 	{
 		return buffer;

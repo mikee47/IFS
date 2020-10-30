@@ -7,43 +7,39 @@
 
 #include "include/IFS/Error.h"
 #include "include/IFS/Types.h"
+#include <FlashString/String.hpp>
+#include <FlashString/Vector.hpp>
 
 namespace IFS
 {
 namespace Error
 {
-/* @brief Define string table for standard IFS error codes
- *
+/*
+ * Define string table for standard IFS error codes
  */
-#define XX(_tag, _text) DEFINE_PSTR_LOCAL(FSES_##_tag, #_tag)
+#define XX(tag, text) DEFINE_FSTR_LOCAL(FS_##tag, #tag)
 IFS_ERROR_MAP(XX)
 #undef XX
 
-static PGM_P const errorStrings[] PROGMEM = {
-#define XX(_tag, _text) FSES_##_tag,
-	IFS_ERROR_MAP(XX)
+#define XX(tag, text) &FS_##tag,
+DEFINE_FSTR_VECTOR_LOCAL(errorStrings, FlashString, IFS_ERROR_MAP(XX))
 #undef XX
-};
 
-int toString(int err, char* buffer, unsigned size)
+String toString(int err)
 {
-	if(buffer == nullptr || size == 0) {
-		return Error::BadParam;
-	}
-
-	if(err < Error::USER) {
-		return snprintf(buffer, size, _F("FSERR #%u"), err);
-	}
-
 	if(err > 0) {
 		err = 0;
 	} else {
 		err = -err;
 	}
 
-	strncpy_P(buffer, errorStrings[err], size);
-	buffer[size - 1] = '\0';
-	return strlen(buffer);
+	String s = errorStrings[err];
+	if(!s) {
+		String s = F("FSERR #");
+		s += err;
+	}
+
+	return s;
 }
 
 } // namespace Error

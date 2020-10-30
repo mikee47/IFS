@@ -31,11 +31,8 @@ enum class Compression : uint8_t {
 
 /**
  * @brief Get the string representation for the given compression type
- * @param type
- * @param buf
- * @param bufSize
- * @retval char* points to buf
+ * @retval String
  */
-char* toString(File::Compression type, char* buf, size_t bufSize);
+String toString(File::Compression type);
 
 } // namespace IFS

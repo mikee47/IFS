@@ -124,13 +124,13 @@ int FileSystem::getinfo(Info& info)
  * error. This relies on the fact that error codes from these two filing systems
  * do not overlap.
  */
-int FileSystem::geterrortext(int err, char* buffer, size_t size)
+String FileSystem::getErrorString(int err)
 {
-	int ret = ffs.geterrortext(err, buffer, size);
-	if(ret < 0) {
-		ret = fwfs.geterrortext(err, buffer, size);
+	String s = ffs.getErrorString(err);
+	if(!s) {
+		s = fwfs.getErrorString(err);
 	}
-	return ret;
+	return s;
 }
 
 int FileSystem::hideFWFile(const char* path, bool hide)
@@ -373,7 +373,7 @@ File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 	char buf[SPIFFS_OBJ_NAME_LEN];
 	NameBuffer name(buf, sizeof(buf));
 	int res = fwfs.getFilePath(stat.id, name);
-	return res < 0 ? res : open(name, flags);
+	return res < 0 ? res : open(name.buffer, flags);
 }
 
 int FileSystem::close(File::Handle file)

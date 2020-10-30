@@ -30,8 +30,8 @@ int MemoryMedia::setExtent(uint32_t size)
 Media::Info MemoryMedia::getinfo() const
 {
 	return Media::Info{
-		.type = Type::Flash,
-		.bus = Bus::HSPI,
+		.type = Type::RAM,
+		.bus = Bus::System,
 		.blockSize = BLOCK_SIZE,
 	};
 }

@@ -15,6 +15,7 @@
 #include <BitManipulations.h>
 #include <stringutil.h>
 #include <sming_attr.h>
+#include <WString.h>
 #include <Data/BitSet.h>
 
 #define snprintf(_buf, _length, _fmt, ...) m_snprintf(_buf, _length, _fmt, ##__VA_ARGS__)
