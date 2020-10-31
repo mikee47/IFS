@@ -21,8 +21,8 @@
 #include <assert.h>
 #include <esp_spi_flash.h>
 #include <IFS/HYFS/FileSystem.h>
-#include <IFS/StdFileMedia.h>
-#include <IFS/MemoryMedia.h>
+#include <IFS/Host/FileMedia.h>
+#include <IFS/Host/MemoryMedia.h>
 #include <IFS/FlashMedia.h>
 #include <IFS/FWFS/ObjectStore.h>
 #include <IFS/Helpers.h>
@@ -102,7 +102,7 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 IFileSystem* initSpiffs()
 {
 	// Mount SPIFFS
-	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
+	auto ffsMedia = new Host::FileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
 	auto ffs = new SPIFFS::FileSystem(ffsMedia);
 
 	int err = ffs->mount();
@@ -160,7 +160,7 @@ IFileSystem* initFWFS(const String& imgfile)
 
 	IFS::Media* fwMedia;
 	if(imgfile) {
-		fwMedia = new StdFileMedia(imgfile.c_str(), FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadOnly);
+		fwMedia = new Host::FileMedia(imgfile.c_str(), FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadOnly);
 	} else {
 		flashmem_write(fwfsImage1.data(), 0, fwfsImage1.size());
 		fwMedia = new FlashMedia(uint32_t(0), Media::ReadOnly);
@@ -170,7 +170,7 @@ IFileSystem* initFWFS(const String& imgfile)
 
 #ifdef HYBRID_TEST
 
-	auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
+	auto ffsMedia = new Host::FileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
 	auto hfs = new HybridFileSystem(store, ffsMedia);
 
 #else
@@ -185,7 +185,7 @@ IFileSystem* initFWFS(const String& imgfile)
 
 	/*
  * Test SPIFFS object store
-		auto ffsMedia = new StdFileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+		auto ffsMedia = new Host::FileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, FLASH_SECTOR_SIZE, eFMA_ReadWrite);
 		auto store1 = new SPIFFSObjectStore(ffsMedia);
 		hfs->setVolume(1, store1);
 */

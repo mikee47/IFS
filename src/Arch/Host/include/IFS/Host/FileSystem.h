@@ -1,32 +1,36 @@
 /*
- * StdFileSystem.h
+ * FileSystem.h
  *
  *  Created on: 11 September 2018
  *      Author: mikee47
  *
  * Standard File System
  *
- * IFS wrapper for POSIX file system
+ * IFS wrapper for Host (POSIX) file system
  *
  */
 
 #pragma once
 
 #include <IFS/FileSystem.h>
-#include <sys/stat.h>
+
+struct stat;
 
 namespace IFS
 {
-/** @brief Implementation of standard mingw filing system using IFS
+namespace Host
+{
+/**
+ * @brief IFS implementation of Host filing system
  */
-class StdFileSystem : public IFileSystem
+class FileSystem : public IFileSystem
 {
 public:
-	StdFileSystem()
+	FileSystem()
 	{
 	}
 
-	~StdFileSystem() override
+	~FileSystem() override
 	{
 	}
 
@@ -95,4 +99,5 @@ private:
 	void fillStat(const struct stat& s, FileStat& stat);
 };
 
+} // namespace Host
 } // namespace IFS

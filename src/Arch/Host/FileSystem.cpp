@@ -1,5 +1,5 @@
 /*
- * StdFileSystem.cpp
+ * FileSystem.cpp
  *
  *  Created on: 11 Sep 2018
  *      Author: Mike
@@ -7,17 +7,25 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include "include/IFS/StdFileSystem.h"
+#include <IFS/Host/FileSystem.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 255
 #endif
 
 namespace IFS
+{
+struct FileDir {
+	char path[PATH_MAX];
+	DIR* d;
+};
+
+namespace Host
 {
 namespace
 {
@@ -49,17 +57,12 @@ int mapFlags(File::OpenFlags flags)
 
 } // namespace
 
-struct FileDir {
-	char path[PATH_MAX];
-	DIR* d;
-};
-
-int StdFileSystem::getinfo(Info& info)
+int FileSystem::getinfo(Info& info)
 {
 	return Error::NotImplemented;
 }
 
-String StdFileSystem::getErrorString(int err)
+String FileSystem::getErrorString(int err)
 {
 	char buffer[256];
 	auto res = strerror_r(err, buffer, sizeof(buffer));
@@ -69,7 +72,7 @@ String StdFileSystem::getErrorString(int err)
 	return String(buffer);
 }
 
-int StdFileSystem::opendir(const char* path, DirHandle& dir)
+int FileSystem::opendir(const char* path, DirHandle& dir)
 {
 	auto d = new FileDir;
 
@@ -85,7 +88,7 @@ int StdFileSystem::opendir(const char* path, DirHandle& dir)
 	return res;
 }
 
-int StdFileSystem::readdir(DirHandle dir, FileStat& stat)
+int FileSystem::readdir(DirHandle dir, FileStat& stat)
 {
 	int res;
 	dirent* e = ::readdir(dir->d);
@@ -114,14 +117,14 @@ int StdFileSystem::readdir(DirHandle dir, FileStat& stat)
 	return res;
 }
 
-int StdFileSystem::closedir(DirHandle dir)
+int FileSystem::closedir(DirHandle dir)
 {
 	auto d = reinterpret_cast<DIR*>(dir);
 	int res = ::closedir(d);
 	return res;
 }
 
-void StdFileSystem::fillStat(const struct stat& s, FileStat& stat)
+void FileSystem::fillStat(const struct stat& s, FileStat& stat)
 {
 	stat.clear();
 	stat.fs = this;
@@ -131,7 +134,7 @@ void StdFileSystem::fillStat(const struct stat& s, FileStat& stat)
 	stat.mtime = s.st_mtime;
 }
 
-int StdFileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, FileStat* stat)
 {
 	struct stat s;
 	int res = ::stat(path, &s);
@@ -144,7 +147,7 @@ int StdFileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int StdFileSystem::fstat(File::Handle file, FileStat* stat)
+int FileSystem::fstat(File::Handle file, FileStat* stat)
 {
 	struct stat s;
 	int res = ::fstat(file, &s);
@@ -155,33 +158,33 @@ int StdFileSystem::fstat(File::Handle file, FileStat* stat)
 	return res;
 }
 
-File::Handle StdFileSystem::open(const char* path, File::OpenFlags flags)
+File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 {
 	int res = ::open(path, mapFlags(flags));
 	return res;
 }
 
-File::Handle StdFileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
+File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 {
 	return Error::NotImplemented;
 }
 
-int StdFileSystem::close(File::Handle file)
+int FileSystem::close(File::Handle file)
 {
 	return ::close(file);
 }
 
-int StdFileSystem::read(File::Handle file, void* data, size_t size)
+int FileSystem::read(File::Handle file, void* data, size_t size)
 {
 	return ::read(file, data, size);
 }
 
-int StdFileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
+int FileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
 {
 	return ::lseek(file, offset, uint8_t(origin));
 }
 
-int StdFileSystem::eof(File::Handle file)
+int FileSystem::eof(File::Handle file)
 {
 	// POSIX doesn't appear to have eof()
 
@@ -199,14 +202,15 @@ int StdFileSystem::eof(File::Handle file)
 	return (pos >= stat.st_size) ? 1 : 0;
 }
 
-int32_t StdFileSystem::tell(File::Handle file)
+int32_t FileSystem::tell(File::Handle file)
 {
 	return ::lseek(file, 0, SEEK_CUR);
 }
 
-int StdFileSystem::truncate(File::Handle file, size_t new_size)
+int FileSystem::truncate(File::Handle file, size_t new_size)
 {
 	return ::ftruncate(file, new_size);
 }
 
+} // namespace Host
 } // namespace IFS

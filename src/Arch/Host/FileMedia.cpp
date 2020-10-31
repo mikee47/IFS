@@ -1,5 +1,5 @@
 /*
- * StdFileMedia.cpp
+ * FileMedia.cpp
  *
  *  Created on: 18 Aug 2018
  *      Author: mikee47
@@ -7,7 +7,7 @@
 
 #define _POSIX_C_SOURCE 200112L
 
-#include "include/IFS/StdFileMedia.h"
+#include <IFS/Host/FileMedia.h>
 #include <IFS/Error.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,7 +30,9 @@
 
 namespace IFS
 {
-StdFileMedia::StdFileMedia(const String& filename, uint32_t size, uint32_t blockSize, Media::Attributes attr)
+namespace Host
+{
+FileMedia::FileMedia(const String& filename, uint32_t size, uint32_t blockSize, Media::Attributes attr)
 	: Media(size, attr)
 {
 	m_blockSize = blockSize;
@@ -64,14 +66,14 @@ StdFileMedia::StdFileMedia(const String& filename, uint32_t size, uint32_t block
 	m_file = file;
 }
 
-StdFileMedia::~StdFileMedia()
+FileMedia::~FileMedia()
 {
 	if(m_file >= 0) {
 		close(m_file);
 	}
 }
 
-Media::Info StdFileMedia::getinfo() const
+Media::Info FileMedia::getinfo() const
 {
 	Media::Info info{
 		.type = Type::Disk,
@@ -82,7 +84,7 @@ Media::Info StdFileMedia::getinfo() const
 	return info;
 }
 
-int StdFileMedia::read(uint32_t offset, uint32_t size, void* buffer)
+int FileMedia::read(uint32_t offset, uint32_t size, void* buffer)
 {
 	CHECK_FILE();
 	FS_CHECK_EXTENT(offset, size);
@@ -91,7 +93,7 @@ int StdFileMedia::read(uint32_t offset, uint32_t size, void* buffer)
 	return (n == (int)size) ? FS_OK : Error::ReadFailure;
 }
 
-int StdFileMedia::write(uint32_t offset, uint32_t size, const void* data)
+int FileMedia::write(uint32_t offset, uint32_t size, const void* data)
 {
 	CHECK_FILE();
 	FS_CHECK_EXTENT(offset, size);
@@ -101,13 +103,14 @@ int StdFileMedia::write(uint32_t offset, uint32_t size, const void* data)
 	return (n == (int)size) ? FS_OK : Error::WriteFailure;
 }
 
-int StdFileMedia::erase(uint32_t offset, uint32_t size)
+int FileMedia::erase(uint32_t offset, uint32_t size)
 {
-	debug_i("StdFileMedia::erase(0x%08X, 0x%08X)", offset, size);
+	debug_i("FileMedia::erase(0x%08X, 0x%08X)", offset, size);
 
 	uint8_t tmp[size];
 	memset(tmp, 0xFF, size);
 	return write(offset, size, tmp);
 }
 
+} // namespace Host
 } // namespace IFS
