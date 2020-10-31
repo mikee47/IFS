@@ -96,9 +96,16 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 			}
 		} else {
 			switch(child.obj.type()) {
-			case Object::Type::FileAttr:
-				stat.attr |= File::Attributes{child.obj.data8.fileAttributes.attr};
+			case Object::Type::ObjAttr: {
+				Object::Attributes attr = child.obj.data8.objectAttributes.attr;
+				if(attr[Object::Attribute::ReadOnly]) {
+					stat.attr |= File::Attribute::ReadOnly;
+				}
+				if(attr[Object::Attribute::Archive]) {
+					stat.attr |= File::Attribute::Archive;
+				}
 				break;
+			}
 
 			case Object::Type::ObjectStore:
 				stat.attr |= _BV(File::Attribute::MountPoint) | _BV(File::Attribute::Directory);

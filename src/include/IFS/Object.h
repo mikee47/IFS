@@ -101,7 +101,7 @@ template <typename T> static T at_offset(void* current, int offset)
 	XX(0, End, "The system image footer")                                                                              \
 	XX(1, Data8, "Data, max 255 bytes")                                                                                \
 	XX(2, ID32, "32-bit identifier")                                                                                   \
-	XX(3, FileAttr, "File attributes")                                                                                 \
+	XX(3, ObjAttr, "Object attributes")                                                                                \
 	XX(4, Compression, "Compression descriptor")                                                                       \
 	XX(5, ReadACE, "minimum UserRole for read access")                                                                 \
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
@@ -142,7 +142,7 @@ struct Object {
 	 * @brief Object attributes
 	 * @note these are bit values
 	 */
-	enum class Attribute : uint8_t {
+	enum class Attribute {
 		/**
 		 * @brief Object should not be modified or deleted
 		 */
@@ -151,7 +151,11 @@ struct Object {
 		 *  @note Object has been changed on disk. Typically used by backup applications
 		 */
 		Archive,
+		//
+		MAX
 	};
+
+	using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
 
 	Type type() const
 	{
@@ -212,8 +216,8 @@ struct Object {
 
 				// Object attributes
 				struct {
-					uint8_t attr; // File::Attributes
-				} fileAttributes;
+					uint8_t attr; // Attributes
+				} objectAttributes;
 
 				// Compression descriptor
 				struct {
