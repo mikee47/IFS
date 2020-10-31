@@ -14,8 +14,8 @@
 #include <SystemClock.h>
 
 #ifdef ARCH_HOST
-#include <IFS/Host/MemoryMedia.h>
-using MediaType = IFS::Host::MemoryMedia;
+#include <IFS/MemoryMedia.h>
+using MediaType = IFS::MemoryMedia;
 #else
 using MediaType = IFS::FlashMedia;
 #endif

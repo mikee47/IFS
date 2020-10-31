@@ -5,16 +5,9 @@
  *      Author: mikee47
  */
 
-#define _POSIX_C_SOURCE 200112L
-
-#include <IFS/Host/FileMedia.h>
-#include <IFS/Error.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
+#include "include/IFS/FileSystem.h"
+#include "include/IFS/FileMedia.h"
+#include "include/IFS/Error.h"
 
 #define CHECK_FILE()                                                                                                   \
 	if(m_file < 0) {                                                                                                   \
@@ -24,61 +17,69 @@
 #define SEEK(_offset)                                                                                                  \
 	{                                                                                                                  \
 		auto off = _offset;                                                                                            \
-		if(lseek(m_file, off, SEEK_SET) != (int)off)                                                                   \
+		if(fileSys.lseek(m_file, off, File::SeekOrigin::Start) != (int)off) {                                          \
 			return Error::BadExtent;                                                                                   \
+		}                                                                                                              \
 	}
 
 namespace IFS
 {
-namespace Host
+FileMedia::~FileMedia()
 {
-FileMedia::FileMedia(const String& filename, uint32_t size, uint32_t blockSize, Media::Attributes attr)
-	: Media(size, attr)
-{
-	m_blockSize = blockSize;
-
-	int file =
-		open(filename.c_str(), O_BINARY | O_CREAT | (attr[Media::Attribute::ReadOnly] ? O_RDONLY : O_RDWR), 0644);
-	if(file < 0) {
-		debug_e("Failed to open '%s'", filename.c_str());
-		return; // Error::NotFound;
+	if(m_file >= 0) {
+		fileSys.close(m_file);
 	}
+}
 
-	int len = lseek(file, 0, SEEK_END);
+void FileMedia::open(const char* filename)
+{
+	File::OpenFlags flags = File::OpenFlag::Read;
+	if(!attr()[Attribute::ReadOnly]) {
+		flags |= File::OpenFlag::Create | File::OpenFlag::Write;
+	}
+	auto file = fileSys.open(filename, flags);
+	if(file < 0) {
+		debug_e("FileMedia failed to open '%s'", filename);
+	} else {
+		debug_i("FileMedia opened '%s' as #%d", filename, file);
+		attach(file);
+	}
+}
+
+void FileMedia::attach(File::Handle file)
+{
+	int len = fileSys.lseek(file, 0, File::SeekOrigin::End);
+	if(len < 0) {
+		debug_e("FileMedia #%d seek error %s", file, fileSys.getErrorString(len).c_str());
+		fileSys.close(file);
+		return;
+	}
 
 	/*
 	 * If file is larger than indicated size, use that as our initial media size,
 	 * alternatively if we're using the media in read/write then ensure the backing
 	 * file is at least as large as the maximum size indicated.
 	 */
-	if(len > (int)size) {
-		size = len;
-	} else if((int)size > len && !attr[Media::Attribute::ReadOnly]) {
-		if(ftruncate(file, size) < 0) {
-			::close(m_file);
+	if(len > int(m_size)) {
+		m_size = len;
+	} else if(int(m_size) > len && !attr()[Attribute::ReadOnly]) {
+		if(fileSys.truncate(file, m_size) < 0) {
+			debug_e("FileMedia failed to truncate #%d to %u bytes", file, m_size);
+			fileSys.close(file);
 			return;
 		}
 	}
 
-	debug_i("Opened file media '%s', %u bytes", filename.c_str(), size);
-
-	m_size = size;
+	debug_i("Opened FileMedia #%d, %u bytes", file, m_size);
 	m_file = file;
-}
-
-FileMedia::~FileMedia()
-{
-	if(m_file >= 0) {
-		close(m_file);
-	}
 }
 
 Media::Info FileMedia::getinfo() const
 {
 	Media::Info info{
-		.type = Type::Disk,
+		.type = Type::File,
 		.bus = Bus::System,
-		.blockSize = m_blockSize,
+		.blockSize = 1,
 	};
 
 	return info;
@@ -89,8 +90,8 @@ int FileMedia::read(uint32_t offset, uint32_t size, void* buffer)
 	CHECK_FILE();
 	FS_CHECK_EXTENT(offset, size);
 	SEEK(offset);
-	int n = ::read(m_file, buffer, size);
-	return (n == (int)size) ? FS_OK : Error::ReadFailure;
+	int n = fileSys.read(m_file, buffer, size);
+	return (n == int(size)) ? FS_OK : Error::ReadFailure;
 }
 
 int FileMedia::write(uint32_t offset, uint32_t size, const void* data)
@@ -99,8 +100,8 @@ int FileMedia::write(uint32_t offset, uint32_t size, const void* data)
 	FS_CHECK_EXTENT(offset, size);
 	FS_CHECK_WRITEABLE();
 	SEEK(offset);
-	int n = ::write(m_file, data, size);
-	return (n == (int)size) ? FS_OK : Error::WriteFailure;
+	int n = fileSys.write(m_file, data, size);
+	return (n == int(size)) ? FS_OK : Error::WriteFailure;
 }
 
 int FileMedia::erase(uint32_t offset, uint32_t size)
@@ -112,5 +113,4 @@ int FileMedia::erase(uint32_t offset, uint32_t size)
 	return write(offset, size, tmp);
 }
 
-} // namespace Host
 } // namespace IFS

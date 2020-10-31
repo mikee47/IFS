@@ -7,9 +7,6 @@
  * For testing file systems
  */
 
-// Mount hybrid FWFS/SPIFFS filesystem; if not defined, uses FWFS only
-//#define HYBRID_TEST
-
 // Read content of every file
 #define READ_FILE_TEST
 
@@ -21,15 +18,19 @@
 #include <assert.h>
 #include <esp_spi_flash.h>
 #include <IFS/HYFS/FileSystem.h>
-#include <IFS/Host/FileMedia.h>
-#include <IFS/Host/MemoryMedia.h>
+#include <IFS/MemoryMedia.h>
 #include <IFS/FlashMedia.h>
 #include <IFS/FWFS/ObjectStore.h>
 #include <IFS/Helpers.h>
+#include <IFS/FileMedia.h>
 #include <HardwareSerial.h>
 #include <hostlib/CommandLine.h>
 
 using namespace IFS;
+
+#ifdef ARCH_HOST
+#include <IFS/Host/FileSystem.h>
+#endif
 
 namespace
 {
@@ -46,10 +47,19 @@ IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 // Arbitrary limit on file size
 #define FWFILE_MAX_SIZE 0x100000
 
+#ifdef ARCH_HOST
+IFS::Host::FileSystem hostFileSys;
+#endif
+
+struct Flags {
+	bool hybrid;
+};
+Flags flags{};
+
 String getErrorString(IFileSystem* fs, int err)
 {
 	if(fs == nullptr) {
-		return IFS::Error::toString(err);
+		return Error::toString(err);
 	} else {
 		return fs->getErrorString(err);
 	}
@@ -58,7 +68,7 @@ String getErrorString(IFileSystem* fs, int err)
 int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 {
 	if(stat.attr[File::Attribute::Directory]) {
-		return IFS::Error::NotSupported;
+		return Error::NotSupported;
 	}
 
 	int res = FS_OK;
@@ -102,12 +112,12 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 IFileSystem* initSpiffs()
 {
 	// Mount SPIFFS
-	auto ffsMedia = new Host::FileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
+	auto ffsMedia = new FileMedia(hostFileSys, FLASHMEM_DMP, FFS_FLASH_SIZE, Media::ReadWrite);
 	auto ffs = new SPIFFS::FileSystem(ffsMedia);
 
 	int err = ffs->mount();
 	if(err < 0) {
-		debug_e("Mount failed: %s", getErrorString(ffs, err).c_str());
+		debug_e("SPIFFS mount failed: %s", getErrorString(ffs, err).c_str());
 		delete ffs;
 		return nullptr;
 	}
@@ -115,7 +125,7 @@ IFileSystem* initSpiffs()
 	IFileSystem::Info info;
 	err = ffs->getinfo(info);
 	if(err < 0) {
-		debug_e("Failed to get FS info: %s", getErrorString(ffs, err).c_str());
+		debug_e("Failed to get SPIFFS info: %s", getErrorString(ffs, err).c_str());
 		delete ffs;
 		return nullptr;
 	}
@@ -158,48 +168,64 @@ IFileSystem* initFWFS(const String& imgfile)
 {
 	debug_i("fwfiles_data = %p, len = 0x%08X", fwfsImage1.data(), fwfsImage1.length());
 
-	IFS::Media* fwMedia;
+	Media* fwMedia;
+#ifdef ARCH_HOST
 	if(imgfile) {
-		fwMedia = new Host::FileMedia(imgfile.c_str(), FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadOnly);
+		fwMedia = new FileMedia(hostFileSys, imgfile, FWFILE_MAX_SIZE, Media::ReadOnly);
 	} else {
 		flashmem_write(fwfsImage1.data(), 0, fwfsImage1.size());
 		fwMedia = new FlashMedia(uint32_t(0), Media::ReadOnly);
 	}
+#endif
 
 	auto store = new FWFS::ObjectStore(fwMedia);
 
-#ifdef HYBRID_TEST
+	IFileSystem* fs;
+	if(flags.hybrid) {
+		auto ffsMedia = new FileMedia(hostFileSys, FLASHMEM_DMP, FFS_FLASH_SIZE, Media::ReadWrite);
+		fs = new HYFS::FileSystem(store, ffsMedia);
 
-	auto ffsMedia = new Host::FileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadWrite);
-	auto hfs = new HybridFileSystem(store, ffsMedia);
+	} else {
+		fs = new FWFS::FileSystem(store);
 
-#else
-
-	auto hfs = new FWFS::FileSystem(store);
-
-	/*
+		/*
 	flashmem_write(_fwfiles_data1, _fwfiles_data_len, _fwfiles_data1_len);
 	auto fwMedia1 = new IFSFlashMedia(_fwfiles_data_len, eFMA_ReadOnly);
 	auto store1 = new FWFS::ObjectStore(fwMedia1);
 */
 
-	/*
+		/*
  * Test SPIFFS object store
-		auto ffsMedia = new Host::FileMedia(FLASHMEM_DMP, FFS_FLASH_SIZE, FLASH_SECTOR_SIZE, eFMA_ReadWrite);
+		auto ffsMedia = new FileMedia(hostFileSys, FLASHMEM_DMP, FFS_FLASH_SIZE, FLASH_SECTOR_SIZE, eFMA_ReadWrite);
 		auto store1 = new SPIFFSObjectStore(ffsMedia);
 		hfs->setVolume(1, store1);
 */
-
-#endif
-
-	int err = hfs->mount();
-	if(err < 0) {
-		debug_e("Mount failed: %s", getErrorString(hfs, err).c_str());
-		delete hfs;
-		hfs = nullptr;
 	}
 
-	return hfs;
+	int err = fs->mount();
+	if(err < 0) {
+		debug_e("HFS mount failed: %s", getErrorString(fs, err).c_str());
+		delete fs;
+		fs = nullptr;
+	}
+
+	return fs;
+}
+
+IFileSystem* initFWFSOnFile(IFileSystem& fileSys, const String& imgfile)
+{
+	auto media = new FileMedia(fileSys, imgfile, 0, Media::Attribute::ReadOnly);
+	auto store = new FWFS::ObjectStore(media);
+	auto fs = new FWFS::FileSystem(store);
+
+	int err = fs->mount();
+	if(err < 0) {
+		debug_e("FWFS-on-file mount failed: %s", getErrorString(fs, err).c_str());
+		delete fs;
+		fs = nullptr;
+	}
+
+	return fs;
 }
 
 void printFsInfo(IFileSystem* fs)
@@ -372,13 +398,8 @@ void fstest(IFileSystem* fs)
 	scandir(fs, "");
 }
 
-} // namespace
-
-void init()
+void execute()
 {
-	Serial.begin();
-	Serial.systemDebugOutput(true);
-
 	auto& params = commandLine.getParameters();
 
 	String imgfile = params.findIgnoreCase("imgfile").getValue();
@@ -386,11 +407,22 @@ void init()
 	Serial.print(imgfile);
 	Serial.println('\'');
 
+	flags.hybrid = params.findIgnoreCase("hybrid");
+
 	Serial.println();
 	auto fs = initFWFS(imgfile);
 	if(fs != nullptr) {
 		printFsInfo(fs);
 		fstest(fs);
+
+		Serial.println();
+		auto fs2 = initFWFSOnFile(*fs, F("backup.fwfs"));
+		if(fs2 != nullptr) {
+			printFsInfo(fs2);
+			fstest(fs2);
+			delete fs2;
+		}
+
 		delete fs;
 	}
 
@@ -401,6 +433,16 @@ void init()
 		fstest(fs);
 		delete fs;
 	}
+}
+
+} // namespace
+
+void init()
+{
+	Serial.begin();
+	Serial.systemDebugOutput(true);
+
+	execute();
 
 	System.restart();
 }

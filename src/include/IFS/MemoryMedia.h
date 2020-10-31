@@ -10,11 +10,9 @@
 
 #pragma once
 
-#include <IFS/Media.h>
+#include "Media.h"
 
 namespace IFS
-{
-namespace Host
 {
 /**
  * @brief Media object representing storage in regular memory.
@@ -43,5 +41,4 @@ private:
 	const void* startPtr;
 };
 
-} // namespace Host
 } // namespace IFS

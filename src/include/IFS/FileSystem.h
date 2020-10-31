@@ -166,12 +166,20 @@ public:
 	}
 
 	/**
-	 * @brief open a directory for reading
+	 * @name open a directory for reading
      * @param path path to directory. nullptr is interpreted as root directory
      * @param dir returns a pointer to the directory object
      * @retval int error code
+	 * @{
      */
 	virtual int opendir(const char* path, DirHandle& dir) = 0;
+
+	int opendir(const String& path, DirHandle& dir)
+	{
+		return opendir(path.c_str(), dir);
+	}
+
+	/** @} */
 
 	/**
 	 * @brief open a directory for reading
@@ -202,28 +210,52 @@ public:
 	virtual int closedir(DirHandle dir) = 0;
 
 	/**
-	 * @brief get file information
+	 * @name get file information
      * @param path name or path of file
-     * @param stat structure to return information in, may be null to do a simple file existence check
+     * @param s structure to return information in, may be null to do a simple file existence check
      * @retval int error code
+     * @{
      */
 	virtual int stat(const char* path, File::Stat* stat) = 0;
 
+	int stat(const String& path, File::Stat* s)
+	{
+		return stat(path.c_str(), s);
+	}
+
+	/** @} */
+
 	/**
-	 * @brief get file information
+	 * @name get file information
      * @param file handle to open file
      * @param stat structure to return information in, may be null
      * @retval int error code
+     * @{
      */
 	virtual int fstat(File::Handle file, File::Stat* stat) = 0;
 
+	int fstat(File::Handle file, File::Stat& stat)
+	{
+		return fstat(file, &stat);
+	}
+
+	/** @} */
+
 	/**
-	 * @brief open a file by name/path
+	 * @name open a file by name/path
      * @param path full path to file
      * @param flags opens for opening file
      * @retval File::Handle file handle or error code
+     * @{
      */
 	virtual File::Handle open(const char* path, File::OpenFlags flags) = 0;
+
+	File::Handle open(const String& path, File::OpenFlags flags)
+	{
+		return open(path.c_str(), flags);
+	}
+
+	/** @} */
 
 	/**
 	 * @brief open a file from it's stat structure
@@ -321,19 +353,35 @@ public:
 	virtual int settime(File::Handle file, time_t mtime) = 0;
 
 	/**
-	 * @brief rename a file
+	 * @name rename a file
      * @param oldpath
      * @param newpath
      * @retval int error code
+     * @{
      */
 	virtual int rename(const char* oldpath, const char* newpath) = 0;
 
+	int rename(const String& oldpath, const String& newpath)
+	{
+		return rename(oldpath.c_str(), newpath.c_str());
+	}
+
+	/** @} */
+
 	/**
-	 * @brief remove (delete) a file by path
+	 * @name remove (delete) a file by path
      * @param path
      * @retval int error code
+     * @{
      */
 	virtual int remove(const char* path) = 0;
+
+	int remove(const String& path)
+	{
+		return remove(path.c_str());
+	}
+
+	/** @} */
 
 	/**
 	 * @brief remove (delete) a file by handle

@@ -34,6 +34,11 @@ public:
 	{
 	}
 
+	int mount() override
+	{
+		return FS_OK;
+	}
+
 	// IFileSystem methods
 	int getinfo(Info& info) override;
 	String getErrorString(int err) override;

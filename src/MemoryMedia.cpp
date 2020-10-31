@@ -5,12 +5,9 @@
  *      Author: mikee47
  */
 
-#include <IFS/Host/MemoryMedia.h>
-#include <IFS/Error.h>
+#include "include/IFS/MemoryMedia.h"
 
 namespace IFS
-{
-namespace Host
 {
 const uint32_t MAX_MEMORY_SIZE = 4096 * 1024U;
 const uint32_t BLOCK_SIZE = 4096U;
@@ -67,5 +64,4 @@ int MemoryMedia::erase(uint32_t offset, uint32_t size)
 	return FS_OK;
 }
 
-} // namespace Host
 } // namespace IFS

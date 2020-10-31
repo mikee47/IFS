@@ -19,7 +19,8 @@ namespace IFS
 	XX(RAM, "RAM")                                                                                                     \
 	XX(Flash, "Flash memory (no wear levelling)")                                                                      \
 	XX(SDCard, "SD card - flash with wear levelling")                                                                  \
-	XX(Disk, "Physical disk")
+	XX(Disk, "Physical disk")                                                                                          \
+	XX(File, "Backing file")
 
 #define IFS_MEDIA_BUS_MAP(XX)                                                                                          \
 	XX(Unknown, "Unknown")                                                                                             \
@@ -212,7 +213,7 @@ public:
 	}
 
 protected:
-	uint32_t m_size;   ///< Size of media in bytes (always starts at 0)
+	size_t m_size;	 ///< Size of media in bytes (always starts at 0)
 	Attributes m_attr; ///< Specific media attributes
 };
 
