@@ -92,6 +92,7 @@ class Config:
 
     def __init__(self, filename):
         self.__file = configparser.ConfigParser()
+        self.__file.optionxform = str  # Preserve case
         self.__file.readfp(open(filename))
         
         # Pull rule specifications into objects for efficient parsing
@@ -134,5 +135,4 @@ class Config:
             return self.__file.get('config', option)
         else:
             return default
-
 

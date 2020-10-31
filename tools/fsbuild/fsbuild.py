@@ -12,43 +12,6 @@ from FWFS import FwObt
 from compress import CompressionType
 import argparse
 
-parser = argparse.ArgumentParser(description='Firmware Filesystem Builder')
-parser.add_argument('-l', '--log', metavar='filename', help='Create build log file, use `-` to print to screen')
-parser.add_argument('-f', '--files', metavar='directory', help='Create file layout for inspection')
-parser.add_argument('-i', '--input', metavar='filename', required=True, help='Source configuration file')
-parser.add_argument('-o', '--output', metavar='filename', required=True, help='Destination image file')
-parser.add_argument('-v', '--verbose', action='store_true', help='Show build details')
-
-args = parser.parse_args()
-
-configFile = os.path.expandvars(util.ospath(args.input))
-configDir = os.path.dirname(configFile)
-
-# Parse the configuration file
-cfg = config.Config(configFile)
-
-# Non-absolute file paths are relative to location of config file
-if configDir != "":
-    os.chdir(configDir)
-
-img = FWFS.Image(cfg.volumeName(), cfg.volumeID())
-
-outFilePath = args.files
-if outFilePath:
-    print("Writing copy of generated files to '" + outFilePath + '"')
-    util.mkdir(outFilePath)
-    util.cleandir(outFilePath)
-
-if args.log:
-    if args.log == '-':
-        logfile = sys.stdout
-    else:
-        logfile = open(args.log, 'w')
-    fmtstr = "{:<40} {:>8} {:>8} {:>8} {:>8} {:>8} {:>5}%  {:<16} {:<8} {:<8}\n"
-    logfile.write(fmtstr.format("Filename", "NameLen", "Children", "In", "Out", "Change", "", "ACL (R,W)", "Attr", "Compress"))
-    logfile.write(fmtstr.format("--------", "-------", "--------", "--", "---", "------", "", "---------", "----", "--------"))
-else:
-    logfile = None
 
 # Create a file object, add it to the parent
 def addFile(parent, name, sourcePath):
@@ -140,31 +103,76 @@ def addDirectory(parent, name, sourcePath):
     return dirObj
 
 
-#
-cfg.applyRules(img.root())
+if __name__ == "__main__":
 
-# resolve file mappings
-for target, source in cfg.sourceMap():
-    createFsObject(img.root(), target, os.path.expandvars(source))
+    print("Python version: ", sys.version, ", version info: ", sys.version_info)
 
-# create mount point objects
-for target, store in cfg.mountPoints():
-    img.root().appendMountPoint(target, store)
+    parser = argparse.ArgumentParser(description='Firmware Filesystem Builder')
+    parser.add_argument('-l', '--log', metavar='filename', help='Create build log file, use `-` to print to screen')
+    parser.add_argument('-f', '--files', metavar='directory', help='Create file layout for inspection')
+    parser.add_argument('-i', '--input', metavar='filename', required=True, help='Source configuration file')
+    parser.add_argument('-o', '--output', metavar='filename', required=True, help='Destination image file')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Show build details')
+    
+    args = parser.parse_args()
+    
+    configFile = os.path.expandvars(util.ospath(args.input))
+    configDir = os.path.dirname(configFile)
+    
+    # Parse the configuration file
+    cfg = config.Config(configFile)
+    
+    # Non-absolute file paths are relative to location of config file
+    if configDir != "":
+        os.chdir(configDir)
+    
+    img = FWFS.Image(cfg.volumeName(), cfg.volumeID())
+    
+    outFilePath = args.files
+    if outFilePath:
+        print("Writing copy of generated files to '" + outFilePath + '"')
+        util.mkdir(outFilePath)
+        util.cleandir(outFilePath)
+    
+    if args.log:
+        if args.log == '-':
+            logfile = sys.stdout
+        else:
+            logfile = open(args.log, 'w')
+        fmtstr = "{:<40} {:>8} {:>8} {:>8} {:>8} {:>8} {:>5}%  {:<16} {:<8} {:<8}\n"
+        logfile.write(fmtstr.format("Filename", "NameLen", "Children", "In", "Out", "Change", "", "ACL (R,W)", "Attr", "Compress"))
+        logfile.write(fmtstr.format("--------", "-------", "--------", "--", "---", "------", "", "---------", "----", "--------"))
+    else:
+        logfile = None
+    
+    #
+    cfg.applyRules(img.root())
+    
+    # resolve file mappings
+    for target, source in cfg.sourceMap():
+        if logfile:
+            logfile.write(">> '{}' -> '{}'\n".format(target, source))
+        createFsObject(img.root(), target, os.path.expandvars(source))
+    
+    # create mount point objects
+    for target, store in cfg.mountPoints():
+        img.root().appendMountPoint(target, store)
+    
+    # Emit the image
+    imgFilePath = util.ospath(args.output)
+    print("Writing image to '" + imgFilePath + "'")
+    img.writeToFile(imgFilePath)
+    
+    totalDataSize = img.root().totalDataSize()
+    totalOriginalDataSize = img.root().totalOriginalDataSize()
+    if totalOriginalDataSize == 0:
+        pc = 0
+    else:
+        pc = round(100 * totalDataSize / totalOriginalDataSize)
+    fileCount = img.root().fileCount(True)
+    if logfile:
+        logfile.write(fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", ""))
+        logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", ""))
+    
+    print("Image contains {} objects, {} bytes in {} files ({}% of source data size)".format(img.objectCount(), totalDataSize, fileCount, pc))
 
-# Emit the image
-imgFilePath = util.ospath(args.output)
-print("Writing image to '" + imgFilePath + "'")
-img.writeToFile(imgFilePath)
-
-totalDataSize = img.root().totalDataSize()
-totalOriginalDataSize = img.root().totalOriginalDataSize()
-if totalOriginalDataSize == 0:
-    pc = 0
-else:
-    pc = round(100 * totalDataSize / totalOriginalDataSize)
-fileCount = img.root().fileCount(True)
-if logfile:
-    logfile.write(fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", ""))
-    logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", ""))
-
-print("Image contains {} objects, {} bytes in {} files ({}% of source data size)".format(img.objectCount(), totalDataSize, fileCount, pc))
