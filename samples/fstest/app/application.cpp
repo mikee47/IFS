@@ -27,13 +27,14 @@
 #include <IFS/FWFS/ObjectStore.h>
 #include <IFS/Helpers.h>
 #include <HardwareSerial.h>
+#include <hostlib/CommandLine.h>
 
 using namespace IFS;
 
 namespace
 {
 // We mount SPIFFS on a file so we can inspect if necessary
-const char* FLASHMEM_DMP = "out/flashmem.dmp";
+DEFINE_FSTR(FLASHMEM_DMP, "out/flashmem.dmp")
 
 IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 //IMPORT_FSTR(fwfsImage2, PROJECT_DIR "/out/fwfsImage2.bin")
@@ -153,13 +154,13 @@ IFileSystem* initSpiffs()
  *  @param imgfile optional name of FWFS image to load
  *  @retval bool true on success
  */
-IFileSystem* initFWFS(const char* imgfile)
+IFileSystem* initFWFS(const String& imgfile)
 {
 	debug_i("fwfiles_data = %p, len = 0x%08X", fwfsImage1.data(), fwfsImage1.length());
 
 	IFS::Media* fwMedia;
-	if(imgfile != nullptr) {
-		fwMedia = new StdFileMedia(imgfile, FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadOnly);
+	if(imgfile) {
+		fwMedia = new StdFileMedia(imgfile.c_str(), FWFILE_MAX_SIZE, INTERNAL_FLASH_SECTOR_SIZE, Media::ReadOnly);
 	} else {
 		flashmem_write(fwfsImage1.data(), 0, fwfsImage1.size());
 		fwMedia = new FlashMedia(uint32_t(0), Media::ReadOnly);
@@ -378,8 +379,12 @@ void init()
 	Serial.begin();
 	Serial.systemDebugOutput(true);
 
-	//	const char* imgfile = (argc > 1) ? argv[1] : nullptr;
-	char* imgfile{nullptr};
+	auto& params = commandLine.getParameters();
+
+	String imgfile = params.findIgnoreCase("imgfile").getValue();
+	Serial.print("imgfile = '");
+	Serial.print(imgfile);
+	Serial.println('\'');
 
 	Serial.println();
 	auto fs = initFWFS(imgfile);

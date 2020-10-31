@@ -3,6 +3,8 @@
 	<name>fstest</name>
 	<comment></comment>
 	<projects>
+		<project>SmingFramework</project>
+		<project>Sming</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
