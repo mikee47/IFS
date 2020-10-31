@@ -29,8 +29,8 @@ namespace IFS
  */
 struct NameBuffer {
 	char* buffer{nullptr}; ///< Buffer to store name
-	uint16_t size{0};	   ///< IN: Size of buffer
-	uint16_t length{0};	   ///< OUT: length of name
+	uint16_t size{0};	  ///< IN: Size of buffer
+	uint16_t length{0};	///< OUT: length of name
 
 	NameBuffer()
 	{

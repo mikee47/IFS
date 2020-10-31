@@ -53,7 +53,7 @@ void FileSystem::printObject(const FWObjDesc& od)
 	} else {
 		name[0] = '\0';
 	}
-	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.type_, od.obj.size(),
+	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.typeData, od.obj.size(),
 			toString(od.obj.type()).c_str(), name);
 	//	if (od.obj.size() <= 4)
 	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());

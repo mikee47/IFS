@@ -18,26 +18,27 @@
 
 #define CHECK_FILE()                                                                                                   \
 	if(m_file < 0) {                                                                                                   \
-		return Error::NoMedia;                                                                                          \
+		return Error::NoMedia;                                                                                         \
 	}
 
 #define SEEK(_offset)                                                                                                  \
 	{                                                                                                                  \
 		auto off = _offset;                                                                                            \
 		if(lseek(m_file, off, SEEK_SET) != (int)off)                                                                   \
-			return Error::BadExtent;                                                                                    \
+			return Error::BadExtent;                                                                                   \
 	}
 
 namespace IFS
 {
-StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSize, Media::Attributes attr)
+StdFileMedia::StdFileMedia(const String& filename, uint32_t size, uint32_t blockSize, Media::Attributes attr)
 	: Media(size, attr)
 {
 	m_blockSize = blockSize;
 
-	int file = open(filename, O_BINARY | O_CREAT | (attr[Media::Attribute::ReadOnly] ? O_RDONLY : O_RDWR), 0644);
+	int file =
+		open(filename.c_str(), O_BINARY | O_CREAT | (attr[Media::Attribute::ReadOnly] ? O_RDONLY : O_RDWR), 0644);
 	if(file < 0) {
-		debug_e("Failed to open '%s'", filename);
+		debug_e("Failed to open '%s'", filename.c_str());
 		return; // Error::NotFound;
 	}
 
@@ -57,7 +58,7 @@ StdFileMedia::StdFileMedia(const char* filename, uint32_t size, uint32_t blockSi
 		}
 	}
 
-	debug_i("Opened file media '%s', %u bytes", filename, size);
+	debug_i("Opened file media '%s', %u bytes", filename.c_str(), size);
 
 	m_size = size;
 	m_file = file;
