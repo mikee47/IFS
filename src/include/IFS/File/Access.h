@@ -24,12 +24,19 @@ struct ACL {
 	UserRole writeAccess : 8;
 };
 
+/**
+ * @brief Return a brief textual representation for an ACL
+ * Suitable for inclusion in a file listing
+ * @param acl
+ * @retval String
+ */
+String getAclString(const IFS::File::ACL& acl);
+
 } // namespace File
 } // namespace IFS
 
 /**
- * @brief Return a brief textual representation for an ACL
- * Suitable for inclusion in a file listing
+ * @brief Return a descriptive textual representation for an ACL
  * @param acl
  * @retval String
  */
