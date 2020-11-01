@@ -62,7 +62,7 @@ def addFile(parent, name, sourcePath):
         din = fin.read()
         ext = os.path.splitext(name)[1]
         if ext == '.json':
-            dout = json.dumps(json.loads(din), separators=(',', ':')).encode()
+            dout = json.dumps(json.loads(din.decode()), separators=(',', ':')).encode()
         elif ext in ['.js']:
             dout = util.js_minify(din)
         else:
