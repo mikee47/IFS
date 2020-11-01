@@ -1,4 +1,6 @@
-COMPONENT_DEPENDS := spiffs
+COMPONENT_DEPENDS := \
+	FlashString \
+	spiffs
 
 COMPONENT_SRCDIRS := \
 	src \
