@@ -222,6 +222,7 @@ struct Object {
 				// Compression descriptor
 				struct {
 					File::Compression type;
+					uint32_t originalSize;
 				} compression;
 
 				// ReadACE, WriteACE

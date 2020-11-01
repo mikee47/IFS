@@ -40,6 +40,7 @@ def addFile(parent, name, sourcePath):
             dcmp = util.compress(dout)
             if len(dcmp) < len(dout):
                 dout = dcmp
+                cmp.setOriginalSize(len(din))
             else:
                 # File is bigger, leave uncompressed
                 fileObj.removeObject(cmp)
@@ -47,7 +48,7 @@ def addFile(parent, name, sourcePath):
             print("Unsupported compression type: " + cmp.toString())
             sys.exit(1)
 
-    fileObj.appendData(dout, len(din))
+    fileObj.appendData(dout)
 
     # If required, write copy of generated file
     if outFilePath is not None:

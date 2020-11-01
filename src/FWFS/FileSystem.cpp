@@ -72,7 +72,6 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 	stat.id = entry.ref.fileID();
 	stat.mtime = entry.obj.data16.named.mtime;
 	stat.acl = rootACL;
-	stat.size = 0;
 
 	int res;
 	FWObjDesc child;
@@ -114,6 +113,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 			case Object::Type::Compression:
 				stat.compression = child.obj.data8.compression.type;
 				stat.attr |= File::Attribute::Compressed;
+				stat.originalSize = child.obj.data8.compression.originalSize;
 				break;
 
 			case Object::Type::ReadACE:
@@ -133,6 +133,10 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 
 	if(entry.obj.type() == Object::Type::Directory) {
 		stat.attr |= File::Attribute::Directory;
+	}
+
+	if(!stat.attr[File::Attribute::Compressed]) {
+		stat.originalSize = stat.size;
 	}
 
 	return readObjectName(entry, stat.name);

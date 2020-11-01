@@ -214,9 +214,16 @@ class CompressionObject(Object8):
             self.__compressionType = s
         else:
             self.__compressionType = CompressionType.__members__[s]
+        self.__originalSize = 0
+
+    def setOriginalSize(self, size):
+        self.__originalSize = size
+        
+    def originalSize(self):
+        return self.__originalSize
 
     def content(self):
-        return struct.pack("<B", self.__compressionType)
+        return struct.pack("<BL", self.__compressionType, self.__originalSize)
 
     def compressionType(self):
         return self.__compressionType
@@ -291,7 +298,6 @@ class NamedObject(Object16):
         self.__children = []
         self.name = name
         self.mtime = time.time()
-        self.__originalDataSize = 0;
         self.__dataSize = 0
 
     def pathsep(self):
@@ -405,7 +411,7 @@ class NamedObject(Object16):
                 return child
         return None
 
-    def appendData(self, content, originalSize):
+    def appendData(self, content):
         length = len(content)
         if length <= 0xff:
             Object8(self, FwObt.Data8, content)
@@ -416,8 +422,6 @@ class NamedObject(Object16):
         else:
             print("Object data too large")
             exit(1)
-
-        self.__originalDataSize += originalSize;
         self.__dataSize += len(content)
 
 
@@ -437,7 +441,11 @@ class NamedObject(Object16):
         return self.__dataSize;
 
     def originalDataSize(self):
-        return self.__originalDataSize;
+        cmp = self.findObject(FwObt.Compression)
+        if cmp is None:
+            return self.__dataSize
+        else:
+            return cmp.originalSize()
 
     def totalChildCount(self):
         total = self.childCount()
