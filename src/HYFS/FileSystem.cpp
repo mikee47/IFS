@@ -234,6 +234,23 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 	return res;
 }
 
+int FileSystem::rewinddir(DirHandle dir)
+{
+	if(dir == nullptr) {
+		return Error::BadParam;
+	}
+
+	if(dir->fs == &ffs) {
+		return ffs.rewinddir(dir->ffs);
+	}
+
+	if(dir->fs == &fwfs) {
+		return fwfs.rewinddir(dir->fw);
+	}
+
+	return Error::BadParam;
+}
+
 int FileSystem::closedir(DirHandle dir)
 {
 	if(dir == nullptr) {

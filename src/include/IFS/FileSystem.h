@@ -203,6 +203,13 @@ public:
 	virtual int readdir(DirHandle dir, File::Stat& stat) = 0;
 
 	/**
+	 * @brief Reset directory read position to start
+     * @param dir
+     * @retval int error code
+     */
+	virtual int rewinddir(DirHandle dir) = 0;
+
+	/**
 	 * @brief close a directory object
      * @param dir directory to close
      * @retval int error code

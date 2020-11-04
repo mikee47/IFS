@@ -113,6 +113,7 @@ public:
 	int opendir(const char* path, DirHandle& dir) override;
 	int fopendir(const FileStat* stat, DirHandle& dir) override;
 	int readdir(DirHandle dir, FileStat& stat) override;
+	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
 	int stat(const char* path, FileStat* stat) override;
 	int fstat(File::Handle file, FileStat* stat) override;

@@ -610,6 +610,17 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 	return res == Error::EndOfObjects ? Error::NoMoreFiles : res;
 }
 
+int FileSystem::rewinddir(DirHandle dir)
+{
+	CHECK_MOUNTED();
+
+	auto file = reinterpret_cast<int>(dir);
+	GET_FD();
+
+	fd.cursor = 0;
+	return 0;
+}
+
 int FileSystem::closedir(DirHandle dir)
 {
 	return close(reinterpret_cast<int>(dir));
