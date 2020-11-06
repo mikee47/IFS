@@ -412,7 +412,7 @@ int FileSystem::write(File::Handle file, const void* data, size_t size)
 	return err;
 }
 
-int FileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
+int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 {
 	int res = SPIFFS_lseek(handle(), file, offset, int(origin));
 	if(res < 0) {

@@ -17,7 +17,7 @@
 #define SEEK(_offset)                                                                                                  \
 	{                                                                                                                  \
 		auto off = _offset;                                                                                            \
-		if(fileSys.lseek(m_file, off, File::SeekOrigin::Start) != (int)off) {                                          \
+		if(fileSys.lseek(m_file, off, SeekOrigin::Start) != (int)off) {                                          \
 			return Error::BadExtent;                                                                                   \
 		}                                                                                                              \
 	}
@@ -48,7 +48,7 @@ void FileMedia::open(const char* filename)
 
 void FileMedia::attach(File::Handle file)
 {
-	int len = fileSys.lseek(file, 0, File::SeekOrigin::End);
+	int len = fileSys.lseek(file, 0, SeekOrigin::End);
 	if(len < 0) {
 		debug_e("FileMedia #%d seek error %s", file, fileSys.getErrorString(len).c_str());
 		fileSys.close(file);

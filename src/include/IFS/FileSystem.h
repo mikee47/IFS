@@ -14,9 +14,9 @@
 
 #include "File/Stat.h"
 #include "File/OpenFlags.h"
-#include "File/SeekOrigin.h"
 #include "Media.h"
 #include "Error.h"
+#include <Data/Stream/SeekOrigin.h>
 
 /**
  * @brief Four-character tag to identify type of filing system
@@ -304,7 +304,7 @@ public:
      * @param origin where to seek from (start/end or current position)
      * @retval int current position or error code
      */
-	virtual int lseek(File::Handle file, int offset, File::SeekOrigin origin) = 0;
+	virtual int lseek(File::Handle file, int offset, SeekOrigin origin) = 0;
 
 	/**
 	 * @brief determine if current file position is at end of file

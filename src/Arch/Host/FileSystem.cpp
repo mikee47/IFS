@@ -179,7 +179,7 @@ int FileSystem::read(File::Handle file, void* data, size_t size)
 	return ::read(file, data, size);
 }
 
-int FileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
+int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 {
 	return ::lseek(file, offset, uint8_t(origin));
 }

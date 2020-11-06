@@ -64,7 +64,7 @@ public:
 	int close(File::Handle file) override;
 	int read(File::Handle file, void* data, size_t size) override;
 	int write(File::Handle file, const void* data, size_t size) override;
-	int lseek(File::Handle file, int offset, File::SeekOrigin origin) override;
+	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
 	int eof(File::Handle file) override;
 	int32_t tell(File::Handle file) override;
 	int truncate(File::Handle file, size_t new_size) override;

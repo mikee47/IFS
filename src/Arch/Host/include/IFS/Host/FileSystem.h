@@ -67,7 +67,7 @@ public:
 	{
 		return Error::ReadOnly;
 	}
-	int lseek(File::Handle file, int offset, File::SeekOrigin origin) override;
+	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
 	int eof(File::Handle file) override;
 	int32_t tell(File::Handle file) override;
 	int truncate(File::Handle file, size_t new_size) override;

@@ -198,14 +198,14 @@ int FileSystem::read(File::Handle file, void* data, size_t size)
 	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
 }
 
-int FileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
+int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 {
 	GET_FD();
 
 	int newOffset = offset;
-	if(origin == File::SeekOrigin::Current) {
+	if(origin == SeekOrigin::Current) {
 		newOffset += (int)fd.cursor;
-	} else if(origin == File::SeekOrigin::End) {
+	} else if(origin == SeekOrigin::End) {
 		newOffset += (int)fd.dataSize;
 	}
 

@@ -338,7 +338,7 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 
 	// If not truncating then copy content into FFS file
 	if(!flags[File::OpenFlag::Truncate]) {
-		ffs.lseek(ffsfile, 0, File::SeekOrigin::Start);
+		ffs.lseek(ffsfile, 0, SeekOrigin::Start);
 		uint8_t buffer[512];
 		while(fwfs.eof(fwfile) == 0) {
 			int len = fwfs.read(fwfile, buffer, sizeof(buffer));
@@ -357,7 +357,7 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 		}
 		// Move back to beginning if we're not appending
 		if(!flags[File::OpenFlag::Append]) {
-			ffs.lseek(ffsfile, 0, File::SeekOrigin::Start);
+			ffs.lseek(ffsfile, 0, SeekOrigin::Start);
 		}
 	}
 
@@ -474,7 +474,7 @@ int FileSystem::write(File::Handle file, const void* data, size_t size)
 	return fs->write(file, data, size);
 }
 
-int FileSystem::lseek(File::Handle file, int offset, File::SeekOrigin origin)
+int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 {
 	GET_FS(file)
 	int res = fs->lseek(file, offset, origin);
