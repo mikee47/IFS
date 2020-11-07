@@ -64,10 +64,7 @@ public:
 	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
 	int close(File::Handle file) override;
 	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int write(File::Handle file, const void* data, size_t size) override;
 	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
 	int eof(File::Handle file) override;
 	int32_t tell(File::Handle file) override;

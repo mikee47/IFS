@@ -208,6 +208,12 @@ int FileSystem::read(File::Handle file, void* data, size_t size)
 	return (res >= 0) ? res : syserr();
 }
 
+int FileSystem::write(File::Handle file, const void* data, size_t size)
+{
+	int res = ::write(file, data, size);
+	return (res >= 0) ? res : syserr();
+}
+
 int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 {
 	int res = ::lseek(file, offset, uint8_t(origin));
