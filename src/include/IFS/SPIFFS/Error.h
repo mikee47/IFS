@@ -13,6 +13,11 @@ namespace IFS
 {
 namespace SPIFFS
 {
-String spiffsErrorToStr(int err);
+inline bool isSpiffsError(int err)
+{
+	return err <= -10000;
 }
+
+String spiffsErrorToStr(int err);
+} // namespace SPIFFS
 } // namespace IFS

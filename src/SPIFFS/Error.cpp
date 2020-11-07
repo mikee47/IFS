@@ -86,7 +86,7 @@ DEFINE_FSTR_MAP_LOCAL(errorMap, int, FlashString, SPIFFS_ERROR_MAP(XX))
 
 String spiffsErrorToStr(int err)
 {
-	return errorMap[err].content();
+	return errorMap[std::min(err, 0)].content();
 }
 
 } // namespace SPIFFS

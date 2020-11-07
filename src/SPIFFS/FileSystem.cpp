@@ -144,12 +144,14 @@ static s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
 
 int FileSystem::mount()
 {
-	if(!media)
+	if(media == nullptr) {
 		return Error::NoMedia;
+	}
 
 	uint32_t blockSize = media->blockSize();
-	if(blockSize < MIN_BLOCKSIZE)
+	if(blockSize < MIN_BLOCKSIZE) {
 		blockSize = Align(MIN_BLOCKSIZE, blockSize);
+	}
 
 	fs.user_data = media;
 	spiffs_config cfg;
@@ -181,7 +183,7 @@ int FileSystem::mount()
 		return Error::NoMem;
 	}
 
-	auto res = _mount(cfg);
+	auto res = tryMount(cfg);
 	if(res < 0) {
 		/*
      * Mount failed, so we either try to repair the system or format it.
@@ -191,20 +193,26 @@ int FileSystem::mount()
 	}
 
 #if SPIFFS_TEST_VISUALISATION
-	if(res == SPIFFS_OK)
+	if(res == SPIFFS_OK) {
 		SPIFFS_vis(handle());
+	}
 #endif
 
 	return res;
 }
 
-int FileSystem::_mount(spiffs_config& cfg)
+int FileSystem::tryMount(spiffs_config& cfg)
 {
-	auto res = SPIFFS_mount(handle(), &cfg, workBuffer, fileDescriptors, FDS_BUF_SIZE(FFS_MAX_FILEDESC), cache,
+	auto err = SPIFFS_mount(handle(), &cfg, workBuffer, fileDescriptors, FDS_BUF_SIZE(FFS_MAX_FILEDESC), cache,
 							CACHE_SIZE(CACHE_PAGES), nullptr);
-	if(res < 0)
-		debug_ifserr(res, "SPIFFS_mount()");
-	return res;
+	if(err < 0) {
+		if(isSpiffsError(err)) {
+			err = Error::fromSystem(err);
+		}
+		debug_ifserr(err, "SPIFFS_mount()");
+	}
+
+	return err;
 }
 
 /*
@@ -215,14 +223,15 @@ int FileSystem::format()
 	spiffs_config cfg = fs.cfg;
 	// Must be unmounted before format is called - see API
 	SPIFFS_unmount(handle());
-	int res = SPIFFS_format(handle());
-	if(res < 0) {
-		debug_ifserr(res, "format()");
-		return res;
+	int err = SPIFFS_format(handle());
+	if(err < 0) {
+		err = Error::fromSystem(err);
+		debug_ifserr(err, "format()");
+		return err;
 	}
 
 	// Re-mount
-	return _mount(cfg);
+	return tryMount(cfg);
 }
 
 int FileSystem::check()
@@ -233,7 +242,8 @@ int FileSystem::check()
 		}
 	};
 
-	return SPIFFS_check(handle());
+	int err = SPIFFS_check(handle());
+	return Error::fromSystem(err);
 }
 
 int FileSystem::getinfo(Info& info)
@@ -261,11 +271,11 @@ int FileSystem::getinfo(Info& info)
 
 String FileSystem::getErrorString(int err)
 {
-	String s = spiffsErrorToStr(err);
-	if(!s) {
-		s = IFileSystem::getErrorString(err);
+	if(Error::isSystem(err)) {
+		return spiffsErrorToStr(Error::toSystem(err));
+	} else {
+		return IFS::Error::toString(err);
 	}
-	return s;
 }
 
 static spiffs_file SPIFFS_open_by_id(spiffs* fs, spiffs_obj_id obj_id, spiffs_flags flags, spiffs_mode mode)
@@ -311,18 +321,20 @@ File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 
 	spiffs_flags sflags;
 	if(mapFileOpenFlags(flags, sflags).any()) {
-		return (File::Handle)Error::NotSupported;
+		return File::Handle(Error::NotSupported);
 	}
 
 	auto file = SPIFFS_open_by_id(handle(), stat.id, sflags, 0);
 	if(file < 0) {
-		debug_ifserr(file, "fopen('%s')", stat.name);
-	} else {
-		cacheMeta(file);
-		// File affected without write so update timestamp
-		if(flags[File::OpenFlag::Truncate]) {
-			touch(file);
-		}
+		int err = Error::fromSystem(file);
+		debug_ifserr(err, "fopen('%s')", stat.name);
+		return err;
+	}
+
+	cacheMeta(file);
+	// File affected without write so update timestamp
+	if(flags[File::OpenFlag::Truncate]) {
+		touch(file);
 	}
 
 	return file;
@@ -339,24 +351,26 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 
 	spiffs_flags sflags;
 	if(mapFileOpenFlags(flags, sflags).any()) {
-		return (File::Handle)Error::NotSupported;
+		return File::Handle(Error::NotSupported);
 	}
 
 	auto file = SPIFFS_open(handle(), path, sflags, 0);
 	if(file < 0) {
-		debug_ifserr(file, "open('%s')", path);
-	} else {
-		auto smb = cacheMeta(file);
-		// If file is marked read-only, fail write requests !!! @todo bit late if we've got a truncate flag...
-		if(smb && File::Attributes{smb->meta.attr}[File::Attribute::ReadOnly] && (flags == File::OpenFlag::Read)) {
-			SPIFFS_close(handle(), file);
-			return Error::ReadOnly;
-		}
+		int err = Error::fromSystem(file);
+		debug_ifserr(err, "open('%s')", path);
+		return err;
+	}
 
-		// File affected without write so update timestamp
-		if(flags[File::OpenFlag::Truncate]) {
-			touch(file);
-		}
+	auto smb = cacheMeta(file);
+	// If file is marked read-only, fail write requests !!! @todo bit late if we've got a truncate flag...
+	if(smb && File::Attributes{smb->meta.attr}[File::Attribute::ReadOnly] && (flags == File::OpenFlag::Read)) {
+		SPIFFS_close(handle(), file);
+		return Error::ReadOnly;
+	}
+
+	// File affected without write so update timestamp
+	if(flags[File::OpenFlag::Truncate]) {
+		touch(file);
 	}
 
 	return file;
@@ -370,35 +384,42 @@ int FileSystem::close(File::Handle file)
 
 	//    debug_i("%s(%d, '%s')", __FUNCTION__, m_fd, name().c_str());
 	flushMeta(file);
-	return SPIFFS_close(handle(), file);
+	int err = SPIFFS_close(handle(), file);
+	return Error::fromSystem(err);
 }
 
 int FileSystem::eof(File::Handle file)
 {
-	return SPIFFS_eof(handle(), file);
+	int res = SPIFFS_eof(handle(), file);
+	return Error::fromSystem(res);
 }
 
 int32_t FileSystem::tell(File::Handle file)
 {
-	return SPIFFS_tell(handle(), file);
+	int res = SPIFFS_tell(handle(), file);
+	return Error::fromSystem(res);
 }
 
 int FileSystem::truncate(File::Handle file, size_t new_size)
 {
-	return SPIFFS_ftruncate(handle(), file, new_size);
+	int res = SPIFFS_ftruncate(handle(), file, new_size);
+	return Error::fromSystem(res);
 }
 
 int FileSystem::flush(File::Handle file)
 {
 	flushMeta(file);
-	return SPIFFS_fflush(handle(), file);
+	int err = SPIFFS_fflush(handle(), file);
+	return Error::fromSystem(err);
 }
 
 int FileSystem::read(File::Handle file, void* data, size_t size)
 {
 	int res = SPIFFS_read(handle(), file, data, size);
 	if(res < 0) {
-		debug_ifserr(res, "read()");
+		int err = Error::fromSystem(res);
+		debug_ifserr(err, "read()");
+		return err;
 	}
 
 	//  debug_i("read(%d): %d", bufSize, res);
@@ -407,17 +428,22 @@ int FileSystem::read(File::Handle file, void* data, size_t size)
 
 int FileSystem::write(File::Handle file, const void* data, size_t size)
 {
-	int err = SPIFFS_write(handle(), file, (void*)data, size);
+	int res = SPIFFS_write(handle(), file, const_cast<void*>(data), size);
+	if(res < 0) {
+		return Error::fromSystem(res);
+	}
+
 	touch(file);
-	return err;
+	return res;
 }
 
 int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 {
 	int res = SPIFFS_lseek(handle(), file, offset, int(origin));
 	if(res < 0) {
-		debug_ifserr(res, "lseek()");
-		return res;
+		int err = Error::fromSystem(res);
+		debug_ifserr(err, "lseek()");
+		return err;
 	}
 
 	//  debug_i("Seek(%d, %d): %d", offset, origin, res);
@@ -435,10 +461,10 @@ SpiffsMetaBuffer* FileSystem::cacheMeta(File::Handle file)
 	memset(smb->buffer, 0xFF, sizeof(SpiffsMetaBuffer));
 
 	spiffs_stat stat;
-	int res = SPIFFS_fstat(handle(), file, &stat);
+	int err = SPIFFS_fstat(handle(), file, &stat);
 	//    debug_hex(DBG, "Meta", stat.meta, SPIFFS_OBJ_META_LEN);
 
-	if(res >= 0) {
+	if(err >= 0) {
 		memcpy(smb, stat.meta, sizeof(stat.meta));
 	}
 
@@ -473,21 +499,23 @@ int FileSystem::flushMeta(File::Handle file)
 	if(smb->meta.isDirty()) {
 		debug_i("Flushing Metadata to disk");
 		smb->meta.clearDirty();
-		int res = SPIFFS_fupdate_meta(handle(), file, smb);
-		if(res < 0) {
-			debug_ifserr(res, "fupdate_meta()");
+		int err = SPIFFS_fupdate_meta(handle(), file, smb);
+		if(err < 0) {
+			err = Error::fromSystem(err);
+			debug_ifserr(err, "fupdate_meta()");
+			return err;
 		}
 	}
 
-	return res;
+	return FS_OK;
 }
 
 int FileSystem::stat(const char* path, FileStat* stat)
 {
 	spiffs_stat ss;
-	int res = SPIFFS_stat(handle(), path, &ss);
-	if(res < 0) {
-		return res;
+	int err = SPIFFS_stat(handle(), path, &ss);
+	if(err < 0) {
+		return Error::fromSystem(err);
 	}
 
 	if(stat != nullptr) {
@@ -502,21 +530,21 @@ int FileSystem::stat(const char* path, FileStat* stat)
 		copyMeta(*stat, meta);
 	}
 
-	return res;
+	return FS_OK;
 }
 
 int FileSystem::fstat(File::Handle file, FileStat* stat)
 {
 	spiffs_stat ss;
-	int res = SPIFFS_fstat(handle(), file, &ss);
-	if(res < 0) {
-		return res;
+	int err = SPIFFS_fstat(handle(), file, &ss);
+	if(err < 0) {
+		return Error::fromSystem(err);
 	}
 
 	SpiffsMetaBuffer* smb;
-	res = getMeta(file, smb);
-	if(res < 0) {
-		return res;
+	err = getMeta(file, smb);
+	if(err < 0) {
+		return err;
 	}
 
 	memcpy(smb, ss.meta, sizeof(SpiffsMetaBuffer));
@@ -531,39 +559,39 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 		copyMeta(*stat, smb->meta);
 	}
 
-	return res;
+	return FS_OK;
 }
 
 int FileSystem::setacl(File::Handle file, const File::ACL& acl)
 {
 	SpiffsMetaBuffer* smb;
-	int res = getMeta(file, smb);
-	if(res >= 0) {
+	int err = getMeta(file, smb);
+	if(err >= 0) {
 		smb->meta.acl = acl;
 		smb->meta.setDirty();
 	}
-	return res;
+	return err;
 }
 
 int FileSystem::setattr(File::Handle file, File::Attributes attr)
 {
 	SpiffsMetaBuffer* smb;
-	int res = getMeta(file, smb);
-	if(res >= 0 && File::Attributes{smb->meta.attr} != attr) {
+	int err = getMeta(file, smb);
+	if(err >= 0 && File::Attributes{smb->meta.attr} != attr) {
 		smb->meta.setDirty();
 	}
-	return res;
+	return err;
 }
 
 int FileSystem::settime(File::Handle file, time_t mtime)
 {
 	SpiffsMetaBuffer* smb = nullptr;
-	int res = getMeta(file, smb);
-	if(res >= 0 && smb->meta.mtime != mtime) {
+	int err = getMeta(file, smb);
+	if(err >= 0 && smb->meta.mtime != mtime) {
 		smb->meta.mtime = mtime;
 		smb->meta.setDirty();
 	}
-	return res;
+	return err;
 }
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
@@ -583,9 +611,11 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	}
 
 	if(SPIFFS_opendir(handle(), nullptr, &d->d) == nullptr) {
-		debug_ifserr(SPIFFS_errno(handle()), "opendir");
+		int err = SPIFFS_errno(handle());
+		err = Error::fromSystem(err);
+		debug_ifserr(err, "opendir");
 		delete d;
-		return SPIFFS_errno(handle());
+		return err;
 	}
 
 	if(pathlen != 0) {
@@ -609,9 +639,10 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 		if(SPIFFS_readdir(&dir->d, &e) == nullptr) {
 			int err = SPIFFS_errno(handle());
 			if(err == SPIFFS_VIS_END) {
-				err = Error::NoMoreFiles;
+				return Error::NoMoreFiles;
 			}
-			return err;
+
+			return Error::fromSystem(err);
 		}
 
 		/* The volume doesn't contain directory objects, so at each level we need
@@ -678,9 +709,9 @@ int FileSystem::closedir(DirHandle dir)
 		return Error::BadParam;
 	}
 
-	int res = SPIFFS_closedir(&dir->d);
+	int err = SPIFFS_closedir(&dir->d);
 	delete dir;
-	return res;
+	return Error::fromSystem(err);
 }
 
 int FileSystem::rename(const char* oldpath, const char* newpath)
@@ -691,7 +722,8 @@ int FileSystem::rename(const char* oldpath, const char* newpath)
 		return Error::BadParam;
 	}
 
-	return SPIFFS_rename(handle(), oldpath, newpath);
+	int err = SPIFFS_rename(handle(), oldpath, newpath);
+	return Error::fromSystem(err);
 }
 
 int FileSystem::remove(const char* path)
@@ -701,14 +733,16 @@ int FileSystem::remove(const char* path)
 		return Error::BadParam;
 	}
 
-	auto res = SPIFFS_remove(handle(), path);
-	debug_ifserr(res, "remove('%s')", path);
-	return res;
+	int err = SPIFFS_remove(handle(), path);
+	err = Error::fromSystem(err);
+	debug_ifserr(err, "remove('%s')", path);
+	return err;
 }
 
 int FileSystem::fremove(File::Handle file)
 {
-	return SPIFFS_fremove(handle(), file);
+	int err = SPIFFS_fremove(handle(), file);
+	return Error::fromSystem(err);
 }
 
 int FileSystem::isfile(File::Handle file)
@@ -722,18 +756,18 @@ int FileSystem::getFilePath(File::ID fileid, NameBuffer& buffer)
 	auto fs = handle();
 	spiffs_block_ix block_ix;
 	int lu_entry;
-	int res = spiffs_obj_lu_find_id(fs, 0, 0, fileid | SPIFFS_OBJ_ID_IX_FLAG, &block_ix, &lu_entry);
-	if(res == SPIFFS_OK) {
+	int err = spiffs_obj_lu_find_id(fs, 0, 0, fileid | SPIFFS_OBJ_ID_IX_FLAG, &block_ix, &lu_entry);
+	if(err == SPIFFS_OK) {
 		spiffs_page_object_ix_header objix_hdr;
 		spiffs_page_ix pix = SPIFFS_OBJ_LOOKUP_ENTRY_TO_PIX(fs, block_ix, lu_entry);
-		res = _spiffs_rd(fs, SPIFFS_OP_T_OBJ_LU2 | SPIFFS_OP_C_READ, 0, SPIFFS_PAGE_TO_PADDR(fs, pix),
+		err = _spiffs_rd(fs, SPIFFS_OP_T_OBJ_LU2 | SPIFFS_OP_C_READ, 0, SPIFFS_PAGE_TO_PADDR(fs, pix),
 						 sizeof(objix_hdr), reinterpret_cast<u8_t*>(&objix_hdr));
-		if(res == SPIFFS_OK) {
-			res = buffer.copy(reinterpret_cast<const char*>(objix_hdr.name));
+		if(err == SPIFFS_OK) {
+			err = buffer.copy(reinterpret_cast<const char*>(objix_hdr.name));
 		}
 	}
 
-	return res;
+	return Error::fromSystem(err);
 }
 
 } // namespace SPIFFS

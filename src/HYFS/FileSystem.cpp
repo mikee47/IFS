@@ -126,11 +126,11 @@ int FileSystem::getinfo(Info& info)
  */
 String FileSystem::getErrorString(int err)
 {
-	String s = ffs.getErrorString(err);
-	if(!s) {
-		s = fwfs.getErrorString(err);
+	if(err < Error::SYSTEM) {
+		return ffs.getErrorString(err);
+	} else {
+		return fwfs.getErrorString(err);
 	}
-	return s;
 }
 
 int FileSystem::hideFWFile(const char* path, bool hide)

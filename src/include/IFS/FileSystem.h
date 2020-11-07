@@ -55,13 +55,14 @@ using DirHandle = struct FileDir*;
 time_t fsGetTimeUTC();
 
 #if DEBUG_BUILD
-#define debug_ifserr(_err, _func, ...)                                                                                 \
+#define debug_ifserr(err, func, ...)                                                                                   \
 	do {                                                                                                               \
-		int err = _err;                                                                                                \
-		debug_e(_func ": %s (%d)", ##__VA_ARGS__, getErrorString(err).c_str(), err);                                   \
+		int errorCode = err;                                                                                           \
+		(void)errorCode;                                                                                               \
+		debug_e(func ": %s (%d)", ##__VA_ARGS__, getErrorString(errorCode).c_str(), err);                              \
 	} while(0)
 #else
-#define debug_ifserr(_err, _func, ...)                                                                                 \
+#define debug_ifserr(err, func, ...)                                                                                   \
 	do {                                                                                                               \
 	} while(0)
 #endif

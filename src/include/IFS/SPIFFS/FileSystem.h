@@ -137,7 +137,7 @@ private:
 		return &fs;
 	}
 
-	int _mount(spiffs_config& cfg);
+	int tryMount(spiffs_config& cfg);
 
 	/** @brief Pull metadata from SPIFFS
 	 *  @param file valid file handle
