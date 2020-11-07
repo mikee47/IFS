@@ -43,6 +43,7 @@ public:
 	int getinfo(Info& info) override;
 	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
+	int rewinddir(DirHandle dir) override;
 	int readdir(DirHandle dir, FileStat& stat) override;
 	int closedir(DirHandle dir) override;
 	int stat(const char* path, FileStat* stat) override;

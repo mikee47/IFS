@@ -88,6 +88,16 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	return res;
 }
 
+int FileSystem::rewinddir(DirHandle dir)
+{
+	if(dir->d == nullptr) {
+		return Error::InvalidHandle;
+	}
+
+	::rewinddir(dir->d);
+	return FS_OK;
+}
+
 int FileSystem::readdir(DirHandle dir, FileStat& stat)
 {
 	int res;
