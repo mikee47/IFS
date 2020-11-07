@@ -17,7 +17,7 @@
 #define SEEK(_offset)                                                                                                  \
 	{                                                                                                                  \
 		auto off = _offset;                                                                                            \
-		if(fileSys.lseek(m_file, off, SeekOrigin::Start) != (int)off) {                                          \
+		if(fileSys.lseek(m_file, off, SeekOrigin::Start) != (int)off) {                                                \
 			return Error::BadExtent;                                                                                   \
 		}                                                                                                              \
 	}

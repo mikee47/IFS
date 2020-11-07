@@ -371,7 +371,7 @@ void fstest(IFileSystem* fs)
 
 	//  fs.format();
 
-	//  auto f = fs.open("favicon.ico", eFO_CreateNewAlways | eFO_WriteOnly);
+	//  auto f = fs.open("favicon.ico", File::OpenFlag::Create | File::OpenFlag::Truncate| File::OpenFlag::Write);
 	//  delete f;
 
 	//  auto res = fs.deleteFile(".auth - Copy.json");

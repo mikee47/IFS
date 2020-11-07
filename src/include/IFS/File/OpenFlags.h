@@ -41,6 +41,15 @@ inline constexpr OpenFlags operator|(OpenFlag a, OpenFlag b)
 	return OpenFlags(a) | b;
 }
 
+// Common flag combinations
+constexpr OpenFlags ReadOnly{File::OpenFlag::Read};
+constexpr OpenFlags WriteOnly{File::OpenFlag::Write};
+constexpr OpenFlags ReadWrite{OpenFlag::Read | OpenFlag::Write};
+constexpr OpenFlags Create{OpenFlag::Create};
+constexpr OpenFlags Append{OpenFlag::Append};
+constexpr OpenFlags Truncate{OpenFlag::Truncate};
+constexpr OpenFlags CreateNewAlways{OpenFlag::Create | OpenFlag::Truncate};
+
 } // namespace File
 } // namespace IFS
 
