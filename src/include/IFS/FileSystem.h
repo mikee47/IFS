@@ -321,12 +321,37 @@ public:
 	virtual int32_t tell(File::Handle file) = 0;
 
 	/**
-	 * @brief Truncate the file at the current cursor position
-     * @param file handle to open file
-     * @retval int new file size, or error code
-     * @note Changes the file size
-     */
+	 * @brief Truncate (reduce) the size of an open file
+	 * @param file Open file handle, must have Write access
+	 * @param newSize
+	 * @retval int Error code
+	 * @note In POSIX `ftruncate()` can also make the file bigger, however SPIFFS can only
+	 * reduce the file size and will return an error if newSize > fileSize
+	 */
 	virtual int truncate(File::Handle file, size_t new_size) = 0;
+
+	/**
+	 * @brief Truncate an open file at the current cursor position
+	 * @param file Open file handle, must have Write access
+     * @retval int new file size, or error code
+	 */
+	int truncate(File::Handle file)
+	{
+		int pos = tell(file);
+		return (pos < 0) ? pos : truncate(file, pos);
+	}
+
+	/**
+	 * @brief Truncate a file to a specific size
+	 * @param fileName File to truncate
+     * @retval int new file size, or error code
+	 */
+	int truncate(const char* fileName, size_t newSize);
+
+	int truncate(const String& fileName, size_t newSize)
+	{
+		return truncate(fileName.c_str(), newSize);
+	}
 
 	/**
 	 * @brief flush any buffered data to physical media
@@ -426,6 +451,78 @@ public:
 	 * or Error::FileNotOpen if handle range is valid but handle not in use
 	 */
 	virtual int isfile(File::Handle file) = 0;
+
+	/** @brief  Get size of file
+	 *  @param  fileName Name of file
+	 *  @retval uint32_t Size of file in bytes, 0 on error
+	 */
+	uint32_t getSize(const char* fileName);
+
+	uint32_t getSize(const String& fileName)
+	{
+		return getSize(fileName.c_str());
+	}
+
+	/**
+	 * @brief  Read content of a file
+	 * @param  fileName Name of file to read from
+	 * @param  buffer Pointer to a character buffer in to which to read the file content
+	 * @param  bufSize Quantity of bytes to read from file
+	 * @retval size_t Quantity of bytes read from file or zero on failure
+	 *
+	 * After calling this function the content of the file is placed in to a c-string
+	 * Ensure there is sufficient space in the buffer for file content
+	 * plus extra trailing null, i.e. at least bufSize + 1
+	 * Always check the return value!
+	 *
+	 * Returns 0 if the file could not be read
+	 */
+	size_t getContent(const char* fileName, char* buffer, size_t bufSize);
+
+	size_t getContent(const String& fileName, char* buffer, size_t bufSize)
+	{
+		return getContent(fileName.c_str(), buffer, bufSize);
+	}
+
+	/**
+	 * @brief  Read content of a file
+	 * @param  fileName Name of file to read from
+	 * @retval String String variable in to which to read the file content
+	 * @note   After calling this function the content of the file is placed in to a string.
+	 * The result will be an invalid String (equates to `false`) if the file could not be read.
+	 * If the file exists, but is empty, the result will be an empty string "".
+	 */
+	String getContent(const String& fileName);
+
+	/**
+	 * @brief  Create or replace file with defined content
+	 * @param  fileName Name of file to create or replace
+	 * @param  content Pointer to c-string containing content to populate file with
+	 * @retval int Number of bytes transferred or error code
+	 * @param  length (optional) number of characters to write
+	 *
+	 * This function creates a new file or replaces an existing file and
+	 * populates the file with the content of a c-string buffer.
+	 */
+	int setContent(const char* fileName, const char* content, size_t length);
+
+	/**
+	 * @param content A NUL-terminated C string
+	 */
+	int setContent(const char* fileName, const char* content)
+	{
+		return setContent(fileName, content, (content == nullptr) ? 0 : strlen(content));
+	}
+
+	int setContent(const String& fileName, const char* content)
+	{
+		return setContent(fileName.c_str(), content);
+	}
+
+	int setContent(const String& fileName, const String& content)
+	{
+		return setContent(fileName.c_str(), content.c_str(), content.length());
+	}
 };
 
 } // namespace IFS
