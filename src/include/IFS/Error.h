@@ -75,7 +75,8 @@ enum class Value {
 IFS_ERROR_MAP(XX)
 #undef XX
 
-constexpr ErrorCode USER{-64}; // Start of user-defined codes
+constexpr ErrorCode USER{-100};	 // Start of user-defined codes
+constexpr ErrorCode SYSTEM{-1000}; // Non-FWFS filing systems map custom codes starting here
 
 /**
  * @brief get text for an error code
@@ -83,6 +84,30 @@ constexpr ErrorCode USER{-64}; // Start of user-defined codes
  * @retval String
  */
 String toString(int err);
+
+/**
+ * @brief Determine if the given IFS error code is system-specific
+ */
+inline bool isSystem(int err)
+{
+	return err <= SYSTEM;
+}
+
+/**
+ * @brief Translate system error code into IFS error code
+ */
+inline int fromSystem(int syscode)
+{
+	return (syscode < 0) ? SYSTEM + syscode : syscode;
+}
+
+/**
+ * @brief Translate IFS error code into SYSTEM code
+ */
+inline int toSystem(int err)
+{
+	return isSystem(err) ? (err - SYSTEM) : err;
+}
 
 } // namespace Error
 
