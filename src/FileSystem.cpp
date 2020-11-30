@@ -114,6 +114,21 @@ size_t IFileSystem::getContent(const char* fileName, char* buffer, size_t bufSiz
 	return size;
 }
 
+int IFileSystem::makedirs(const char* path)
+{
+	auto pos = path;
+	while(auto sep = strchr(pos, '/')) {
+		String seg(pos, sep - pos);
+		int err = mkdir(seg.c_str());
+		if(err < 0) {
+			return err;
+		}
+		pos = sep + 1;
+	}
+
+	return FS_OK;
+}
+
 } // namespace IFS
 
 String toString(IFS::IFileSystem::Type type)

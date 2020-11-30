@@ -143,6 +143,16 @@ int FileSystem::closedir(DirHandle dir)
 	return (res >= 0) ? res : syserr();
 }
 
+int FileSystem::mkdir(const char* path)
+{
+#ifdef __linux__
+	int res = ::mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+#else
+	int res = ::mkdir(path);
+#endif
+	return (res >= 0) ? res : syserr();
+}
+
 void FileSystem::fillStat(const struct stat& s, FileStat& stat)
 {
 	stat.clear();

@@ -46,6 +46,7 @@ public:
 	int rewinddir(DirHandle dir) override;
 	int readdir(DirHandle dir, FileStat& stat) override;
 	int closedir(DirHandle dir) override;
+	int mkdir(const char* path) override;
 	int stat(const char* path, FileStat* stat) override;
 	int fstat(File::Handle file, FileStat* stat) override;
 	int setacl(File::Handle file, const File::ACL& acl) override

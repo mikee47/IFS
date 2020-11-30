@@ -714,6 +714,12 @@ int FileSystem::closedir(DirHandle dir)
 	return Error::fromSystem(err);
 }
 
+int FileSystem::mkdir(const char* path)
+{
+	// TODO
+	return Error::NotImplemented;
+}
+
 int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	FS_CHECK_PATH(oldpath);

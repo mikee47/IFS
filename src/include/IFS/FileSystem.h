@@ -218,6 +218,24 @@ public:
 	virtual int closedir(DirHandle dir) = 0;
 
 	/**
+	 * @brief Create a directory
+	 * @param path Path to directory
+	 * @retval int error code
+	 *
+	 * Only the final directory in the path is guaranteed to be created.
+	 * Usually, this call will fail if intermediate directories are not present.
+	 * Use `makedirs()` for this purpose.
+	 */
+	virtual int mkdir(const char* path) = 0;
+
+	/**
+	 * @brief Create a directory and any intermediate directories if they do not already exist
+	 * @param path Path to directory. If no trailing '/' is present the final element is considered a filename.
+	 * @retval int error code
+	 */
+	int makedirs(const char* path);
+
+	/**
 	 * @name get file information
      * @param path name or path of file
      * @param s structure to return information in, may be null to do a simple file existence check

@@ -264,6 +264,12 @@ int FileSystem::closedir(DirHandle dir)
 	return FS_OK;
 }
 
+int FileSystem::mkdir(const char* path)
+{
+	// TODO
+	return Error::NotImplemented;
+}
+
 /*
  * For writing we need to do some work.
  *
