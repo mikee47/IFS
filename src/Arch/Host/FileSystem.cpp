@@ -50,13 +50,16 @@ int mapFlags(File::OpenFlags flags)
 	if(flags[File::OpenFlag::Create]) {
 		ret |= O_CREAT;
 	}
-	if(flags[File::OpenFlag::Read]) {
-		ret |= O_RDONLY;
-	}
 	if(flags[File::OpenFlag::Truncate]) {
 		ret |= O_TRUNC;
 	}
-	if(flags[File::OpenFlag::Write]) {
+	if(flags[File::OpenFlag::Read]) {
+		if(flags[File::OpenFlag::Write]) {
+			ret |= O_RDWR;
+		} else {
+			ret |= O_RDONLY;
+		}
+	} else if(flags[File::OpenFlag::Write]) {
 		ret |= O_WRONLY;
 	}
 	return ret;
@@ -198,6 +201,7 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 {
 	int res = ::open(path, O_BINARY | mapFlags(flags), 0644);
+	assert(File::Handle(res) == res);
 	return (res >= 0) ? res : syserr();
 }
 
