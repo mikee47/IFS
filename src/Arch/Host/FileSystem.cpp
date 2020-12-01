@@ -8,7 +8,7 @@
 #define _POSIX_C_SOURCE 200112L
 
 #include <IFS/Host/FileSystem.h>
-#include <errno.h>
+#include <IFS/Host/Util.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
@@ -16,10 +16,6 @@
 
 #ifndef PATH_MAX
 #define PATH_MAX 255
-#endif
-
-#ifndef O_BINARY
-#define O_BINARY 0
 #endif
 
 namespace IFS
@@ -31,42 +27,6 @@ struct FileDir {
 
 namespace Host
 {
-namespace
-{
-/*
- * Returns IFS error code
- */
-int syserr()
-{
-	return Error::fromSystem(-errno);
-}
-
-int mapFlags(File::OpenFlags flags)
-{
-	int ret = 0;
-	if(flags[File::OpenFlag::Append]) {
-		ret |= O_APPEND;
-	}
-	if(flags[File::OpenFlag::Create]) {
-		ret |= O_CREAT;
-	}
-	if(flags[File::OpenFlag::Truncate]) {
-		ret |= O_TRUNC;
-	}
-	if(flags[File::OpenFlag::Read]) {
-		if(flags[File::OpenFlag::Write]) {
-			ret |= O_RDWR;
-		} else {
-			ret |= O_RDONLY;
-		}
-	} else if(flags[File::OpenFlag::Write]) {
-		ret |= O_WRONLY;
-	}
-	return ret;
-}
-
-} // namespace
-
 int FileSystem::getinfo(Info& info)
 {
 	return Error::NotImplemented;
@@ -74,14 +34,7 @@ int FileSystem::getinfo(Info& info)
 
 String FileSystem::getErrorString(int err)
 {
-	if(Error::isSystem(err)) {
-		char buffer[256];
-		buffer[0] = '\0';
-		strerror_r(-Error::toSystem(err), buffer, sizeof(buffer));
-		return String(buffer);
-	}
-
-	return IFileSystem::getErrorString(err);
+	return IFS::Host::getErrorString(err);
 }
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
@@ -200,7 +153,7 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 
 File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 {
-	int res = ::open(path, O_BINARY | mapFlags(flags), 0644);
+	int res = ::open(path, mapFlags(flags), 0644);
 	assert(File::Handle(res) == res);
 	return (res >= 0) ? res : syserr();
 }
@@ -254,8 +207,7 @@ int FileSystem::eof(File::Handle file)
 
 int32_t FileSystem::tell(File::Handle file)
 {
-	int res = ::lseek(file, 0, SEEK_CUR);
-	return (res >= 0) ? res : syserr();
+	return lseek(file, 0, SeekOrigin::Current);
 }
 
 int FileSystem::truncate(File::Handle file, size_t new_size)
