@@ -1,5 +1,5 @@
 ifneq ($(SMING_ARCH),Host)
-$(error Only Host mode supported)
+$(warning fstest is Host-only application)
 endif
 
 DISABLE_SPIFFS := 1
