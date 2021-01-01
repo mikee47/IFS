@@ -8,7 +8,6 @@
 
 #include "../include/IFS/FWFS/FileSystem.h"
 #include "../include/IFS/Object.h"
-#include "../include/IFS/FlashMedia.h"
 #include "../include/IFS/Util.h"
 
 namespace IFS
@@ -332,8 +331,8 @@ int FileSystem::getinfo(Info& info)
 	info.type = Type::FWFS;
 	info.attr = Attribute::ReadOnly;
 	if(volume.store) {
-		info.media = volume.store->getMedia();
-		info.volumeSize = info.media->mediaSize();
+		info.partition = volume.store->getPartition();
+		info.volumeSize = info.partition.size();
 	}
 
 	if(volume.isMounted()) {

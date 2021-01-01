@@ -9,7 +9,6 @@
 #pragma once
 
 #include "../ObjectStore.h"
-#include "../Media.h"
 
 #ifdef FWFS_OBJECT_CACHE
 #include "ObjRefCache.h"
@@ -25,13 +24,8 @@ namespace FWFS
 class ObjectStore : public IObjectStore
 {
 public:
-	ObjectStore(Media* media) : media(media)
+	ObjectStore(Storage::Partition partition) : partition(partition)
 	{
-	}
-
-	~ObjectStore()
-	{
-		delete media;
 	}
 
 	int initialise() override;
@@ -49,13 +43,13 @@ public:
 	int readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer) override;
 	int close(FWObjDesc& od) override;
 
-	Media* getMedia() override
+	Storage::Partition& getPartition() override
 	{
-		return media;
+		return partition;
 	}
 
 private:
-	Media* media{nullptr};
+	Storage::Partition partition;
 	ObjRef lastFound;
 	struct Flags {
 		bool mounted;

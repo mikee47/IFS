@@ -6,19 +6,11 @@
  */
 
 #include "include/IFS/Helpers.h"
-#include "include/IFS/FlashMedia.h"
 #include "include/IFS/FWFS/ObjectStore.h"
 #include "include/IFS/HYFS/FileSystem.h"
 #include <spiffs_sming.h>
-
+#include <Storage.h>
 #include <SystemClock.h>
-
-#ifdef ARCH_HOST
-#include <IFS/MemoryMedia.h>
-using MediaType = IFS::MemoryMedia;
-#else
-using MediaType = IFS::FlashMedia;
-#endif
 
 namespace IFS
 {
@@ -28,16 +20,10 @@ time_t fsGetTimeUTC()
 	return SystemClock.now(eTZ_UTC);
 }
 
-IFileSystem* createFirmwareFilesystem(const void* fwfsImageData)
+IFileSystem* createFirmwareFilesystem(Storage::Partition partition)
 {
-	auto fwMedia = new MediaType(fwfsImageData, Media::ReadOnly);
-	if(fwMedia == nullptr) {
-		return nullptr;
-	}
-
-	auto store = new FWFS::ObjectStore(fwMedia);
+	auto store = new FWFS::ObjectStore(partition);
 	if(store == nullptr) {
-		delete fwMedia;
 		return nullptr;
 	}
 
@@ -49,26 +35,12 @@ IFileSystem* createFirmwareFilesystem(const void* fwfsImageData)
 	return fs;
 }
 
-IFileSystem* createHybridFilesystem(const void* fwfsImageData)
+IFileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition)
 {
-	auto fwMedia = new MediaType(fwfsImageData, Media::ReadOnly);
-	if(fwMedia == nullptr) {
-		return nullptr;
-	}
-
-	auto store = new FWFS::ObjectStore(fwMedia);
-	if(store == nullptr) {
-		delete fwMedia;
-		return nullptr;
-	}
-
-	auto cfg = spiffs_get_storage_config();
-	auto ffsMedia = new FlashMedia(cfg.phys_addr, cfg.phys_size, Media::ReadWrite);
-
-	auto fs = new HYFS::FileSystem(store, ffsMedia);
+	auto store = new FWFS::ObjectStore(fwfsPartition);
+	auto fs = new HYFS::FileSystem(store, spiffsPartition);
 
 	if(fs == nullptr) {
-		delete ffsMedia;
 		delete store;
 	}
 

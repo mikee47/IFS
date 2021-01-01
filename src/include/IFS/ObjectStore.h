@@ -163,7 +163,7 @@ public:
 	 */
 	virtual int close(FWObjDesc& od) = 0;
 
-	virtual Media* getMedia() = 0;
+	virtual Storage::Partition& getPartition() = 0;
 };
 
 } // namespace IFS

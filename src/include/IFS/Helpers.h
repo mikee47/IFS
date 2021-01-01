@@ -13,17 +13,19 @@
 
 namespace IFS
 {
-/** @brief Create a firmware filesystem
- *  @param fwfsImageData
- *  @retval IFileSystem* constructed filesystem object
+/**
+ * @brief Create a firmware filesystem
+ * @param partition
+ * @retval IFileSystem* constructed filesystem object
  */
-IFileSystem* createFirmwareFilesystem(const void* fwfsImageData);
+IFileSystem* createFirmwareFilesystem(Storage::Partition partition);
 
-/** @brief Create a hybrid filesystem
- *  @param fwfsImageData
- *  @retval IFileSystem* constructed filesystem object
- *  @note SPIFFS configuration is obtained via spiffs_get_storage_config()
+/**
+ * @brief Create a hybrid filesystem
+ * @param fwfsPartition
+ * @param spiffsPartition
+ * @retval IFileSystem* constructed filesystem object
  */
-IFileSystem* createHybridFilesystem(const void* fwfsImageData);
+IFileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition);
 
 } // namespace IFS

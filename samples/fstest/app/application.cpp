@@ -18,13 +18,15 @@
 #include <assert.h>
 #include <esp_spi_flash.h>
 #include <IFS/HYFS/FileSystem.h>
-#include <IFS/MemoryMedia.h>
-#include <IFS/FlashMedia.h>
 #include <IFS/FWFS/ObjectStore.h>
 #include <IFS/Helpers.h>
-#include <IFS/FileMedia.h>
 #include <HardwareSerial.h>
 #include <hostlib/CommandLine.h>
+#include <Storage.h>
+#include <Storage/FileDevice.h>
+#include <Storage/FlashStringDevice.h>
+#include <Data/Stream/IFS/FileStream.h>
+#include <FlashString/Stream.hpp>
 
 using namespace IFS;
 
@@ -48,13 +50,69 @@ IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 #define FWFILE_MAX_SIZE 0x100000
 
 #ifdef ARCH_HOST
-IFS::Host::FileSystem hostFileSys;
+IFS::Host::FileSystem __hostFileSys;
+IFS::IFileSystem& hostFileSys(__hostFileSys);
 #endif
 
-struct Flags {
-	bool hybrid;
+enum class Flag {
+	hybrid,
 };
-Flags flags{};
+BitSet<uint32_t, Flag> flags;
+
+Storage::Partition createSpiffsPartition(const String& imgfile, size_t size)
+{
+	Storage::Partition part;
+
+	auto file = hostFileSys.open(imgfile, File::Create | File::ReadWrite);
+	if(file < 0) {
+		debug_e("Failed to open '%s': %s", imgfile.c_str(), hostFileSys.getErrorString(file).c_str());
+	} else {
+		hostFileSys.truncate(file, FFS_FLASH_SIZE);
+		auto dev = new Storage::FileDevice(imgfile, hostFileSys, file);
+		Storage::registerDevice(dev);
+		part = dev->partitions().add("spiffs", Storage::Partition::SubType::Data::spiffs, 0, FFS_FLASH_SIZE);
+	}
+
+	return part;
+}
+
+Storage::Partition createFwfsPartition(const FlashString& image)
+{
+	auto dev = new Storage::FlashStringDevice(image);
+	Storage::registerDevice(dev);
+	return dev->partitions().add("fwfs", Storage::Partition::SubType::Data::fwfs, 0, dev->getSize(),
+								 Storage::Partition::Flag::readOnly);
+}
+
+Storage::Partition createFwfsPartition(IFileSystem& fileSys, const String& imgfile)
+{
+	Storage::Partition part;
+
+	auto file = fileSys.open(imgfile, File::ReadOnly);
+	if(file < 0) {
+		debug_e("Failed to open '%s': %s", imgfile.c_str(), fileSys.getErrorString(file).c_str());
+	} else {
+		auto dev = new Storage::FileDevice(imgfile, fileSys, file);
+		Storage::registerDevice(dev);
+		part = dev->partitions().add("fwfs", Storage::Partition::SubType::Data::fwfs, 0, dev->getSize(),
+									 Storage::Partition::Flag::readOnly);
+	}
+
+	return part;
+}
+
+bool destroyStorageDevice(const String& devname)
+{
+	auto dev = Storage::findDevice(devname);
+	if(dev) {
+		debug_i("Destroying device '%s'", devname.c_str());
+		delete dev;
+		return true;
+	}
+
+	debug_w("Device '%s' not found", devname.c_str());
+	return false;
+}
 
 String getErrorString(IFileSystem* fs, int err)
 {
@@ -79,7 +137,7 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 		res = srcfile;
 		fserr = src;
 	} else {
-		File::Handle dstfile = dst->open(stat.name, File::OpenFlag::Create | File::OpenFlag::Write);
+		File::Handle dstfile = dst->open(stat.name, File::CreateNewAlways | File::OpenFlag::Write);
 		if(dstfile < 0) {
 			res = dstfile;
 			fserr = dst;
@@ -109,11 +167,13 @@ int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
 	return res;
 }
 
-IFileSystem* initSpiffs()
+IFileSystem* initSpiffs(const String& imgfile, size_t imgsize)
 {
-	// Mount SPIFFS
-	auto ffsMedia = new FileMedia(hostFileSys, FLASHMEM_DMP, FFS_FLASH_SIZE, Media::ReadWrite);
-	auto ffs = new SPIFFS::FileSystem(ffsMedia);
+	auto part = createSpiffsPartition(imgfile, imgsize);
+	if(!part) {
+		return nullptr;
+	}
+	auto ffs = new SPIFFS::FileSystem(part);
 
 	int err = ffs->mount();
 	if(err < 0) {
@@ -138,7 +198,7 @@ IFileSystem* initSpiffs()
 	debug_i("SPIFFS is empty, copy some stuff from FWFS");
 
 	// Mount source data image
-	auto fwfs = createFirmwareFilesystem(fwfsImage1.data());
+	auto fwfs = createFirmwareFilesystem(fwfsImage1);
 	int res = fwfs->mount();
 	if(res < 0) {
 		debug_e("FWFS mount failed: %s", getErrorString(fwfs, err).c_str());
@@ -160,31 +220,38 @@ IFileSystem* initSpiffs()
 	return ffs;
 }
 
-/** @brief initialise filesystem
- *  @param imgfile optional name of FWFS image to load
- *  @retval bool true on success
- */
-IFileSystem* initFWFS(const String& imgfile)
+IFileSystem* initFWFSOnFile(IFileSystem& fileSys, const String& imgfile)
 {
-	debug_i("fwfiles_data = %p, len = 0x%08X", fwfsImage1.data(), fwfsImage1.length());
-
-	Media* fwMedia;
-#ifdef ARCH_HOST
-	if(imgfile) {
-		fwMedia = new FileMedia(hostFileSys, imgfile, FWFILE_MAX_SIZE, Media::ReadOnly);
-	} else {
-		flashmem_write(fwfsImage1.data(), 0, fwfsImage1.size());
-		fwMedia = new FlashMedia(uint32_t(0), Media::ReadOnly);
+	auto part = createFwfsPartition(fileSys, imgfile);
+	if(!part) {
+		return nullptr;
 	}
-#endif
 
-	auto store = new FWFS::ObjectStore(fwMedia);
+	auto store = new FWFS::ObjectStore(part);
+	auto fs = new FWFS::FileSystem(store);
+
+	int err = fs->mount();
+	if(err < 0) {
+		debug_e("FWFS-on-file mount failed: %s", getErrorString(fs, err).c_str());
+		delete fs;
+		return nullptr;
+	}
+
+	return fs;
+}
+
+IFileSystem* initFWFS(Storage::Partition part)
+{
+	auto store = new FWFS::ObjectStore(part);
 
 	IFileSystem* fs;
-	if(flags.hybrid) {
-		auto ffsMedia = new FileMedia(hostFileSys, FLASHMEM_DMP, FFS_FLASH_SIZE, Media::ReadWrite);
-		fs = new HYFS::FileSystem(store, ffsMedia);
-
+	if(flags[Flag::hybrid]) {
+		auto part = createSpiffsPartition(FLASHMEM_DMP, FFS_FLASH_SIZE);
+		if(!part) {
+			delete store;
+			return nullptr;
+		}
+		fs = new HYFS::FileSystem(store, part);
 	} else {
 		fs = new FWFS::FileSystem(store);
 
@@ -212,22 +279,6 @@ IFileSystem* initFWFS(const String& imgfile)
 	return fs;
 }
 
-IFileSystem* initFWFSOnFile(IFileSystem& fileSys, const String& imgfile)
-{
-	auto media = new FileMedia(fileSys, imgfile, 0, Media::Attribute::ReadOnly);
-	auto store = new FWFS::ObjectStore(media);
-	auto fs = new FWFS::FileSystem(store);
-
-	int err = fs->mount();
-	if(err < 0) {
-		debug_e("FWFS-on-file mount failed: %s", getErrorString(fs, err).c_str());
-		delete fs;
-		fs = nullptr;
-	}
-
-	return fs;
-}
-
 void printFsInfo(IFileSystem* fs)
 {
 	char namebuf[256];
@@ -239,10 +290,11 @@ void printFsInfo(IFileSystem* fs)
 	}
 
 	debug_i("type:       %s", toString(info.type).c_str());
-	if(info.media) {
-		debug_i("mediaType:  %s", toString(info.media->type()).c_str());
-		debug_i("bus:        %s", toString(info.media->bus()).c_str());
-	}
+	debug_i("partition:  %s", info.partition.name().c_str());
+	//	if(info.media) {
+	//		debug_i("mediaType:  %s", toString(info.media->type()).c_str());
+	//		debug_i("bus:        %s", toString(info.media->bus()).c_str());
+	//	}
 	debug_i("attr:       %s", toString(info.attr).c_str());
 	debug_i("volumeID:   0x%08X", info.volumeID);
 	debug_i("name:       %s", info.name.buffer);
@@ -407,31 +459,73 @@ void execute()
 	Serial.print(imgfile);
 	Serial.println('\'');
 
-	flags.hybrid = params.findIgnoreCase("hybrid");
+	flags[Flag::hybrid] = params.findIgnoreCase("hybrid");
 
 	Serial.println();
-	auto fs = initFWFS(imgfile);
+
+	Storage::Partition part;
+#ifdef ARCH_HOST
+	if(imgfile) {
+		part = createFwfsPartition(hostFileSys, imgfile);
+	} else {
+		part = createFwfsPartition(fwfsImage1);
+	}
+#else
+	part = createFwfsPartition(fwfsImage1);
+#endif
+
+	auto fs = initFWFS(part);
 	if(fs != nullptr) {
 		printFsInfo(fs);
 		fstest(fs);
 
+		DEFINE_FSTR_LOCAL(backup_fwfs, "backup.fwfs")
+
 		Serial.println();
-		auto fs2 = initFWFSOnFile(*fs, F("backup.fwfs"));
+		auto fs2 = initFWFSOnFile(*fs, backup_fwfs);
 		if(fs2 != nullptr) {
 			printFsInfo(fs2);
 			fstest(fs2);
 			delete fs2;
 		}
 
+		destroyStorageDevice(backup_fwfs);
 		delete fs;
+	}
+	if(imgfile) {
+		destroyStorageDevice(imgfile);
+	} else {
+		destroyStorageDevice(Storage::FlashStringDevice::nameOf(fwfsImage1));
 	}
 
 	Serial.println();
-	fs = initSpiffs();
+	fs = initSpiffs(FLASHMEM_DMP, FFS_FLASH_SIZE);
 	if(fs != nullptr) {
 		printFsInfo(fs);
 		fstest(fs);
 		delete fs;
+	}
+	destroyStorageDevice(FLASHMEM_DMP);
+
+	Serial.println();
+	Serial.println(_F("Registered storage devices:"));
+	for(Storage::Device* dev = &Storage::spiFlash; dev != nullptr; dev = dev->getNext()) {
+		Serial.print("  name = '");
+		Serial.print(dev->getName());
+		Serial.print(_F("', type = "));
+		Serial.print(toString(dev->getType()));
+		Serial.print(_F(", size = 0x"));
+		Serial.println(dev->getSize(), HEX);
+		for(auto part: dev->partitions()) {
+			Serial.print("    Part '");
+			Serial.print(part.name());
+			Serial.print(_F("', type = "));
+			Serial.print(part.longTypeString());
+			Serial.print(_F(", address = 0x"));
+			Serial.print(part.address(), HEX);
+			Serial.print(_F(", size = 0x"));
+			Serial.println(part.size(), HEX);
+		}
 	}
 }
 

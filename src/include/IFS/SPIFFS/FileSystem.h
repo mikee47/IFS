@@ -30,8 +30,9 @@
 
 #include "../FileSystem.h"
 #include <spiffs.h>
-
-#define FFS_LOG_PAGE_SIZE 256
+extern "C" {
+#include <spiffs_nucleus.h>
+}
 
 /*
  * Maxmimum number of open files
@@ -86,7 +87,7 @@ union SpiffsMetaBuffer {
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem(Media* media) : media(media)
+	FileSystem(Storage::Partition partition) : partition(partition)
 	{
 	}
 
@@ -155,13 +156,18 @@ private:
 		settime(file, fsGetTimeUTC());
 	}
 
-private:
-	Media* media{nullptr};
+	static constexpr size_t CACHE_PAGES{8};
+	static constexpr size_t LOG_PAGE_SIZE{256};
+	static constexpr size_t MIN_BLOCKSIZE{256};
+	static constexpr size_t CACHE_PAGE_SIZE{sizeof(spiffs_cache_page) + LOG_PAGE_SIZE};
+	static constexpr size_t CACHE_SIZE{sizeof(spiffs_cache) + CACHE_PAGES * CACHE_PAGE_SIZE};
+
+	Storage::Partition partition;
 	SpiffsMetaBuffer metaCache[FFS_MAX_FILEDESC];
 	spiffs fs;
-	uint8_t* workBuffer{nullptr};
-	uint8_t* fileDescriptors{nullptr};
-	uint8_t* cache{nullptr};
+	uint16_t workBuffer[LOG_PAGE_SIZE];
+	spiffs_fd fileDescriptors[FFS_MAX_FILEDESC];
+	uint8_t cache[CACHE_SIZE];
 };
 
 } // namespace SPIFFS

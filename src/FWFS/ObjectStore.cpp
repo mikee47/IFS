@@ -16,13 +16,13 @@ namespace FWFS
 {
 int ObjectStore::initialise()
 {
-	if(!media)
+	if(!partition) {
 		return Error::NoMedia;
+	}
 
 	uint32_t marker;
-	int res = media->read(0, sizeof(marker), &marker);
-	if(res < 0) {
-		return res;
+	if(!partition.read(0, marker)) {
+		return Error::ReadFailure;
 	}
 
 	if(marker != FWFILESYS_START_MARKER) {
@@ -38,8 +38,7 @@ int ObjectStore::mounted(const FWObjDesc& od)
 	// Check the end marker
 	uint32_t marker;
 	auto offset = FWFS_BASE_OFFSET + od.nextOffset();
-	int res = media->read(offset, sizeof(marker), &marker);
-	if(res >= 0) {
+	if(partition.read(offset, marker)) {
 		if(marker != FWFILESYS_END_MARKER) {
 			debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
 			return Error::BadFileSystem;
@@ -50,10 +49,8 @@ int ObjectStore::mounted(const FWObjDesc& od)
 	cache.initialise(od.obj.id + 1);
 #endif
 
-	// Tell media how much space we actually need to access, with a bounds check on the media limits
-	res = media->setExtent(offset);
-	flags.mounted = (res >= 0);
-	return res;
+	flags.mounted = true;
+	return FS_OK;
 }
 
 int ObjectStore::open(FWObjDesc& od)
@@ -122,7 +119,7 @@ int ObjectStore::readHeader(FWObjDesc& od)
 	if(od.ref.offset == 0) {
 		od.ref.id = 1;
 	}
-	int res = media->read(FWFS_BASE_OFFSET + od.ref.offset, sizeof(od.obj), &od.obj);
+	int res = partition.read(FWFS_BASE_OFFSET + od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
 
 	/*
 	During volume mount, readHeader() is called repeatedly to iterate base objects.
@@ -171,7 +168,7 @@ int ObjectStore::readChildHeader(const FWObjDesc& parent, FWObjDesc& child)
 int ObjectStore::readContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 {
 	offset += FWFS_BASE_OFFSET + od.contentOffset();
-	return media->read(offset, size, buffer);
+	return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
 }
 
 } // namespace FWFS

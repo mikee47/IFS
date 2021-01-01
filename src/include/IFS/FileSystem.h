@@ -14,7 +14,7 @@
 
 #include "File/Stat.h"
 #include "File/OpenFlags.h"
-#include "Media.h"
+#include <Storage/Partition.h>
 #include "Error.h"
 #include <Data/Stream/SeekOrigin.h>
 
@@ -103,13 +103,13 @@ public:
 	 * @brief Basic information about filing system
 	 */
 	struct Info {
-		Type type{};				 ///< The filing system type identifier
-		const Media* media{nullptr}; ///< WARNING: can be null for virtual file systems
-		Attributes attr{};			 ///< Attribute flags
-		uint32_t volumeID{0};		 ///< Unique identifier for volume
-		NameBuffer name;			 ///< Buffer for name
-		uint32_t volumeSize{0};		 ///< Size of volume, in bytes
-		uint32_t freeSpace{0};		 ///< Available space, in bytes
+		Type type{}; ///< The filing system type identifier
+		Storage::Partition partition;
+		Attributes attr{};		///< Attribute flags
+		uint32_t volumeID{0};   ///< Unique identifier for volume
+		NameBuffer name;		///< Buffer for name
+		uint32_t volumeSize{0}; ///< Size of volume, in bytes
+		uint32_t freeSpace{0};  ///< Available space, in bytes
 
 		Info()
 		{
@@ -122,7 +122,7 @@ public:
 		Info& operator=(const Info& rhs)
 		{
 			type = rhs.type;
-			media = rhs.media;
+			partition = rhs.partition;
 			attr = rhs.attr;
 			volumeID = rhs.volumeID;
 			name.copy(rhs.name);

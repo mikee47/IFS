@@ -42,7 +42,7 @@ namespace HYFS
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem(IObjectStore* fwStore, Media* ffsMedia) : fwfs(fwStore), ffs(ffsMedia)
+	FileSystem(IObjectStore* fwStore, Storage::Partition ffsPartition) : fwfs(fwStore), ffs(ffsPartition)
 	{
 	}
 

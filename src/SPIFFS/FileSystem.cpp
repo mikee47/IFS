@@ -7,9 +7,6 @@
 
 #include "../include/IFS/SPIFFS/FileSystem.h"
 #include "../include/IFS/SPIFFS/Error.h"
-extern "C" {
-#include <spiffs_nucleus.h>
-}
 #include "../include/IFS/Util.h"
 
 namespace IFS
@@ -25,25 +22,8 @@ struct FileDir {
 
 namespace SPIFFS
 {
-/*
- * Number of pages to cache
- */
-#define CACHE_PAGES 8
-
-#define WORK_BUF_SIZE(_log_page_size) ((_log_page_size)*2)
-
-#define FDS_BUF_SIZE(_num_filedesc) ((_num_filedesc) * sizeof(spiffs_fd))
-
-#define CACHE_SIZE(_pages) (sizeof(spiffs_cache) + (_pages) * (sizeof(spiffs_cache_page) + cfg.log_page_size))
-
-#define SPIFFS_LOG_PAGE_SIZE 256
-
-#if SPIFFS_FILEHDL_OFFSET
-#define SPIFFS_
-//@todo an integer offset added to each file handle
-u16_t fh_ix_offset;
-#endif
-
+namespace
+{
 /** @brief map IFS File::OpenFlags to SPIFFS equivalents
  *  @param flags
  *  @param sflags OUT the SPIFFS file open flags
@@ -51,7 +31,7 @@ u16_t fh_ix_offset;
  *  @note File::OpenFlags were initially created the same as SPIFFS, but they
  * 	may change to support other features so map them here
  */
-static inline File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_flags& sflags)
+File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_flags& sflags)
 {
 	sflags = 0;
 
@@ -78,7 +58,7 @@ static inline File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_fla
 /*
  * Check metadata record to ensure it's valid, adjusting if required
  */
-static void checkMeta(FileMeta& meta)
+void checkMeta(FileMeta& meta)
 {
 	// Formatted flash values means metadata is un-initialised, so use default
 	if((uint32_t)meta.mtime == 0xFFFFFFFF) {
@@ -97,25 +77,14 @@ static void checkMeta(FileMeta& meta)
  * Copy metadata fields into FileStat structure.
  * Meta must have been previously verified; this simply translates the values across.
  */
-static void copyMeta(FileStat& stat, const FileMeta& meta)
+void copyMeta(FileStat& stat, const FileMeta& meta)
 {
 	stat.acl = meta.acl;
 	stat.attr = meta.attr;
 	stat.mtime = meta.mtime;
 }
 
-/* FileSystem */
-
-FileSystem::~FileSystem()
-{
-	SPIFFS_unmount(handle());
-	delete[] cache;
-	delete[] fileDescriptors;
-	delete[] workBuffer;
-	delete media;
-}
-
-static inline uint32_t Align(uint32_t value, uint32_t gran)
+uint32_t Align(uint32_t value, uint32_t gran)
 {
 	if(gran) {
 		uint32_t rem = value % gran;
@@ -125,70 +94,62 @@ static inline uint32_t Align(uint32_t value, uint32_t gran)
 	return value;
 }
 
-#define MIN_BLOCKSIZE 256
-
-static s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
+s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
 {
-	return reinterpret_cast<Media*>(fs->user_data)->read(addr, size, dst);
+	auto part = static_cast<Storage::Partition*>(fs->user_data);
+	return part && part->read(addr, dst, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
 }
 
-static s32_t f_write(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* src)
+s32_t f_write(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* src)
 {
-	return reinterpret_cast<Media*>(fs->user_data)->write(addr, size, src);
+	auto part = static_cast<Storage::Partition*>(fs->user_data);
+	return part && part->write(addr, src, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
 }
 
-static s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
+s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
 {
-	return reinterpret_cast<Media*>(fs->user_data)->erase(addr, size);
+	auto part = static_cast<Storage::Partition*>(fs->user_data);
+	return part && part->erase_range(addr, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
+}
+
+} // namespace
+
+FileSystem::~FileSystem()
+{
+	SPIFFS_unmount(handle());
 }
 
 int FileSystem::mount()
 {
-	if(media == nullptr) {
+	if(!partition) {
 		return Error::NoMedia;
 	}
 
-	uint32_t blockSize = media->blockSize();
+	uint32_t blockSize = partition.getBlockSize();
 	if(blockSize < MIN_BLOCKSIZE) {
 		blockSize = Align(MIN_BLOCKSIZE, blockSize);
 	}
 
-	fs.user_data = media;
-	spiffs_config cfg;
-	memset(&cfg, 0, sizeof(cfg));
-	cfg.hal_read_f = f_read;
-	cfg.hal_write_f = f_write;
-	cfg.hal_erase_f = f_erase;
-	cfg.phys_size = media->mediaSize();
-	cfg.phys_addr = 0; // Media object extents start at 0
-	cfg.phys_erase_block = blockSize;
-	cfg.log_block_size = blockSize * 2;
-	cfg.log_page_size = SPIFFS_LOG_PAGE_SIZE;
-#if SPIFFS_FILEHDL_OFFSET
-	/* an offset added to each file handle
-	 * SPIFFS allocates file handles in the range 1 .. FFS_MAX_FILEDESC
-	 * If we specify fh_ix_offset then the range can be determined to allow the owning filesystem
-	 * to be determined from its handle.
-	 */
-	// cfg.fh_ix_offset = ...
-#endif
+	fs.user_data = &partition;
+	spiffs_config cfg{
+		.hal_read_f = f_read,
+		.hal_write_f = f_write,
+		.hal_erase_f = f_erase,
+		.phys_size = partition.size(),
+		.phys_addr = 0,
+		.phys_erase_block = blockSize,
+		.log_block_size = blockSize * 2,
+		.log_page_size = LOG_PAGE_SIZE,
+	};
 
 	//  debug_i("FFS offset: 0x%08x, size: %u Kb, \n", cfg.phys_addr, cfg.phys_size / 1024);
-
-	workBuffer = new uint8_t[WORK_BUF_SIZE(cfg.log_page_size)];
-	fileDescriptors = new uint8_t[FDS_BUF_SIZE(FFS_MAX_FILEDESC)];
-	cache = new uint8_t[CACHE_SIZE(CACHE_PAGES)];
-
-	if(!workBuffer || !fileDescriptors || !cache) {
-		return Error::NoMem;
-	}
 
 	auto res = tryMount(cfg);
 	if(res < 0) {
 		/*
-     * Mount failed, so we either try to repair the system or format it.
-     * For now, just format it.
-     */
+		 * Mount failed, so we either try to repair the system or format it.
+		 * For now, just format it.
+		 */
 		res = format();
 	}
 
@@ -203,8 +164,9 @@ int FileSystem::mount()
 
 int FileSystem::tryMount(spiffs_config& cfg)
 {
-	auto err = SPIFFS_mount(handle(), &cfg, workBuffer, fileDescriptors, FDS_BUF_SIZE(FFS_MAX_FILEDESC), cache,
-							CACHE_SIZE(CACHE_PAGES), nullptr);
+	auto err = SPIFFS_mount(handle(), &cfg, reinterpret_cast<uint8_t*>(workBuffer),
+							reinterpret_cast<uint8_t*>(fileDescriptors), sizeof(fileDescriptors), cache, sizeof(cache),
+							nullptr);
 	if(err < 0) {
 		if(isSpiffsError(err)) {
 			err = Error::fromSystem(err);
@@ -249,9 +211,8 @@ int FileSystem::check()
 int FileSystem::getinfo(Info& info)
 {
 	info.clear();
-	info.media = media;
+	info.partition = partition;
 	info.type = Type::SPIFFS;
-	info.media = media;
 	if(SPIFFS_mounted(handle())) {
 		info.volumeID = fs.config_magic;
 		info.attr |= Attribute::Mounted;
