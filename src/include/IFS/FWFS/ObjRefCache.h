@@ -26,11 +26,6 @@ namespace FWFS
 class ObjRefCache
 {
 public:
-	~ObjRefCache()
-	{
-		clear();
-	}
-
 	void initialise(Object::ID objectCount)
 	{
 		clear();
@@ -38,8 +33,8 @@ public:
 			return;
 		}
 		offsetCount = (objectCount / FWFS_CACHE_SPACING) - 1;
-		offsets = new uint32_t[offsetCount];
-		if(offsets == nullptr) {
+		offsets.reset(new uint32_t[offsetCount]);
+		if(!offsets) {
 			offsetCount = 0;
 		}
 	}
@@ -47,8 +42,7 @@ public:
 	void clear()
 	{
 		offsetCount = 0;
-		delete[] offsets;
-		offsets = nullptr;
+		offsets.reset();
 	}
 
 	void add(const ObjRef& ref)
@@ -89,7 +83,7 @@ public:
 	}
 
 private:
-	uint32_t* offsets{nullptr};
+	std::unique_ptr<uint32_t> offsets;
 	FWFS::Object::ID offsetCount{0}; ///< Number of cached offsets
 };
 

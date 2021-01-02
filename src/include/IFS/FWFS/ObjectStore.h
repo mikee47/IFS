@@ -33,7 +33,7 @@ public:
 
 	bool isMounted() override
 	{
-		return flags.mounted;
+		return flags[Flag::mounted];
 	}
 
 	int open(FWObjDesc& od) override;
@@ -49,15 +49,16 @@ public:
 	}
 
 private:
+	enum class Flag {
+		mounted,
+	};
+
 	Storage::Partition partition;
 	ObjRef lastFound;
-	struct Flags {
-		bool mounted;
-	};
-	Flags flags{};
 #ifdef FWFS_OBJECT_CACHE
 	ObjRefCache cache;
 #endif
+	BitSet<uint8_t, Flag> flags;
 };
 
 } // namespace FWFS

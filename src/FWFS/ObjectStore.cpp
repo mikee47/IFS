@@ -49,7 +49,7 @@ int ObjectStore::mounted(const FWObjDesc& od)
 	cache.initialise(od.obj.id + 1);
 #endif
 
-	flags.mounted = true;
+	flags[Flag::mounted] = true;
 	return FS_OK;
 }
 
@@ -140,7 +140,7 @@ int ObjectStore::readHeader(FWObjDesc& od)
 
 #ifdef FWFS_OBJECT_CACHE
 	if(res >= 0) {
-		if(flags.mounted) {
+		if(isMounted()) {
 			cache.improve(od.ref, objIndex);
 		} else {
 			cache.add(od.ref);
