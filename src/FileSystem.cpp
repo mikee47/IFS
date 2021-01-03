@@ -29,6 +29,15 @@ DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILE_SYSTEM_ATTR_MAP(XX
 
 namespace IFS
 {
+uint32_t IFileSystem::getSize(File::Handle file)
+{
+	auto curpos = lseek(file, 0, SeekOrigin::Current);
+	lseek(file, 0, SeekOrigin::End);
+	int size = tell(file);
+	lseek(file, curpos, SeekOrigin::Start);
+	return (size > 0) ? uint32_t(size) : 0;
+}
+
 uint32_t IFileSystem::getSize(const char* fileName)
 {
 	auto file = open(fileName, File::OpenFlag::Read);

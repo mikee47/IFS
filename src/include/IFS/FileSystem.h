@@ -472,6 +472,12 @@ public:
 	virtual int isfile(File::Handle file) = 0;
 
 	/** @brief  Get size of file
+	 *  @param  file File handle
+	 *  @retval uint32_t Size of file in bytes, 0 on error
+	 */
+	uint32_t getSize(File::Handle file);
+
+	/** @brief  Get size of file
 	 *  @param  fileName Name of file
 	 *  @retval uint32_t Size of file in bytes, 0 on error
 	 */
