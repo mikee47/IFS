@@ -59,6 +59,7 @@
 
 #pragma once
 
+#include "TimeStamp.h"
 #include "File/Attributes.h"
 #include "File/Compression.h"
 #include "UserRole.h"
@@ -272,7 +273,7 @@ struct Object {
 				 */
 				struct {
 					uint8_t namelen; ///< Length of object name
-					time_t mtime;	// Object modification time
+					TimeStamp mtime; // Object modification time
 					// char name[namelen];
 					// Object children[];	// __aligned
 
@@ -375,6 +376,8 @@ struct Object {
 		return ALIGNUP4(size());
 	}
 };
+
+static_assert(sizeof(Object) == 8, "Object alignment wrong!");
 
 #pragma pack()
 

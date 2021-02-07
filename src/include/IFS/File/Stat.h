@@ -8,6 +8,7 @@
 #pragma once
 
 #include "../NameBuffer.h"
+#include "../TimeStamp.h"
 #include "Access.h"
 #include "Compression.h"
 #include "Attributes.h"
@@ -44,7 +45,7 @@ struct Stat {
 	Compression compression{};
 	Attributes attr{};
 	ACL acl{UserRole::None, UserRole::None}; ///< Access Control
-	time_t mtime{0};						 ///< File modification time
+	TimeStamp mtime{};						 ///< File modification time
 
 	Stat()
 	{
