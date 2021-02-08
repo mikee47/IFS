@@ -49,11 +49,11 @@ namespace FWFS
  * @brief file descriptor attributes
  * @note these are bit values, combine using _BV()
  */
-enum FWFileDescAttr {
-	fwfda_Allocated, ///< Descriptor in use
+enum class FWFileDescAttr {
+	allocated, ///< Descriptor in use
 };
 
-using FWFileDescAttributes = uint8_t;
+using FWFileDescAttributes = BitSet<uint8_t, FWFileDescAttr, 1>;
 
 /**
  * @brief FWFS File Descriptor
@@ -62,7 +62,7 @@ struct FWFileDesc {
 	FWObjDesc odFile;	 ///< File object
 	uint32_t dataSize{0}; ///< Total size of data
 	uint32_t cursor{0};   ///< Current read/write offset within file data
-	FWFileDescAttributes attr{0};
+	FWFileDescAttributes attr;
 };
 
 /**

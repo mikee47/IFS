@@ -29,7 +29,7 @@ namespace FWFS
 		return Error::InvalidHandle;                                                                                   \
 	}                                                                                                                  \
 	auto& fd = fileDescriptors[file - FWFS_HANDLE_MIN];                                                                \
-	if(!bitRead(fd.attr, fwfda_Allocated)) {                                                                           \
+	if(!fd.attr[FWFileDescAttr::allocated]) {                                                                          \
 		return Error::FileNotOpen;                                                                                     \
 	}
 
@@ -106,7 +106,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 			}
 
 			case Object::Type::ObjectStore:
-				stat.attr |= _BV(File::Attribute::MountPoint) | _BV(File::Attribute::Directory);
+				stat.attr |= File::Attribute::MountPoint | File::Attribute::Directory;
 				break;
 
 			case Object::Type::Compression:
@@ -144,7 +144,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 int FileSystem::findUnusedDescriptor()
 {
 	for(int i = 0; i < FWFS_MAX_FDS; ++i) {
-		if(!bitRead(fileDescriptors[i].attr, fwfda_Allocated)) {
+		if(!fileDescriptors[i].attr[FWFileDescAttr::allocated]) {
 			return i;
 		}
 	}
@@ -505,7 +505,7 @@ File::Handle FileSystem::allocateFileDescriptor(FWObjDesc& odFile)
 
 	debug_d("Descriptor #%u allocated", descriptorIndex);
 
-	bitSet(fd.attr, fwfda_Allocated);
+	fd.attr[FWFileDescAttr::allocated] = true;
 	return FWFS_HANDLE_MIN + descriptorIndex;
 }
 
