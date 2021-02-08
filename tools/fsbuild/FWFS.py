@@ -41,8 +41,6 @@ class FwObt(IntEnum):
     # 3-byte sized
     Data24 = 64
 
-FwObt_Named = FwObt.Volume
-
 class ObjectAttr(IntEnum):
     ReadOnly = 0,
     Archive = 1
@@ -93,7 +91,7 @@ class Object(object):
         return self.__obt
     
     def isNamed(self):
-        return self.__obt >= FwObt_Named
+        return self.__obt >= FwObt.Volume and self.__obt < FwObt.Data24
 
     def offset(self):
         return self.__offset
