@@ -288,7 +288,7 @@ File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 	auto file = SPIFFS_open_by_id(handle(), stat.id, sflags, 0);
 	if(file < 0) {
 		int err = Error::fromSystem(file);
-		debug_ifserr(err, "fopen('%s')", stat.name);
+		debug_ifserr(err, "fopen('%s')", stat.name.buffer);
 		return err;
 	}
 

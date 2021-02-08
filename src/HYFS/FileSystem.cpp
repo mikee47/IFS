@@ -212,7 +212,7 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 			if(err < 0) {
 				debug_e("getFilePath(%u) error %d", stat.id, err);
 			} else {
-				debug_i("getFilePath(%u) - '%s'", stat.id, buf);
+				debug_d("getFilePath(%u) - '%s'", stat.id, buf);
 				hideFWFile(name.buffer, true);
 			}
 			return res;
