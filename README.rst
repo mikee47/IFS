@@ -5,7 +5,9 @@ Created for Sming Framework Project August 2018 by mikee47
 
 I struggled to find anything like this for embedded systems. Probably didn't look hard enough, but it seemed like a fun thing to do so here we are.
 
-The term 'IFS' came about because of the 'I' naming convention for virtual 'Interface' classes, hence IFileSystem. The term 'installable' is entirely appropriate because IFS allows file systems to be loaded and unloaded dynamically. Or maybe I just nicked the term from Microsoft :-)
+The term 'IFS' came about because of the 'I' naming convention for virtual 'Interface' classes, hence IFileSystem.
+The term 'installable' is entirely appropriate because IFS allows file systems to be loaded and unloaded dynamically.
+Or maybe I just nicked the term from Microsoft :-)
 
 Overview
 --------
@@ -15,27 +17,39 @@ IFS is written in C++ and has these core components:
 FileSystem API
    This is the same Sming filesystem API we're all used to, with a few minor changes and a number of additions.
    File systems are implemented using the IFileSystem virtual class.
-Media access layer
-   Virtualises physical hardware using the IFSMedia class to allow filing systems to be easily mounted on any suitable storage medium.
 Firmware FileSystem (FWFS)
    Files, directories and metadata are all stored as objects in an Object Store, which can be SPIFFS or on a FWRO (Firmware, Read-Only) image.
-   FWRO images are compact, fast and use less RAM than SPIFFS. To support read/write data SPIFFS can be mounted in a sub-directory.
+   FWRO images are compact, fast and use less RAM than SPIFFS.
+   To support read/write data SPIFFS can be mounted in a sub-directory.
 
-Two tools are used for manipulating filesystem images:
-	
-fsbuild
-   builds an FWFS image from user files. Written in python and can be easily be integrated into the Sming tool chain. It's driven by a simple .ini file which allows full control over the build.
-fscopy
-   converts an FWFS image into other formats (e.g. SPIFFS). Written in C++ using the IFS framework.
+A python tool ``fsbuild`` is used to build an FWFS image from user files.
+It is driven by an .ini configuration file which allows fine control over how the image is built.
 
-Two additional IFS implementations are provided:
+Various IFS implementations are provided:
 
-SpiFlashFileSystem
-   A SPIFFS wrapper, using file metadata to support the extended attributes
-HybridFileSystem
-   Layers SPIFFS over FWFS, devised to allow deployment of a standard setup which can be modified in-situ and reverted to 'factory defaults' by just running a format.
+IFS::FWFS::FileSystem
+   Firmware Filesystem. It is designed to support all features  of IFS, whereas other filesystems
+   may only use a subset.
 
-IFS has the following features:
+IFS::SPIFFS::FileSystem
+   SPIFFS filesystem. The metadata feature is used to store extended file attributes.
+
+IFS::HYFS::FileSystem
+   Hybrid filesystem. Uses FWFS as the root filesystem, with SPIFFS 'layered' on top.
+   When a file is opened for writing it is transparently copied to the SPIFFS partition so it can be updated.
+   Wiping the SPIFFS partition reverts the filesystem to its original state.
+
+   Note that files marked as 'read-only' on the FWFS system are blocked from this behaviour.
+
+IFS::Host::FileSystem
+   For Host architecture this allows access to the Linux/Windows host filesystem.
+
+IFS::Gdb::FileSystem
+   When running under a debugger this allows access to the Host filesystem.
+   (Currently only works for ESP8266.)
+
+
+IFS (and FWFS) has the following features:
 
 Attributes
    Files have a standard set of attribute flags plus modification time and simple role-based access control list (ACL)
@@ -44,26 +58,28 @@ Directories
 User metadata
    Supported for application use
 Filesystem Builder (fsbuild)
+   Drive via configuration .ini file to 
    JSON files are output in compact form
    javascript .js files are minified
-   Files may be optionally compressed (GZip). The filename remains unchanged, but a file attribute indicates compression state and type.
-   This is generally intended for serving files to network clients, which have the resources available for decompression.
+   Compression
+      Files may be optionally compressed using GZip.
+      The filename remains unchanged, but a file attribute indicates compression state and type (other compression standards may be added).
+      This is generally intended for serving files to network clients, which have the resources available for decompression.
 IFileSystem
    The virtual base class which all installable filesystems implement.
    Class methods are very similar to SPIFFS (which is POSIX-like).
    A single FileStat structure is used both for reading directory entries and for regular fileStat operations.
    This differs from SPIFFS which uses different structures, however the IFS implementation conceals this.
-IFSMedia
-   Provides media virtualisation.
 Filesystem API
-   The Sming FileSystem functions are now wrappers around a single IFileSystem instance, which is provided by the application
+   The Sming FileSystem functions are now wrappers around a single IFileSystem instance, which is provided by the application.
+Streaming classes
+   Sming provides IFS implementations for these so they can be constructed on any filesystem, not just the main (global) one.
 Dynamic loading
-   File systems may be loaded and unloaded at runtime
+   File systems may be loaded/created and unloaded/destroyed at runtime
 Multiple filesystems
    Applications may use any supported filesystem, or write their own, or use any combination of existing filesystems to meet requirements.
    The API is the same.
 
-Note that IFS does not have the concept of 'current' or 'working' directories.
 
 FWFS
 ----
@@ -79,8 +95,13 @@ If your storage requirements are minimal, you could link the file data into your
 That's kind of what FWFS does, but in a more structured and user-friendly way.
 
 FWFS offers a more convenient solution by providing all your default files in a compact, fast, read-only format.
-Using IFS, you can have different images and you can store the images in any available part of flash memory.
-Or even on a different memory chip (flash or RAM).
+Images can be mounted in separate partitions, linked into the program image itself or stored as files
+within another filesystem.
+
+.. note::
+
+   This behaviour is supported by partitions (see :component:`Storage`) using custom :cpp:class:`Storage::Device` objects.
+
 
 Objects
 ~~~~~~~
@@ -92,11 +113,11 @@ Small objects (255 bytes or less) are stored directly, larger ones get their own
 
 File content is stored in un-named data objects.
 A named object can have any number of these and will be treated as a single entity for read/write operations.
-You might think of this as support for fragmented files.
+File 'fragments' do not need to be contiguous, and are reassembled during read operations.
 
-Named objects can be enumerated using :cpp:func:`IFS::IFileSystem::readdir()`.
+**Named** objects can be enumerated using :cpp:func:`IFS::IFileSystem::readdir()`.
 Internally, FWFS uses handles to access any named object.
-Handles are allocated from a static pool, so no dynamic (heap) allocation is required.
+Handles are allocated from a static pool to avoid excessive dynamic (heap) allocation.
 Users can attach their own data to any named object using custom object types.
 
 Object stores
@@ -170,37 +191,6 @@ I can't see that file ownership, inherited permissions or more finely-grained ac
 but having said that extending this system would probably be fairly straightforward.
 
 
-IFS Media Objects
------------------
-
-This was added as a standardised HAL for filing systems to use, if they choose. There are two standard :cpp:class:`IFS::Media` classes:
-
-:cpp:class:`IFS::FlashMedia`
-   Provides configurable access to a flash memory region
-:cpp:class:`IFS::StdFileMedia`
-   Allows tools to be built working directly on file images
-
-FWFS was originally written to operate using memory buffers, so all accesses went through the hardware caching system.
-If some files were accessed frequently this might be an advantage; in fact, a Media object could be written to take advantage
-of this for certain files. In general, however, using the cache is undesirable because it will degrade code execution performance.
-
-FatFS provides disk_xxx function prototypes in diskio.h which the SDCard library provides.
-As a legacy filesystem it's unlikely we'll need FAT on any other media, so a IFS implementation could just wrap both SDCard + FatFS.
-It would probably require a little modification to the SDCard/FatFS library to implement a Media object.
-
-The ESP32-S2 devices have USB OTG, so USB-attached drives are something else to consider.
-
-Tools and test applications running on a development platform (Windows/Linux) need a HAL so we can test IFS effectively.
-
-At present IFS is not suitable for slow devices - see discussion of asynchronous I/O.
-
-Hybrid File System
-------------------
-
-Presents a 'SPIFFS-over-Firmware' system. A freshly 'formatted' system will present only the firmware files.
-When a file is written, deleted or otherwise modified (including metadata) it is transparently copied into SPIFFS.
-The original layout is restored using format().
-
 Configuration filesystem
 ------------------------
 
@@ -213,7 +203,12 @@ for example one or two flash sectors. A ConfigFileSystem implementation would no
 
 Such a system would require almost no static RAM allocation and code size would be tiny.
 
-Note that the ESP-IDF has a mechanism for flash-based configuration space.
+.. note::
+
+   The ESP-IDF has a mechanism for flash-based configuration space via the ``NVS`` component.
+   It is robust and flexible but uses a signficant amount of RAM for buffering which may preclude
+   its use with the ESP8266.
+
 
 Code dependencies
 -----------------
@@ -221,17 +216,10 @@ Code dependencies
 Written initially for Sming, the library is portable to other systems.
 
 No definitions from SPIFFS or other modules should be used in the public interface; such dependencies should be managed internally.
-This means that for Sming, it would be preferable to incorporate SPIFFS into the IFS library so applications don't 'see' it.
 
-Applications should avoid using filesystem-dependent calls, structures or error codes. Such code, if necessary, should be placed into a separate module.
+Applications should avoid using filesystem-dependent calls, structures or error codes.
+Such code, if necessary, should be placed into a separate module.
 
-Sming/Core/FileSystem has been modified to use these IFS but the API remains largely unchanged, although somewhat expanded.
-The basic type definitions were moved into this header file. Access functions are now mainly just wrappers around filing system calls.
-A single global IFileSystem instance is used.
-
-Applications may still call spiffs_mount() and spiffs_unmount(). These are defined in the services/SpifFS/spiffs_sming module which has also been updated.
-
-This does not depend on SPIFFS or any other filesystem definitions. An IFS implementation provides a wrapper for such a system.
 
 Implementation details
 ----------------------
@@ -243,34 +231,32 @@ VMT
    Advantages
       -  Compiler ensures correct ordering of methods, parameter type checking
       -  Simpler coding
-   Disadvantages
-      -  Uses RAM where we might not need to. All methods for a filing system get linked in even if they're not used. Probably.
+      -  Extending and overriding is natural
 
 Function table
    Advantages
-      -  We can place the tables directly into PROGMEM to minimise RAM usage.
       -  Portable to C applications (although with some fudging so are VMTs).
 
-Disadvantages
-   Care required to keep function order and parameters correct. Very likely we'd use a bunch of macros to deal with this.
+   Disadvantages
+      -  Care required to keep function order and parameters correct. Very likely we'd use a bunch of macros to deal with this.
 
 Macros
-~~~~~~
 
-We could #define the active filing system name which the FileSystem functions would map to the appropriate call.
-For example, fileOpen would get mapped to SPIFlashFileSystem_open(). We need to provide macros for defining file system functions. Complicated.
+   We could #define the active filing system name which the FileSystem functions would map to the appropriate call.
+   For example, fileOpen would get mapped to SPIFlashFileSystem_open().
+   We need to provide macros for defining file system functions.
 
-Function codes
-~~~~~~~~~~~~~~
+   Advantages
+      -  Fast
 
-Instead of one method/function per call, we'd have a generic call with a function code, something like ioctl(code, inbuf, insize, outbuf, outsize) for example.
-This would allow considerable flexibility in implementing specialised functions.
-However, the compiler would be unable to optimise-out unused functions and we would lose much of its help in checking parameters, etc.
+   Disadvantages
+      -  Complicated
+      -  Prone to bugs
+      -  Not C++
 
-The initial implementation used classes for the filesystem, directory and file objects. It got remarkably unwieldy...
 
-In the end, simplicity won over.
+API
+---
 
-NB. We're not going for full-on OS filing systems here. The next step would be something like FreeRTOS which does all this kind of thing.
-If only we had the RAM. The little ESP8266 deserves some special attention :-)
-
+.. doxygennamespace:: IFS
+   :members:
