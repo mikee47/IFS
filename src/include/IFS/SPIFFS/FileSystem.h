@@ -45,9 +45,14 @@ namespace IFS
 {
 namespace SPIFFS
 {
+/// This number is made up, but serves to identify that metadata is valid
+static constexpr uint32_t metaMagic{0xE3457A77};
+
 /** @brief Content of SPIFFS metadata area
  */
 struct FileMeta {
+	// Magic
+	uint32_t magic;
 	// Modification time
 	time_t mtime;
 	// File::Attributes - default indicates content has changed
@@ -74,8 +79,12 @@ struct FileMeta {
 	}
 };
 
+#define SPIFFS_STORE_META (SPIFFS_OBJ_META_LEN >= 16)
+
 union SpiffsMetaBuffer {
-	uint8_t buffer[SPIFFS_OBJ_META_LEN] = {0};
+#if SPIFFS_STORE_META
+	uint8_t buffer[SPIFFS_OBJ_META_LEN]{0};
+#endif
 	FileMeta meta;
 };
 

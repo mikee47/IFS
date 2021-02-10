@@ -14,6 +14,9 @@ COMPONENT_INCDIRS := \
 	src/include \
 	src/Arch/$(SMING_ARCH)/include
 
+# Defined in spiffs Component
+COMPONENT_RELINK_VARS += SPIFFS_OBJ_META_LEN
+COMPONENT_CXXFLAGS += -DSPIFFS_OBJ_META_LEN=$(SPIFFS_OBJ_META_LEN)
 
 ##@Building
 

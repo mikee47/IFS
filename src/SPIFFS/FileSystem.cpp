@@ -60,8 +60,10 @@ File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_flags& sflags)
  */
 void checkMeta(FileMeta& meta)
 {
-	// Formatted flash values means metadata is un-initialised, so use default
-	if((uint32_t)meta.mtime == 0xFFFFFFFF) {
+	// If metadata uninitialised, then initialise it now
+	if(meta.magic != metaMagic) {
+		memset(&meta, 0xff, sizeof(meta));
+		meta.magic = metaMagic;
 		meta.attr = 0;
 		meta.mtime = fsGetTimeUTC();
 		/*
@@ -70,6 +72,8 @@ void checkMeta(FileMeta& meta)
 		 */
 		meta.acl.readAccess = UserRole::Admin;
 		meta.acl.writeAccess = UserRole::Admin;
+
+		meta.setDirty();
 	}
 }
 
@@ -216,6 +220,9 @@ int FileSystem::getinfo(Info& info)
 	if(SPIFFS_mounted(handle())) {
 		info.volumeID = fs.config_magic;
 		info.attr |= Attribute::Mounted;
+#if !SPIFFS_STORE_META
+		info.attr |= Attribute::NoMeta;
+#endif
 		u32_t total, used;
 		SPIFFS_info(handle(), &total, &used);
 		info.volumeSize = total;
@@ -419,7 +426,9 @@ SpiffsMetaBuffer* FileSystem::cacheMeta(File::Handle file)
 		return nullptr;
 	}
 
-	memset(smb->buffer, 0xFF, sizeof(SpiffsMetaBuffer));
+	memset(static_cast<void*>(smb), 0xFF, sizeof(SpiffsMetaBuffer));
+
+#if SPIFFS_STORE_META
 
 	spiffs_stat stat;
 	int err = SPIFFS_fstat(handle(), file, &stat);
@@ -428,6 +437,8 @@ SpiffsMetaBuffer* FileSystem::cacheMeta(File::Handle file)
 	if(err >= 0) {
 		memcpy(smb, stat.meta, sizeof(stat.meta));
 	}
+
+#endif
 
 	checkMeta(smb->meta);
 
@@ -450,6 +461,7 @@ int FileSystem::getMeta(File::Handle file, SpiffsMetaBuffer*& meta)
  */
 int FileSystem::flushMeta(File::Handle file)
 {
+#if SPIFFS_STORE_META
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
 	if(res < 0) {
@@ -467,6 +479,7 @@ int FileSystem::flushMeta(File::Handle file)
 			return err;
 		}
 	}
+#endif
 
 	return FS_OK;
 }
@@ -486,7 +499,9 @@ int FileSystem::stat(const char* path, FileStat* stat)
 		stat->size = ss.size;
 		stat->id = ss.obj_id;
 		FileMeta meta;
+#if SPIFFS_STORE_META
 		memcpy(&meta, ss.meta, sizeof(meta));
+#endif
 		checkMeta(meta);
 		copyMeta(*stat, meta);
 	}
@@ -508,7 +523,9 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 		return err;
 	}
 
+#if SPIFFS_STORE_META
 	memcpy(smb, ss.meta, sizeof(SpiffsMetaBuffer));
+#endif
 	checkMeta(smb->meta);
 
 	if(stat != nullptr) {
@@ -655,7 +672,9 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 			stat.size = e.size;
 			stat.id = e.obj_id;
 			FileMeta meta;
+#if SPIFFS_STORE_META
 			memcpy(&meta, e.meta, sizeof(meta));
+#endif
 			checkMeta(meta);
 			copyMeta(stat, meta);
 		}
