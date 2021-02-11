@@ -2,10 +2,6 @@
     "name": "FS Test",
     "base_config": "spiffs",
     "partitions": {
-        "spiffs0": {
-            "address": "0x100000",
-            "size": "1500K"
-        },
         "fwfs1": {
             "address": "0x280000",
             "size": "0x60000",

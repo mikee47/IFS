@@ -502,7 +502,7 @@ private:
 	Flags flags;
 };
 
-void REGISTER_TEST(general)
+void REGISTER_TEST(General)
 {
 	registerGroup<FsTest>();
 }
