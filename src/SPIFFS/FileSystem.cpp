@@ -22,6 +22,8 @@ struct FileDir {
 
 namespace SPIFFS
 {
+constexpr uint32_t logicalBlockSize{4096 * 2};
+
 namespace
 {
 /** @brief map IFS File::OpenFlags to SPIFFS equivalents
@@ -88,16 +90,6 @@ void copyMeta(FileStat& stat, const FileMeta& meta)
 	stat.mtime = meta.mtime;
 }
 
-uint32_t Align(uint32_t value, uint32_t gran)
-{
-	if(gran) {
-		uint32_t rem = value % gran;
-		if(rem)
-			value += gran - rem;
-	}
-	return value;
-}
-
 s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
 {
 	auto part = static_cast<Storage::Partition*>(fs->user_data);
@@ -129,11 +121,6 @@ int FileSystem::mount()
 		return Error::NoMedia;
 	}
 
-	uint32_t blockSize = partition.getBlockSize();
-	if(blockSize < MIN_BLOCKSIZE) {
-		blockSize = Align(MIN_BLOCKSIZE, blockSize);
-	}
-
 	fs.user_data = &partition;
 	spiffs_config cfg{
 		.hal_read_f = f_read,
@@ -141,8 +128,8 @@ int FileSystem::mount()
 		.hal_erase_f = f_erase,
 		.phys_size = partition.size(),
 		.phys_addr = 0,
-		.phys_erase_block = blockSize,
-		.log_block_size = blockSize * 2,
+		.phys_erase_block = partition.getBlockSize(),
+		.log_block_size = logicalBlockSize,
 		.log_page_size = LOG_PAGE_SIZE,
 	};
 
