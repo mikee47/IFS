@@ -69,7 +69,7 @@ using IFileSystem = IFS::IFileSystem;
 class FsTest : public TestGroup
 {
 public:
-	FsTest() : TestGroup(_F("IFS")), hostFileSys(gHostFileSystem)
+	FsTest() : TestGroup(_F("IFS"))
 	{
 	}
 
@@ -77,15 +77,15 @@ public:
 	{
 		Storage::Partition part;
 
-		auto file = hostFileSys.open(imgfile, File::Create | File::ReadWrite);
+		auto file = IFS::Host::fileSystem.open(imgfile, File::Create | File::ReadWrite);
 		if(file < 0) {
-			debug_e("Failed to open '%s': %s", imgfile.c_str(), hostFileSys.getErrorString(file).c_str());
+			debug_e("Failed to open '%s': %s", imgfile.c_str(), IFS::Host::fileSystem.getErrorString(file).c_str());
 		} else {
-			size_t curSize = hostFileSys.getSize(file);
+			size_t curSize = IFS::Host::fileSystem.getSize(file);
 			if(curSize < FFS_FLASH_SIZE) {
-				hostFileSys.truncate(file, FFS_FLASH_SIZE);
+				IFS::Host::fileSystem.truncate(file, FFS_FLASH_SIZE);
 			}
-			auto dev = new Storage::FileDevice(imgfile, hostFileSys, file);
+			auto dev = new Storage::FileDevice(imgfile, IFS::Host::fileSystem, file);
 			Storage::registerDevice(dev);
 			if(curSize < FFS_FLASH_SIZE) {
 				dev->erase_range(curSize, FFS_FLASH_SIZE - curSize);
@@ -415,7 +415,6 @@ public:
 		debug_i("check(): %s", getErrorString(fs, res).c_str());
 		scandir(fs, "");
 
-
 		flags[Flag::writeThroughTest] = false;
 		scandir(fs, "");
 	}
@@ -438,7 +437,7 @@ public:
 
 		Storage::Partition part;
 		if(imgfile) {
-			part = createFwfsPartition(hostFileSys, imgfile);
+			part = createFwfsPartition(IFS::Host::fileSystem, imgfile);
 		} else {
 			part = createFwfsPartition(fwfsImage1);
 		}
@@ -497,8 +496,6 @@ public:
 	}
 
 private:
-	IFS::Host::FileSystem gHostFileSystem;
-	IFileSystem& hostFileSys;
 	Flags flags;
 };
 
