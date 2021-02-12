@@ -191,7 +191,7 @@ int FileSystem::check()
 {
 	fs.check_cb_f = [](spiffs* fs, spiffs_check_type type, spiffs_check_report report, u32_t arg1, u32_t arg2) {
 		if(report > SPIFFS_CHECK_PROGRESS) {
-			debug_i("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
+			debug_d("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
 		}
 	};
 
@@ -457,7 +457,7 @@ int FileSystem::flushMeta(File::Handle file)
 
 	// Changed ?
 	if(smb->meta.isDirty()) {
-		debug_i("Flushing Metadata to disk");
+		debug_d("Flushing Metadata to disk");
 		smb->meta.clearDirty();
 		int err = SPIFFS_fupdate_meta(handle(), file, smb);
 		if(err < 0) {
