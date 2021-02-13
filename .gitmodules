@@ -1,3 +1,0 @@
-[submodule "fsbuild/rjsmin"]
-	path = tools/fsbuild/rjsmin
-	url = https://github.com/ndparker/rjsmin.git

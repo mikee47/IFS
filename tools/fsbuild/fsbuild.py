@@ -10,6 +10,7 @@ import util, FWFS, config
 from util import _BV
 from FWFS import FwObt
 from compress import CompressionType
+from rjsmin import jsmin
 import argparse
 
 
@@ -24,10 +25,10 @@ def addFile(parent, name, sourcePath):
     with open(sourcePath, "rb") as fin:
         din = fin.read()
         ext = os.path.splitext(name)[1]
-        if ext == '.json':
-            dout = json.dumps(json.loads(din.decode()), separators=(',', ':')).encode()
+        if ext in ['.json', '.jsonc']:
+            dout = json.dumps(json.loads(jsmin(din).decode()), separators=(',', ':')).encode()
         elif ext in ['.js']:
-            dout = util.js_minify(din)
+            dout = jsmin(din)
         else:
             dout = din
         fin.close()
