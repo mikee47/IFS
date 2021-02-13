@@ -75,7 +75,7 @@ enum class Value {
 IFS_ERROR_MAP(XX)
 #undef XX
 
-constexpr ErrorCode USER{-100};	 // Start of user-defined codes
+constexpr ErrorCode USER{-100};	// Start of user-defined codes
 constexpr ErrorCode SYSTEM{-1000}; // Non-FWFS filing systems map custom codes starting here
 
 /**
