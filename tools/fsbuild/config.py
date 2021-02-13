@@ -4,135 +4,79 @@
 # Defines all options for the build
 #
 
-import configparser, sys, util, os
+import sys, os, json
 from fnmatch import fnmatch
 from FWFS import ObjectAttr
-
-
-# An individual field specification
-class FieldSpec:
-    __field = ''
-    __value = ''
-
-    def __init__(self, spec):
-        pair = spec.split('=')
-        self.__field = pair[0].strip()
-        self.__value = pair[1].strip().lower()
-#        print("    " + self.__field + " = " + self.__value)
-
-    def apply(self, named):
-#        print("apply to '{}': {} = {}".format(named.path, self.__field, self.__value))
-        if self.__field == 'readonly':
-            named.setAttr(ObjectAttr.ReadOnly, self.__value)
-        elif self.__field == 'compress':
-            named.appendCompression(self.__value)
-        elif self.__field == 'read':
-            named.appendReadACE(self.__value)
-        elif self.__field == 'write':
-            named.appendWriteACE(self.__value)
-        else:
-            print("Unknown field '{}' in rule".format(self.__field))
-            sys.exit(1)
-        
-    def toString(self):
-        return self.__field + " = " + self.__value
-
-
-# Encapsulates a single rule of the form:
-#    {path masks}: {field specs}
-#
-# Where {path masks} is a comma-separated list of unix-style filename wildcards
-#       {field specs} is a comma-separated list, each specifiying the field to modify
-#            For ACL entries:
-#               r={user role}
-#               w={user role}
-#            For attributes:
-#                attr={attribute string}
-#                {attribute string] can contain the attribute characters in any order,
-#                optionally prefixed by '-' to remove the attribute.
-#
-class Rule:
-#    __masks = []  # File path masks this rule applies to
-#    __specs = []  # The field specs
-
-    def __init__(self, strPathMasks, strFieldSpecs):
-#        print("Rule: {} : {}".format(strPathMasks, strFieldSpecs))
-
-        self.__masks = []
-        masks = strPathMasks.split(',')
-        for mask in masks:
-            self.__masks.append(mask.strip())
-
-        self.__specs = []
-        specs = strFieldSpecs.split(',')
-        for spec in specs:
-            self.__specs.append(FieldSpec(spec))
-
-    def match(self, named):
-        for mask in self.__masks:
-            if fnmatch(named.path(), mask):
-#                print("'{}' matches '{}'".format(named.path(), mask))
-                return True
-        return False
-
-    def apply(self, f):
-        for spec in self.__specs:
-            spec.apply(f)
-            
-    def toString(self):
-        s = "".join(self.__masks) + ": ";
-        for spec in self.__specs:
-            s += spec.toString() + ", "
-        return s
-
+from rjsmin import jsmin
+from jsonschema import Draft7Validator
 
 class Config:
-#    __file = configparser.RawConfigParser()
-#    __rules = []
-
     def __init__(self, filename):
-        self.__file = configparser.ConfigParser()
-        self.__file.optionxform = str  # Preserve case
-        self.__file.readfp(open(filename))
-        
-        # Pull rule specifications into objects for efficient parsing
-        rules = self.__file.items('rules')
-        self.__rules = []
-        for item in rules:
-            rule = Rule(item[0], item[1])
-            self.__rules.append(rule)
-            
-#         for rule in self.__rules:
-#             print(rule.toString())
-            
+        din = open(filename).read()
+        self.data = json.loads(jsmin(din))
+
+        # Validate configuration against schema
+        schemaPath = os.path.dirname(__file__) + '/schema.json'
+        schema = json.load(open(schemaPath))
+        v = Draft7Validator(schema)
+        errors = sorted(v.iter_errors(self.data), key=lambda e: e.path)
+        if errors != []:
+            for e in errors:
+                sys.stderr.write("%s @ %s\n" % (e.message, e.path))
+            sys.exit(1)
 
     def sourceMap(self):
-        """ File mappings are specified in a separate section.
-            Each entry consists of {target}: {source}, where
+        """ Each entry consists of "{target}": "{source}", where
             {target} is the name to be used on the filesystem image,
             and {source} is a file or folder to obtain the content."""
-        return self.__file.items('source')
+        return self.data['source'].items()
 
     def mountPoints(self):
         """Mount points create a virtual folder which is redirected to another object store"""
-        return self.__file.items("mountpoints")
+        return self.data["mountpoints"].items()
 
     def volumeName(self):
-        return self.__readConfig('volumeName', 'FWFS')
+        return self.data['name']
 
     def volumeID(self):
-        s = self.__readConfig('volumeID', '0')
-        return int(s, 16)
+        return int(self.data['id'], 0)
 
     # Apply rules to given IFS.File object
     def applyRules(self, f):
-        for rule in self.__rules:
-            if rule.match(f):
-                rule.apply(f)
+        def match(mask):
+            if type(mask) is list:
+                for m in mask:
+                    if match(m):
+                        return True
+                return False
 
-    def __readConfig(self, option, default):
-        if self.__file.has_option('config', option):
-            return self.__file.get('config', option)
-        else:
-            return default
+            if fnmatch(f.path(), mask):
+                # print("'%s' matches '%s'" % (f.path(), mask))
+                return True
 
+            # print("'%s', '%s'" % (f.name, mask))
+            if mask[0:1] != '/' and fnmatch(f.name, mask):
+                # print("'%s' matches '%s'" % (f.name, mask))
+                return True
+
+            return False
+
+
+        for rule in self.data['rules']:
+            if match(rule['mask']):
+                value = rule.get('readonly')
+                if value is not None:
+                    # print("Set readonly = %d" % value)
+                    f.setAttr(ObjectAttr.ReadOnly, value)
+                value = rule.get('compress')
+                if value is not None:
+                    # print("Set compression = %s" % value)
+                    f.appendCompression(value)
+                value = rule.get('read')
+                if value is not None:
+                    # print("Set read ACE = %s" % value)
+                    f.appendReadACE(value)
+                value = rule.get('write')
+                if value is not None:
+                    # print("Set write ACE = %s" % value)
+                    f.appendWriteACE(value)

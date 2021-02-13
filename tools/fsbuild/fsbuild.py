@@ -107,8 +107,6 @@ def addDirectory(parent, name, sourcePath):
 
 if __name__ == "__main__":
 
-    print("Python version: ", sys.version, ", version info: ", sys.version_info)
-
     parser = argparse.ArgumentParser(description='Firmware Filesystem Builder')
     parser.add_argument('-l', '--log', metavar='filename', help='Create build log file, use `-` to print to screen')
     parser.add_argument('-f', '--files', metavar='directory', help='Create file layout for inspection')
@@ -117,7 +115,10 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', action='store_true', help='Show build details')
     
     args = parser.parse_args()
-    
+
+    if args.verbose:
+        print("Python version: ", sys.version, ", version info: ", sys.version_info)
+
     configFile = os.path.expandvars(util.ospath(args.input))
     configDir = os.path.dirname(configFile)
     
@@ -162,9 +163,10 @@ if __name__ == "__main__":
     
     # Emit the image
     imgFilePath = util.ospath(args.output)
-    print("Writing image to '" + imgFilePath + "'")
+    if args.verbose:
+        print("Writing image to '" + imgFilePath + "'")
     img.writeToFile(imgFilePath)
-    
+
     totalDataSize = img.root().totalDataSize()
     totalOriginalDataSize = img.root().totalOriginalDataSize()
     if totalOriginalDataSize == 0:
@@ -175,6 +177,6 @@ if __name__ == "__main__":
     if logfile:
         logfile.write(fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", ""))
         logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", ""))
-    
-    print("Image contains {} objects, {} bytes in {} files ({}% of source data size)".format(img.objectCount(), totalDataSize, fileCount, pc))
+
+    print("Image '%s' contains %u objects, %u bytes in %u files (%u%% of source data size)" % (imgFilePath, img.objectCount(), totalDataSize, fileCount, pc))
 
