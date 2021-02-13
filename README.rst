@@ -17,34 +17,55 @@ IFS is written in C++ and has these core components:
 FileSystem API
    This is the same Sming filesystem API we're all used to, with a few minor changes and a number of additions.
    File systems are implemented using the IFileSystem virtual class.
+
 Firmware FileSystem (FWFS)
    Files, directories and metadata are all stored as objects in an Object Store, which can be SPIFFS or on a FWRO (Firmware, Read-Only) image.
    FWRO images are compact, fast and use less RAM than SPIFFS.
    To support read/write data SPIFFS can be mounted in a sub-directory.
 
-A python tool ``fsbuild`` is used to build an FWFS image from user files.
-It is driven by an .ini configuration file which allows fine control over how the image is built.
+   A python tool ``fsbuild`` is used to build an FWFS image from user files. See :doc:`tools/fsbuild/README`.
+
+   This is integrated into the build system using the ``fwfs-build`` target for the partition. Example :ref:`hardware_config` fragment:
+
+   .. code-block:: json
+
+      "partitions": {
+         "fwfs1": {
+            "address": "0x280000",
+            "size": "0x60000",
+            "type": "data",
+            "subtype": "fwfs",
+            "filename": "out/fwfs1.bin",
+            "build": {
+                "target": "fwfs-build",   // To build a FWFS image
+                "config": "fsimage.fwfs"  // Configuration for the image
+            }
+         }
+      }
+
+   Sming provides the :sample:`Basic_IFS` sample application which gives a worked example of this.
+
 
 Various IFS implementations are provided:
 
-IFS::FWFS::FileSystem
+:cpp:class:`IFS::FWFS::FileSystem`
    Firmware Filesystem. It is designed to support all features  of IFS, whereas other filesystems
    may only use a subset.
 
-IFS::SPIFFS::FileSystem
+:cpp:class:`IFS::SPIFFS::FileSystem`
    SPIFFS filesystem. The metadata feature is used to store extended file attributes.
 
-IFS::HYFS::FileSystem
+:cpp:class:`IFS::HYFS::FileSystem`
    Hybrid filesystem. Uses FWFS as the root filesystem, with SPIFFS 'layered' on top.
    When a file is opened for writing it is transparently copied to the SPIFFS partition so it can be updated.
    Wiping the SPIFFS partition reverts the filesystem to its original state.
 
    Note that files marked as 'read-only' on the FWFS system are blocked from this behaviour.
 
-IFS::Host::FileSystem
+:cpp:class:`IFS::Host::FileSystem`
    For Host architecture this allows access to the Linux/Windows host filesystem.
 
-IFS::Gdb::FileSystem
+:cpp:class:`IFS::Gdb::FileSystem`
    When running under a debugger this allows access to the Host filesystem.
    (Currently only works for ESP8266.)
 
@@ -53,29 +74,28 @@ IFS (and FWFS) has the following features:
 
 Attributes
    Files have a standard set of attribute flags plus modification time and simple role-based access control list (ACL)
+
 Directories
    Fully supported, and can be enumerated with associated file information using a standard opendir/readdir/closedir function set.
+
 User metadata
    Supported for application use
-Filesystem Builder (fsbuild)
-   Drive via configuration .ini file to 
-   JSON files are output in compact form
-   javascript .js files are minified
-   Compression
-      Files may be optionally compressed using GZip.
-      The filename remains unchanged, but a file attribute indicates compression state and type (other compression standards may be added).
-      This is generally intended for serving files to network clients, which have the resources available for decompression.
-IFileSystem
+
+:cpp:class:`IFS::IFileSystem`
    The virtual base class which all installable filesystems implement.
    Class methods are very similar to SPIFFS (which is POSIX-like).
    A single FileStat structure is used both for reading directory entries and for regular fileStat operations.
    This differs from SPIFFS which uses different structures, however the IFS implementation conceals this.
+
 Filesystem API
    The Sming FileSystem functions are now wrappers around a single IFileSystem instance, which is provided by the application.
+
 Streaming classes
    Sming provides IFS implementations for these so they can be constructed on any filesystem, not just the main (global) one.
+
 Dynamic loading
    File systems may be loaded/created and unloaded/destroyed at runtime
+
 Multiple filesystems
    Applications may use any supported filesystem, or write their own, or use any combination of existing filesystems to meet requirements.
    The API is the same.
