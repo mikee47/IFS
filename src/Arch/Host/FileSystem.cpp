@@ -71,16 +71,22 @@ int FileSystem::rewinddir(DirHandle dir)
 
 int FileSystem::readdir(DirHandle dir, FileStat& stat)
 {
-	int res;
-	dirent* e = ::readdir(dir->d);
-	if(e == nullptr) {
-		res = syserr();
-	} else {
+	while(true) {
+		errno = 0;
+		dirent* e = ::readdir(dir->d);
+		if(e == nullptr) {
+			return syserr() ?: Error::NoMoreFiles;
+		}
+
+		if(strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0) {
+			continue;
+		}
+
 		char path[PATH_MAX];
 		strcpy(path, dir->path);
 		strcat(path, "/");
 		strcat(path, e->d_name);
-		res = this->stat(path, &stat);
+		int res = this->stat(path, &stat);
 #ifdef __WIN32
 		if(e->d_type & _A_SUBDIR) {
 			stat.attr |= File::Attribute::Directory;
@@ -92,16 +98,14 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 			stat.attr |= File::Attribute::Archive;
 		}
 #endif
-		//		stat->name.copy(e->d_name, e->d_namlen);
+		stat.name.copy(e->d_name);
+		return res;
 	}
-
-	return res;
 }
 
 int FileSystem::closedir(DirHandle dir)
 {
-	auto d = reinterpret_cast<DIR*>(dir);
-	int res = ::closedir(d);
+	int res = ::closedir(dir->d);
 	return (res >= 0) ? res : syserr();
 }
 
