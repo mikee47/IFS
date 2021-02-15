@@ -19,22 +19,22 @@ class IFileSystem;
 
 namespace File
 {
-/*
- * File handle
+/**
+ * @brief File handle
  *
  * References an open file
  */
 using Handle = int16_t;
 
-/*
- * File identifier
+/**
+ * @brief File identifier
  *
  * Contained within Stat, uniquely identifies any file on the file system.
  */
 using ID = uint32_t;
 
-/*
- * File Status structure
+/**
+ * @brief File Status structure
  */
 struct Stat {
 	IFileSystem* fs{nullptr}; ///< The filing system owning this file
@@ -55,9 +55,10 @@ struct Stat {
 	{
 	}
 
-	/** @brief assign content from another Stat structure
-	 *  @note All fields are copied as for a normal assignment, except for 'name', where
-	 *  rhs.name contents are copied into our name buffer.
+	/**
+	 * @brief assign content from another Stat structure
+	 * @note All fields are copied as for a normal assignment, except for 'name', where
+	 * rhs.name contents are copied into our name buffer.
 	 */
 	Stat& operator=(const Stat& rhs)
 	{

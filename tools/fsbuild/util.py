@@ -3,8 +3,6 @@
 #
 
 import sys, os, io, gzip
-sys.path.append(os.path.join(os.path.dirname(__file__), 'rjsmin'))
-import rjsmin
 
 def alignUp(n):
     return (n + 3) & ~0x00000003
@@ -50,9 +48,3 @@ def compress(data):
         gz.close()
     tmp.seek(0)
     return tmp.read()
-
-
-# Minify a javascript file
-def js_minify(src):
-    return rjsmin.jsmin(src)
-
