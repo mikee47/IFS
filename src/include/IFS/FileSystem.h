@@ -35,7 +35,8 @@
 	XX(Mounted, "Filing system is mounted and in use")                                                                 \
 	XX(ReadOnly, "Writing not permitted to this volume")                                                               \
 	XX(Virtual, "Virtual filesystem, doesn't host files directly")                                                     \
-	XX(Check, "Volume check recommended")
+	XX(Check, "Volume check recommended")                                                                              \
+	XX(NoMeta, "Metadata unsupported")
 
 namespace IFS
 {

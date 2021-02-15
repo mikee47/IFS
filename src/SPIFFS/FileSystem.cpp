@@ -22,6 +22,8 @@ struct FileDir {
 
 namespace SPIFFS
 {
+constexpr uint32_t logicalBlockSize{4096 * 2};
+
 namespace
 {
 /** @brief map IFS File::OpenFlags to SPIFFS equivalents
@@ -60,8 +62,10 @@ File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_flags& sflags)
  */
 void checkMeta(FileMeta& meta)
 {
-	// Formatted flash values means metadata is un-initialised, so use default
-	if((uint32_t)meta.mtime == 0xFFFFFFFF) {
+	// If metadata uninitialised, then initialise it now
+	if(meta.magic != metaMagic) {
+		memset(&meta, 0xff, sizeof(meta));
+		meta.magic = metaMagic;
 		meta.attr = 0;
 		meta.mtime = fsGetTimeUTC();
 		/*
@@ -70,6 +74,8 @@ void checkMeta(FileMeta& meta)
 		 */
 		meta.acl.readAccess = UserRole::Admin;
 		meta.acl.writeAccess = UserRole::Admin;
+
+		meta.setDirty();
 	}
 }
 
@@ -82,16 +88,6 @@ void copyMeta(FileStat& stat, const FileMeta& meta)
 	stat.acl = meta.acl;
 	stat.attr = meta.attr;
 	stat.mtime = meta.mtime;
-}
-
-uint32_t Align(uint32_t value, uint32_t gran)
-{
-	if(gran) {
-		uint32_t rem = value % gran;
-		if(rem)
-			value += gran - rem;
-	}
-	return value;
 }
 
 s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
@@ -125,11 +121,6 @@ int FileSystem::mount()
 		return Error::NoMedia;
 	}
 
-	uint32_t blockSize = partition.getBlockSize();
-	if(blockSize < MIN_BLOCKSIZE) {
-		blockSize = Align(MIN_BLOCKSIZE, blockSize);
-	}
-
 	fs.user_data = &partition;
 	spiffs_config cfg{
 		.hal_read_f = f_read,
@@ -137,8 +128,8 @@ int FileSystem::mount()
 		.hal_erase_f = f_erase,
 		.phys_size = partition.size(),
 		.phys_addr = 0,
-		.phys_erase_block = blockSize,
-		.log_block_size = blockSize * 2,
+		.phys_erase_block = partition.getBlockSize(),
+		.log_block_size = logicalBlockSize,
 		.log_page_size = LOG_PAGE_SIZE,
 	};
 
@@ -200,7 +191,7 @@ int FileSystem::check()
 {
 	fs.check_cb_f = [](spiffs* fs, spiffs_check_type type, spiffs_check_report report, u32_t arg1, u32_t arg2) {
 		if(report > SPIFFS_CHECK_PROGRESS) {
-			debug_i("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
+			debug_d("SPIFFS check %d, %d, %u, %u", type, report, arg1, arg2);
 		}
 	};
 
@@ -216,6 +207,9 @@ int FileSystem::getinfo(Info& info)
 	if(SPIFFS_mounted(handle())) {
 		info.volumeID = fs.config_magic;
 		info.attr |= Attribute::Mounted;
+#if !SPIFFS_STORE_META
+		info.attr |= Attribute::NoMeta;
+#endif
 		u32_t total, used;
 		SPIFFS_info(handle(), &total, &used);
 		info.volumeSize = total;
@@ -419,7 +413,9 @@ SpiffsMetaBuffer* FileSystem::cacheMeta(File::Handle file)
 		return nullptr;
 	}
 
-	memset(smb->buffer, 0xFF, sizeof(SpiffsMetaBuffer));
+	memset(static_cast<void*>(smb), 0xFF, sizeof(SpiffsMetaBuffer));
+
+#if SPIFFS_STORE_META
 
 	spiffs_stat stat;
 	int err = SPIFFS_fstat(handle(), file, &stat);
@@ -428,6 +424,8 @@ SpiffsMetaBuffer* FileSystem::cacheMeta(File::Handle file)
 	if(err >= 0) {
 		memcpy(smb, stat.meta, sizeof(stat.meta));
 	}
+
+#endif
 
 	checkMeta(smb->meta);
 
@@ -450,6 +448,7 @@ int FileSystem::getMeta(File::Handle file, SpiffsMetaBuffer*& meta)
  */
 int FileSystem::flushMeta(File::Handle file)
 {
+#if SPIFFS_STORE_META
 	SpiffsMetaBuffer* smb;
 	int res = getMeta(file, smb);
 	if(res < 0) {
@@ -458,7 +457,7 @@ int FileSystem::flushMeta(File::Handle file)
 
 	// Changed ?
 	if(smb->meta.isDirty()) {
-		debug_i("Flushing Metadata to disk");
+		debug_d("Flushing Metadata to disk");
 		smb->meta.clearDirty();
 		int err = SPIFFS_fupdate_meta(handle(), file, smb);
 		if(err < 0) {
@@ -467,6 +466,7 @@ int FileSystem::flushMeta(File::Handle file)
 			return err;
 		}
 	}
+#endif
 
 	return FS_OK;
 }
@@ -486,7 +486,9 @@ int FileSystem::stat(const char* path, FileStat* stat)
 		stat->size = ss.size;
 		stat->id = ss.obj_id;
 		FileMeta meta;
+#if SPIFFS_STORE_META
 		memcpy(&meta, ss.meta, sizeof(meta));
+#endif
 		checkMeta(meta);
 		copyMeta(*stat, meta);
 	}
@@ -508,7 +510,9 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 		return err;
 	}
 
+#if SPIFFS_STORE_META
 	memcpy(smb, ss.meta, sizeof(SpiffsMetaBuffer));
+#endif
 	checkMeta(smb->meta);
 
 	if(stat != nullptr) {
@@ -655,7 +659,9 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 			stat.size = e.size;
 			stat.id = e.obj_id;
 			FileMeta meta;
+#if SPIFFS_STORE_META
 			memcpy(&meta, e.meta, sizeof(meta));
+#endif
 			checkMeta(meta);
 			copyMeta(stat, meta);
 		}

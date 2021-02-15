@@ -27,6 +27,12 @@ struct FileDir {
 
 namespace Host
 {
+namespace
+{
+IFS::Host::FileSystem hostFileSystem;
+}
+IFileSystem& fileSystem{hostFileSystem};
+
 int FileSystem::getinfo(Info& info)
 {
 	return Error::NotImplemented;
