@@ -763,13 +763,6 @@ int32_t FileSystem::tell(File::Handle file)
 	return fd.cursor;
 }
 
-int FileSystem::isfile(File::Handle file)
-{
-	GET_FD();
-
-	return FS_OK;
-}
-
 /*
  * fileid identifies the object store and object identifier, but it doesn't implicitly tell
  * us the path. Whilst we can have aliases and such, we're interested in the 'true' path of the

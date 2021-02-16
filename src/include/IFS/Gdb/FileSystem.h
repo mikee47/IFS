@@ -105,10 +105,6 @@ public:
 	{
 		return FS_OK;
 	}
-	int isfile(File::Handle file) override
-	{
-		return file >= 0;
-	}
 };
 
 } // namespace Gdb

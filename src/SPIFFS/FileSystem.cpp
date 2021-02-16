@@ -718,12 +718,6 @@ int FileSystem::fremove(File::Handle file)
 	return Error::fromSystem(err);
 }
 
-int FileSystem::isfile(File::Handle file)
-{
-	SpiffsMetaBuffer* meta;
-	return getMeta(file, meta);
-}
-
 int FileSystem::getFilePath(File::ID fileid, NameBuffer& buffer)
 {
 	auto fs = handle();

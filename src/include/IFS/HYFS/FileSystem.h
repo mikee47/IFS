@@ -75,14 +75,6 @@ public:
 	int fremove(File::Handle file) override;
 	int format() override;
 	int check() override;
-	int isfile(File::Handle file) override
-	{
-		int res = fwfs.isfile(file);
-		if(res != FS_OK) {
-			res = ffs.isfile(file);
-		}
-		return res;
-	}
 
 private:
 	int hideFWFile(const char* path, bool hide);

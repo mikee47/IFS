@@ -133,7 +133,6 @@ public:
 	int fremove(File::Handle file) override;
 	int format() override;
 	int check() override;
-	int isfile(File::Handle file) override;
 
 	/** @brief get the full path of a file from its ID
 	 *  @param fileid

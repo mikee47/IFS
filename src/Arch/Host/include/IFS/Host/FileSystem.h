@@ -94,10 +94,6 @@ public:
 	{
 		return Error::NotImplemented;
 	}
-	int isfile(File::Handle file) override
-	{
-		return file >= 0;
-	}
 
 private:
 	void fillStat(const struct stat& s, FileStat& stat);

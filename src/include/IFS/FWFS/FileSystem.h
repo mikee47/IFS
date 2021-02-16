@@ -175,7 +175,6 @@ public:
     	 * is better resolved externally using a hash of the entire firmware image. */
 		return Error::NotImplemented;
 	}
-	int isfile(File::Handle file) override;
 
 	/** @brief get the full path of a file from its ID
 	 *  @param fileid

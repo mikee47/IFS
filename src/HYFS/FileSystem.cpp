@@ -65,12 +65,12 @@
 
 #include "../include/IFS/HYFS/FileSystem.h"
 
-#define GET_FS(__file)                                                                                                 \
-	if(__file < 0) {                                                                                                   \
-		return __file;                                                                                                 \
+#define GET_FS(handle)                                                                                                 \
+	if(handle < 0) {                                                                                                   \
+		return handle;                                                                                                 \
 	}                                                                                                                  \
 	IFileSystem* fs;                                                                                                   \
-	if(fwfs.isfile(file) == FS_OK) {                                                                                   \
+	if(handle >= FWFS_HANDLE_MIN && handle < FWFS_HANDLE_MAX) {                                                        \
 		fs = &fwfs;                                                                                                    \
 	} else {                                                                                                           \
 		fs = &ffs;                                                                                                     \

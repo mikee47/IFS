@@ -463,15 +463,6 @@ public:
 		return Error::NotImplemented;
 	}
 
-	/**
-	 * @brief Determine if the given file handle is valid
-	 * @param file handle to check
-	 * @retval int error code
-	 * @note error code typically Error::InvalidHandle if handle is outside valid range,
-	 * or Error::FileNotOpen if handle range is valid but handle not in use
-	 */
-	virtual int isfile(File::Handle file) = 0;
-
 	/** @brief  Get size of file
 	 *  @param  file File handle
 	 *  @retval uint32_t Size of file in bytes, 0 on error
