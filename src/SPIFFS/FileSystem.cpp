@@ -304,8 +304,13 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 
 	//  debug_i("%s('%s', %s)", __FUNCTION__, fileName.c_str(), fileOpenFlagsToStr(flags).c_str());
 
+	/*
+	 * The file may be marked 'read-only' in its metadata, so avoid modifications
+	 * (truncate) during the open phase until this has been checked.
+	 */
+
 	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags, sflags).any()) {
+	if(mapFileOpenFlags(flags - File::OpenFlag::Truncate, sflags).any()) {
 		return File::Handle(Error::NotSupported);
 	}
 
@@ -323,8 +328,15 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 		return Error::ReadOnly;
 	}
 
-	// File affected without write so update timestamp
+	// Now truncate the file if so requested
 	if(flags[File::OpenFlag::Truncate]) {
+		int err = SPIFFS_ftruncate(handle(), file, 0);
+		if(err < 0) {
+			SPIFFS_close(handle(), file);
+			return Error::fromSystem(err);
+		}
+
+		// Update modification timestamp
 		touch(file);
 	}
 
