@@ -158,7 +158,10 @@ int FileSystem::read(File::Handle file, void* data, size_t size)
 
 	uint32_t readTotal = 0;
 	// Offset from start of data content
-	Extent ext;
+	struct {
+		uint32_t start;
+		size_t length;
+	} ext{};
 
 	FWObjDesc child;
 	int res;

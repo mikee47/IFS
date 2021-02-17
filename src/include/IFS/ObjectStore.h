@@ -9,7 +9,8 @@
 #pragma once
 
 #include "Object.h"
-#include "Media.h"
+#include "Error.h"
+#include <Storage/Partition.h>
 
 namespace IFS
 {
