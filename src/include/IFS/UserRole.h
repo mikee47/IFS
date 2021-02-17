@@ -26,13 +26,20 @@ enum class UserRole : uint8_t {
 		MAX ///< Actually maxmimum value + 1...
 };
 
-/*
- * @brief Return the access type value for the given string.
+/**
+ * @name Return the access type value for the given string.
  * @param str
  * @param defaultRole Returned if string isn't recognsed
  * @retval UserRole
+ * @{
  */
 UserRole getUserRole(const char* str, UserRole defaultRole);
+
+inline UserRole getUserRole(const String& str, UserRole defaultRole)
+{
+	return getUserRole(str.c_str(), defaultRole);
+}
+/** @} */
 
 /*
  * @brief Get the character code representing the given access type

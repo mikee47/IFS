@@ -36,5 +36,6 @@ File::Compression::Type getCompressionType(const char* str, File::Compression::T
 
 String toString(IFS::File::Compression::Type type)
 {
-	return strings[unsigned(type)];
+	String s = strings[unsigned(type)];
+	return s ?: F("UNK#") + String(unsigned(type));
 }

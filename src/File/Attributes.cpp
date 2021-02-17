@@ -46,5 +46,6 @@ String getAttributeString(File::Attributes attr)
 
 String toString(IFS::File::Attribute attr)
 {
-	return attributeStrings[unsigned(attr)];
+	String s = attributeStrings[unsigned(attr)];
+	return s ?: F("UNK#") + String(unsigned(attr));
 }

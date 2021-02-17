@@ -51,5 +51,6 @@ UserRole getUserRole(char code, UserRole defaultRole)
 
 String toString(IFS::UserRole role)
 {
-	return userRoleStrings[unsigned(role)];
+	String s = userRoleStrings[unsigned(role)];
+	return s ?: F("UNK#") + String(unsigned(role));
 }
