@@ -51,15 +51,12 @@ public:
 	int fstat(File::Handle file, FileStat* stat) override;
 	int setacl(File::Handle file, const File::ACL& acl) override
 	{
-		return Error::ReadOnly;
+		return Error::NotImplemented;
 	}
-	int setattr(File::Handle file, File::Attributes attr) override
-	{
-		return Error::ReadOnly;
-	}
+	int setattr(const char* path, File::Attributes attr) override;
 	int settime(File::Handle file, time_t mtime) override
 	{
-		return Error::ReadOnly;
+		return Error::NotImplemented;
 	}
 	File::Handle open(const char* path, File::OpenFlags flags) override;
 	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;

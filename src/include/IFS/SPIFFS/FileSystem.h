@@ -116,7 +116,7 @@ public:
 	int stat(const char* path, FileStat* stat) override;
 	int fstat(File::Handle file, FileStat* stat) override;
 	int setacl(File::Handle file, const File::ACL& acl) override;
-	int setattr(File::Handle file, File::Attributes attr) override;
+	int setattr(const char* path, File::Attributes attr) override;
 	int settime(File::Handle file, time_t mtime) override;
 	File::Handle open(const char* path, File::OpenFlags flags) override;
 	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;

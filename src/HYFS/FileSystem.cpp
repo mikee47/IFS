@@ -338,7 +338,6 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 	// Copy metadata
 	if(fwfs.fstat(fwfile, &stat) >= 0) {
 		ffs.setacl(ffsfile, stat.acl);
-		ffs.setattr(ffsfile, stat.attr);
 		ffs.settime(ffsfile, stat.mtime);
 	}
 
@@ -456,10 +455,13 @@ int FileSystem::setacl(File::Handle file, const File::ACL& acl)
 	return fs->setacl(file, acl);
 }
 
-int FileSystem::setattr(File::Handle file, File::Attributes attr)
+int FileSystem::setattr(const char* path, File::Attributes attr)
 {
-	GET_FS(file)
-	return fs->setattr(file, attr);
+	if(ffs.stat(path, nullptr) == FS_OK) {
+		return ffs.setattr(path, attr);
+	} else {
+		return Error::ReadOnly;
+	}
 }
 
 int FileSystem::settime(File::Handle file, time_t mtime)

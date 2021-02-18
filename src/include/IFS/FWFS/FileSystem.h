@@ -125,7 +125,7 @@ public:
 	{
 		return Error::ReadOnly;
 	}
-	int setattr(File::Handle file, File::Attributes attr) override
+	int setattr(const char* path, File::Attributes attr)
 	{
 		return Error::ReadOnly;
 	}

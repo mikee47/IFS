@@ -550,14 +550,36 @@ int FileSystem::setacl(File::Handle file, const File::ACL& acl)
 	return err;
 }
 
-int FileSystem::setattr(File::Handle file, File::Attributes attr)
+int FileSystem::setattr(const char* path, File::Attributes attr)
 {
-	SpiffsMetaBuffer* smb;
-	int err = getMeta(file, smb);
-	if(err >= 0 && File::Attributes{smb->meta.attr} != attr) {
-		smb->meta.setDirty();
+	FS_CHECK_PATH(path);
+	if(path == nullptr) {
+		return Error::BadParam;
 	}
-	return err;
+
+	auto file = SPIFFS_open(handle(), path, SPIFFS_O_RDWR, 0);
+	if(file < 0) {
+		int err = Error::fromSystem(file);
+		debug_ifserr(err, "open('%s')", path);
+		return err;
+	}
+
+	auto smb = cacheMeta(file);
+	if(smb == nullptr) {
+		SPIFFS_close(handle(), file);
+		return Error::InvalidHandle;
+	}
+
+	constexpr File::Attributes mask{File::Attribute::ReadOnly | File::Attribute::Archive};
+	auto newAttr = File::Attributes(smb->meta.attr) - mask + (attr & mask);
+	if(File::Attributes(smb->meta.attr) != newAttr) {
+		smb->meta.attr = uint8_t(newAttr);
+		smb->meta.setDirty();
+		flushMeta(file);
+	}
+
+	SPIFFS_close(handle(), file);
+	return FS_OK;
 }
 
 int FileSystem::settime(File::Handle file, time_t mtime)

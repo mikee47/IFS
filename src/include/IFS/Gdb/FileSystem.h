@@ -64,7 +64,7 @@ public:
 	{
 		return Error::NotSupported;
 	}
-	int setattr(File::Handle file, File::Attributes attr) override
+	int setattr(const char* filename, File::Attributes attr) override
 	{
 		return Error::NotSupported;
 	}

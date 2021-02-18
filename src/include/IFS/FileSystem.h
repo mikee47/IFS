@@ -390,11 +390,11 @@ public:
 
 	/**
 	 * @brief Set file attributes
-     * @param file handle to open file, must have write access
+     * @param path Full path to file
      * @param attr
      * @retval int error code
      */
-	virtual int setattr(File::Handle file, File::Attributes attr) = 0;
+	virtual int setattr(const char* path, File::Attributes attr) = 0;
 
 	/**
 	 * @brief Set access control information for file

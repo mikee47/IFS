@@ -161,6 +161,12 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 	return res;
 }
 
+int FileSystem::setattr(const char* path, File::Attributes attr)
+{
+	// TODO
+	return Error::NotImplemented;
+}
+
 File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 {
 	int res = ::open(path, mapFlags(flags), 0644);
