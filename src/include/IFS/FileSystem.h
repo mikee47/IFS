@@ -105,9 +105,11 @@ public:
 	 * @brief Basic information about filing system
 	 */
 	struct Info {
-		Type type{}; ///< The filing system type identifier
+		Type type{};		  ///< The filing system type identifier
+		Attributes attr{};	///< Attribute flags
+		size_t maxNameLength; ///< Maximum length of a single file name
+		size_t maxPathLength; ///< Maximum length of a full file path
 		Storage::Partition partition;
-		Attributes attr{};		///< Attribute flags
 		uint32_t volumeID{0};   ///< Unique identifier for volume
 		NameBuffer name;		///< Buffer for name
 		uint32_t volumeSize{0}; ///< Size of volume, in bytes

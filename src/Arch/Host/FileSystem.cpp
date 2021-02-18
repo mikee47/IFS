@@ -21,14 +21,19 @@
 #include <sys/xattr.h>
 #endif
 
+// We need name and path limits which work on all Host OS/s
 #ifndef PATH_MAX
 #define PATH_MAX 255
+#endif
+
+#ifndef NAME_MAX
+#define NAME_MAX 255
 #endif
 
 namespace IFS
 {
 struct FileDir {
-	char path[PATH_MAX];
+	char path[PATH_MAX + 1];
 	DIR* d;
 };
 
@@ -126,6 +131,8 @@ int FileSystem::getinfo(Info& info)
 {
 	info.clear();
 	info.type = Type::Host;
+	info.maxNameLength = NAME_MAX;
+	info.maxPathLength = PATH_MAX;
 	info.attr = Attribute::Mounted;
 	return FS_OK;
 }
@@ -140,6 +147,11 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	assert(strlen(path) < PATH_MAX);
 
 	auto d = new FileDir;
+
+	// Interpret empty path as current directory
+	if(path == nullptr || path[0] == '\0') {
+		path = ".";
+	}
 
 	d->d = ::opendir(path);
 	if(d->d == nullptr) {

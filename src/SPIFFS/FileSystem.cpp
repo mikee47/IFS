@@ -171,6 +171,8 @@ int FileSystem::getinfo(Info& info)
 	info.clear();
 	info.partition = partition;
 	info.type = Type::SPIFFS;
+	info.maxNameLength = SPIFFS_OBJ_NAME_LEN - 1;
+	info.maxPathLength = info.maxNameLength;
 	if(SPIFFS_mounted(handle())) {
 		info.volumeID = fs.config_magic;
 		info.attr |= Attribute::Mounted;

@@ -111,7 +111,9 @@ int FileSystem::getinfo(Info& info)
 	fwfs.getinfo(fwinfo);
 
 	info.type = Type::Hybrid;
-	info.attr = fwinfo.attr | ffsinfo.attr;
+	info.maxNameLength = ffsinfo.maxNameLength;
+	info.maxPathLength = ffsinfo.maxPathLength;
+	info.attr = (fwinfo.attr | ffsinfo.attr) - Attribute::ReadOnly;
 	bitSet(info.attr, Attribute::Virtual);
 	info.volumeSize = fwinfo.volumeSize + ffsinfo.volumeSize;
 	info.freeSpace = ffsinfo.freeSpace;

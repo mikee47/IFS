@@ -332,6 +332,8 @@ int FileSystem::getinfo(Info& info)
 
 	info.clear();
 	info.type = Type::FWFS;
+	info.maxNameLength = INT16_MAX;
+	info.maxPathLength = INT16_MAX;
 	info.attr = Attribute::ReadOnly;
 	if(volume.store) {
 		info.partition = volume.store->getPartition();
