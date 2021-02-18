@@ -89,7 +89,9 @@ bool Directory::next()
 		return true;
 	}
 
-	debug_w("Directory '%s' read error: %s", name.c_str(), getErrorString(err).c_str());
+	if(err != Error::NoMoreFiles) {
+		debug_w("Directory '%s' read error: %s", name.c_str(), getErrorString(err).c_str());
+	}
 
 	return false;
 }
