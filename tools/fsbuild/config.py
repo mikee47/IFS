@@ -7,8 +7,13 @@
 import sys, os, json
 from fnmatch import fnmatch
 from FWFS import ObjectAttr
-from rjsmin import jsmin
-from jsonschema import Draft7Validator
+
+try:
+    from rjsmin import jsmin
+    from jsonschema import Draft7Validator
+except ImportError as err:
+    sys.stderr.write("\n** %s: please run `make python-requirements` **\n\n" % str(err))
+    sys.exit(1)
 
 class Config:
     def __init__(self, filename):
