@@ -26,7 +26,8 @@
 	XX(Unknown, NULL, "Unknown")                                                                                       \
 	XX(FWFS, FWFS, "Firmware File System")                                                                             \
 	XX(SPIFFS, SPIF, "SPI Flash File System (SPIFFS)")                                                                 \
-	XX(Hybrid, HYFS, "Hybrid File System")
+	XX(Hybrid, HYFS, "Hybrid File System")                                                                             \
+	XX(Host, HOST, "Host File System")
 
 /**
  * @brief Attribute flags for filing system

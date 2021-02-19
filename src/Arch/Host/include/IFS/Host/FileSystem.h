@@ -49,15 +49,9 @@ public:
 	int mkdir(const char* path) override;
 	int stat(const char* path, FileStat* stat) override;
 	int fstat(File::Handle file, FileStat* stat) override;
-	int setacl(File::Handle file, const File::ACL& acl) override
-	{
-		return Error::NotImplemented;
-	}
+	int setacl(File::Handle file, const File::ACL& acl) override;
 	int setattr(const char* path, File::Attributes attr) override;
-	int settime(File::Handle file, time_t mtime) override
-	{
-		return Error::NotImplemented;
-	}
+	int settime(File::Handle file, time_t mtime) override;
 	int setcompression(File::Handle file, const File::Compression& compression) override;
 	File::Handle open(const char* path, File::OpenFlags flags) override;
 	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
