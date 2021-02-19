@@ -57,39 +57,6 @@ File::OpenFlags mapFileOpenFlags(File::OpenFlags flags, spiffs_flags& sflags)
 	return flags;
 }
 
-/*
- * Check metadata record to ensure it's valid, adjusting if required
- */
-void checkMeta(FileMeta& meta)
-{
-	// If metadata uninitialised, then initialise it now
-	if(meta.magic != metaMagic) {
-		memset(&meta, 0xff, sizeof(meta));
-		meta.magic = metaMagic;
-		meta.attr = 0;
-		meta.mtime = fsGetTimeUTC();
-		/*
-		 * @todo find a way to allow the user to explictly specify default file permissions
-		 * I think Linux has a ustat or something which does this.
-		 */
-		meta.acl.readAccess = UserRole::Admin;
-		meta.acl.writeAccess = UserRole::Admin;
-
-		meta.setDirty();
-	}
-}
-
-/*
- * Copy metadata fields into FileStat structure.
- * Meta must have been previously verified; this simply translates the values across.
- */
-void copyMeta(FileStat& stat, const FileMeta& meta)
-{
-	stat.acl = meta.acl;
-	stat.attr = meta.attr;
-	stat.mtime = meta.mtime;
-}
-
 s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
 {
 	auto part = static_cast<Storage::Partition*>(fs->user_data);
@@ -207,7 +174,7 @@ int FileSystem::getinfo(Info& info)
 	if(SPIFFS_mounted(handle())) {
 		info.volumeID = fs.config_magic;
 		info.attr |= Attribute::Mounted;
-#if !SPIFFS_STORE_META
+#ifndef SPIFFS_STORE_META
 		info.attr |= Attribute::NoMeta;
 #endif
 		u32_t total, used;
@@ -286,7 +253,7 @@ File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 		return err;
 	}
 
-	cacheMeta(file);
+	initMetaBuffer(file);
 	// File affected without write so update timestamp
 	if(flags[File::OpenFlag::Truncate]) {
 		touch(file);
@@ -301,8 +268,6 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 	if(path == nullptr) {
 		return Error::BadParam;
 	}
-
-	//  debug_i("%s('%s', %s)", __FUNCTION__, fileName.c_str(), fileOpenFlagsToStr(flags).c_str());
 
 	/*
 	 * The file may be marked 'read-only' in its metadata, so avoid modifications
@@ -321,11 +286,13 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 		return err;
 	}
 
-	auto smb = cacheMeta(file);
-	// If file is marked read-only, fail write requests !!! @todo bit late if we've got a truncate flag...
-	if(smb && File::Attributes{smb->meta.attr}[File::Attribute::ReadOnly] && (flags == File::OpenFlag::Read)) {
-		SPIFFS_close(handle(), file);
-		return Error::ReadOnly;
+	auto smb = initMetaBuffer(file);
+	// If file is marked read-only, fail write requests
+	if(smb != nullptr) {
+		if(smb->meta.attr[File::Attribute::ReadOnly] && (flags[File::OpenFlag::Write])) {
+			SPIFFS_close(handle(), file);
+			return Error::ReadOnly;
+		}
 	}
 
 	// Now truncate the file if so requested
@@ -349,10 +316,12 @@ int FileSystem::close(File::Handle file)
 		return Error::FileNotOpen;
 	}
 
-	//    debug_i("%s(%d, '%s')", __FUNCTION__, m_fd, name().c_str());
-	flushMeta(file);
+	int res = flushMeta(file);
 	int err = SPIFFS_close(handle(), file);
-	return Error::fromSystem(err);
+	if(err < 0) {
+		res = Error::fromSystem(err);
+	}
+	return res;
 }
 
 int FileSystem::eof(File::Handle file)
@@ -375,9 +344,12 @@ int FileSystem::truncate(File::Handle file, size_t new_size)
 
 int FileSystem::flush(File::Handle file)
 {
-	flushMeta(file);
+	int res = flushMeta(file);
 	int err = SPIFFS_fflush(handle(), file);
-	return Error::fromSystem(err);
+	if(err < 0) {
+		res = Error::fromSystem(err);
+	}
+	return res;
 }
 
 int FileSystem::read(File::Handle file, void* data, size_t size)
@@ -418,41 +390,34 @@ int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 	return res;
 }
 
-SpiffsMetaBuffer* FileSystem::cacheMeta(File::Handle file)
+SpiffsMetaBuffer* FileSystem::initMetaBuffer(File::Handle file)
 {
-	SpiffsMetaBuffer* smb;
-	if(getMeta(file, smb) < 0) {
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
 		return nullptr;
 	}
 
-	memset(static_cast<void*>(smb), 0xFF, sizeof(SpiffsMetaBuffer));
+	smb->init();
 
-#if SPIFFS_STORE_META
-
+#ifdef SPIFFS_STORE_META
 	spiffs_stat stat;
 	int err = SPIFFS_fstat(handle(), file, &stat);
-	//    debug_hex(DBG, "Meta", stat.meta, SPIFFS_OBJ_META_LEN);
-
 	if(err >= 0) {
-		memcpy(smb, stat.meta, sizeof(stat.meta));
+		smb->assign(stat.meta);
 	}
-
 #endif
-
-	checkMeta(smb->meta);
 
 	return smb;
 }
 
-int FileSystem::getMeta(File::Handle file, SpiffsMetaBuffer*& meta)
+SpiffsMetaBuffer* FileSystem::getMetaBuffer(File::Handle file)
 {
 	unsigned off = SPIFFS_FH_UNOFFS(handle(), file) - 1;
 	if(off >= FFS_MAX_FILEDESC) {
-		debug_e("getMeta(%d) - bad file", file);
-		return Error::InvalidHandle;
+		debug_e("getMetaBuffer(%d) - bad file", file);
+		return nullptr;
 	}
-	meta = &metaCache[off];
-	return FS_OK;
+	return &metaCache[off];
 }
 
 /*
@@ -460,17 +425,16 @@ int FileSystem::getMeta(File::Handle file, SpiffsMetaBuffer*& meta)
  */
 int FileSystem::flushMeta(File::Handle file)
 {
-#if SPIFFS_STORE_META
-	SpiffsMetaBuffer* smb;
-	int res = getMeta(file, smb);
-	if(res < 0) {
-		return res;
+#ifdef SPIFFS_STORE_META
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
 	}
 
 	// Changed ?
-	if(smb->meta.isDirty()) {
+	if(smb->flags[SpiffsMetaBuffer::Flag::dirty]) {
 		debug_d("Flushing Metadata to disk");
-		smb->meta.clearDirty();
+		smb->flags[SpiffsMetaBuffer::Flag::dirty] = false;
 		int err = SPIFFS_fupdate_meta(handle(), file, smb);
 		if(err < 0) {
 			err = Error::fromSystem(err);
@@ -479,7 +443,6 @@ int FileSystem::flushMeta(File::Handle file)
 		}
 	}
 #endif
-
 	return FS_OK;
 }
 
@@ -497,12 +460,13 @@ int FileSystem::stat(const char* path, FileStat* stat)
 		stat->name.copy(reinterpret_cast<const char*>(ss.name));
 		stat->size = ss.size;
 		stat->id = ss.obj_id;
-		FileMeta meta;
-#if SPIFFS_STORE_META
-		memcpy(&meta, ss.meta, sizeof(meta));
+		SpiffsMetaBuffer smb;
+#ifdef SPIFFS_STORE_META
+		smb.assign(ss.meta);
+#else
+		smb.init();
 #endif
-		checkMeta(meta);
-		copyMeta(*stat, meta);
+		smb.copyTo(*stat);
 	}
 
 	return FS_OK;
@@ -516,16 +480,14 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 		return Error::fromSystem(err);
 	}
 
-	SpiffsMetaBuffer* smb;
-	err = getMeta(file, smb);
-	if(err < 0) {
-		return err;
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
 	}
 
-#if SPIFFS_STORE_META
-	memcpy(smb, ss.meta, sizeof(SpiffsMetaBuffer));
+#ifdef SPIFFS_STORE_META
+	smb->assign(ss.meta);
 #endif
-	checkMeta(smb->meta);
 
 	if(stat != nullptr) {
 		stat->clear();
@@ -533,7 +495,7 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 		stat->name.copy(reinterpret_cast<const char*>(ss.name));
 		stat->size = ss.size;
 		stat->id = ss.obj_id;
-		copyMeta(*stat, smb->meta);
+		smb->copyTo(*stat);
 	}
 
 	return FS_OK;
@@ -541,13 +503,13 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 
 int FileSystem::setacl(File::Handle file, const File::ACL& acl)
 {
-	SpiffsMetaBuffer* smb;
-	int err = getMeta(file, smb);
-	if(err >= 0) {
-		smb->meta.acl = acl;
-		smb->meta.setDirty();
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
 	}
-	return err;
+
+	smb->setAcl(acl);
+	return FS_OK;
 }
 
 int FileSystem::setattr(const char* path, File::Attributes attr)
@@ -564,38 +526,38 @@ int FileSystem::setattr(const char* path, File::Attributes attr)
 		return err;
 	}
 
-	auto smb = cacheMeta(file);
+	auto smb = initMetaBuffer(file);
 	if(smb == nullptr) {
 		SPIFFS_close(handle(), file);
 		return Error::InvalidHandle;
 	}
 
 	constexpr File::Attributes mask{File::Attribute::ReadOnly | File::Attribute::Archive};
-	auto newAttr = File::Attributes(smb->meta.attr) - mask + (attr & mask);
-	if(File::Attributes(smb->meta.attr) != newAttr) {
-		smb->meta.attr = uint8_t(newAttr);
-		smb->meta.setDirty();
-		flushMeta(file);
-	}
+	smb->setattr(smb->meta.attr - mask + (attr & mask));
 
-	SPIFFS_close(handle(), file);
-	return FS_OK;
+	return close(file);
 }
 
 int FileSystem::settime(File::Handle file, time_t mtime)
 {
-	SpiffsMetaBuffer* smb = nullptr;
-	int err = getMeta(file, smb);
-	if(err >= 0 && smb->meta.mtime != mtime) {
-		smb->meta.mtime = mtime;
-		smb->meta.setDirty();
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
 	}
-	return err;
+
+	smb->setFileTime(mtime);
+	return FS_OK;
 }
 
 int FileSystem::setcompression(File::Handle file, const File::Compression& compression)
 {
-	return Error::NotImplemented;
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
+	}
+
+	smb->setCompression(compression);
+	return FS_OK;
 }
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
@@ -697,12 +659,13 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 		} else {
 			stat.size = e.size;
 			stat.id = e.obj_id;
-			FileMeta meta;
-#if SPIFFS_STORE_META
-			memcpy(&meta, e.meta, sizeof(meta));
+			SpiffsMetaBuffer smb;
+#ifdef SPIFFS_STORE_META
+			smb.assign(e.meta);
+#else
+			smb.init();
 #endif
-			checkMeta(meta);
-			copyMeta(stat, meta);
+			smb.copyTo(stat);
 		}
 
 		return FS_OK;
@@ -745,6 +708,18 @@ int FileSystem::remove(const char* path)
 		return Error::BadParam;
 	}
 
+	// Check file is not marked read-only
+	int f = open(path, File::OpenFlag::Read);
+	if(f >= 0) {
+		auto smb = getMetaBuffer(f);
+		assert(smb != nullptr);
+		auto attr = smb->meta.attr;
+		close(f);
+		if(attr[File::Attribute::ReadOnly]) {
+			return Error::ReadOnly;
+		}
+	}
+
 	int err = SPIFFS_remove(handle(), path);
 	err = Error::fromSystem(err);
 	debug_ifserr(err, "remove('%s')", path);
@@ -753,6 +728,15 @@ int FileSystem::remove(const char* path)
 
 int FileSystem::fremove(File::Handle file)
 {
+	// If file is marked read-only, fail request
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
+	}
+	if(smb->meta.attr[File::Attribute::ReadOnly]) {
+		return Error::ReadOnly;
+	}
+
 	int err = SPIFFS_fremove(handle(), file);
 	return Error::fromSystem(err);
 }

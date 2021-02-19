@@ -22,6 +22,16 @@ struct ACL {
 	/* Minimum access permissions */
 	UserRole readAccess : 8;
 	UserRole writeAccess : 8;
+
+	bool operator==(const ACL& other) const
+	{
+		return other.readAccess == readAccess && other.writeAccess == writeAccess;
+	}
+
+	bool operator!=(const ACL& other) const
+	{
+		return !operator==(other);
+	}
 };
 
 /**

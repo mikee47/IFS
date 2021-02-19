@@ -338,7 +338,7 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 	// Copy metadata
 	if(fwfs.fstat(fwfile, &stat) >= 0) {
 		ffs.setacl(ffsfile, stat.acl);
-		ffs.settime(ffsfile, stat.mtime);
+		ffs.setcompression(ffsfile, stat.compression);
 	}
 
 	// If not truncating then copy content into FFS file

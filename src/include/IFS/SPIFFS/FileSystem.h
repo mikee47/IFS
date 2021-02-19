@@ -104,16 +104,10 @@ private:
 
 	int tryMount(spiffs_config& cfg);
 
-	/** @brief Pull metadata from SPIFFS
-	 *  @param file valid file handle
-	 * 	@retval FileMeta& reference to the metadata
-	 *  @note Called when file opened
-	 */
-	SpiffsMetaBuffer* cacheMeta(File::Handle file);
-
-	int getMeta(File::Handle file, SpiffsMetaBuffer*& meta);
-	void updateMetaCache(File::Handle file, const spiffs_stat& ss);
+	SpiffsMetaBuffer* initMetaBuffer(File::Handle file);
+	SpiffsMetaBuffer* getMetaBuffer(File::Handle file);
 	int flushMeta(File::Handle file);
+
 	void touch(File::Handle file)
 	{
 		settime(file, fsGetTimeUTC());
