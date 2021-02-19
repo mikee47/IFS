@@ -222,7 +222,7 @@ struct Object {
 
 				// Compression descriptor
 				struct {
-					File::Compression type;
+					File::Compression::Type type;
 					uint32_t originalSize;
 				} compression;
 

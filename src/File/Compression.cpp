@@ -21,7 +21,20 @@ DEFINE_FSTR_VECTOR_LOCAL(strings, FSTR::String, COMPRESSION_TYPE_MAP(XX))
 
 } // namespace
 
-String toString(IFS::File::Compression type)
+namespace IFS
+{
+namespace File
+{
+File::Compression::Type getCompressionType(const char* str, File::Compression::Type defaultValue)
+{
+	int i = strings.indexOf(str);
+	return (i < 0) ? defaultValue : File::Compression::Type(i);
+}
+
+} // namespace File
+} // namespace IFS
+
+String toString(IFS::File::Compression::Type type)
 {
 	return strings[unsigned(type)];
 }

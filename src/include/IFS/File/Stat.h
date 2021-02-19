@@ -40,7 +40,6 @@ struct Stat {
 	IFileSystem* fs{nullptr}; ///< The filing system owning this file
 	NameBuffer name;		  ///< Name of file
 	uint32_t size{0};		  ///< Size of file in bytes
-	uint32_t originalSize{0}; ///< If compressed, gives original file size
 	ID id{0};				  ///< Internal file identifier
 	Compression compression{};
 	Attributes attr{};
@@ -65,7 +64,6 @@ struct Stat {
 		fs = rhs.fs;
 		name.copy(rhs.name);
 		size = rhs.size;
-		originalSize = rhs.originalSize;
 		id = rhs.id;
 		compression = rhs.compression;
 		attr = rhs.attr;

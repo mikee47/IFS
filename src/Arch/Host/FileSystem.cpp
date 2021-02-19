@@ -167,6 +167,12 @@ int FileSystem::setattr(const char* path, File::Attributes attr)
 	return Error::NotImplemented;
 }
 
+int FileSystem::setcompression(File::Handle file, const File::Compression& compression)
+{
+	// TODO
+	return Error::NotImplemented;
+}
+
 File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 {
 	int res = ::open(path, mapFlags(flags), 0644);

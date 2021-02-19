@@ -405,6 +405,14 @@ public:
 	virtual int settime(File::Handle file, time_t mtime) = 0;
 
 	/**
+	 * @brief Set file compression information
+     * @param type
+	 * @param originalSize
+     * @retval int error code
+     */
+	virtual int setcompression(File::Handle file, const File::Compression& compression) = 0;
+
+	/**
 	 * @name rename a file
      * @param oldpath
      * @param newpath

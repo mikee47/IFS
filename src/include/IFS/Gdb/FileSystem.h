@@ -72,6 +72,10 @@ public:
 	{
 		return Error::NotSupported;
 	}
+	int setcompression(File::Handle file, const File::Compression& compression) override
+	{
+		return Error::NotSupported;
+	}
 	File::Handle open(const char* path, File::OpenFlags flags) override;
 	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override
 	{

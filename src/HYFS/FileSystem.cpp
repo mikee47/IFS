@@ -470,6 +470,12 @@ int FileSystem::settime(File::Handle file, time_t mtime)
 	return fs->settime(file, mtime);
 }
 
+int FileSystem::setcompression(File::Handle file, const File::Compression& compression)
+{
+	GET_FS(file)
+	return fs->setcompression(file, compression);
+}
+
 int FileSystem::read(File::Handle file, void* data, size_t size)
 {
 	GET_FS(file)

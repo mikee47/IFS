@@ -593,6 +593,11 @@ int FileSystem::settime(File::Handle file, time_t mtime)
 	return err;
 }
 
+int FileSystem::setcompression(File::Handle file, const File::Compression& compression)
+{
+	return Error::NotImplemented;
+}
+
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
 	FS_CHECK_PATH(path);

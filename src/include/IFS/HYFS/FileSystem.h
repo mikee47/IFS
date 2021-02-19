@@ -60,6 +60,7 @@ public:
 	int setacl(File::Handle file, const File::ACL& acl) override;
 	int setattr(const char* path, File::Attributes attr) override;
 	int settime(File::Handle file, time_t mtime) override;
+	int setcompression(File::Handle file, const File::Compression& compression) override;
 	File::Handle open(const char* path, File::OpenFlags flags) override;
 	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
 	int close(File::Handle file) override;
