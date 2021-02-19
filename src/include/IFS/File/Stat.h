@@ -88,6 +88,17 @@ public:
 	{
 	}
 
+	NameStat(const Stat& other) : NameStat()
+	{
+		*this = other;
+	}
+
+	NameStat& operator=(const Stat& rhs)
+	{
+		*static_cast<Stat*>(this) = rhs;
+		return *this;
+	}
+
 private:
 	char buffer[256];
 };
