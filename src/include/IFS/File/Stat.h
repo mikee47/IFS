@@ -71,11 +71,6 @@ struct Stat {
 		mtime = rhs.mtime;
 		return *this;
 	}
-
-	void clear()
-	{
-		*this = Stat{};
-	}
 };
 
 /**

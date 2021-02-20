@@ -66,7 +66,7 @@ int FileSystem::fillStat(FileStat& stat, const FWObjDesc& entry)
 {
 	assert(entry.obj.isNamed());
 
-	stat.clear();
+	stat = FileStat{};
 	stat.fs = this;
 	stat.id = entry.ref.fileID();
 	stat.mtime = entry.obj.data16.named.mtime;

@@ -17,7 +17,7 @@ namespace
 {
 void fillStat(IFileSystem* fs, const gdb_stat_t& s, FileStat& stat)
 {
-	stat.clear();
+	stat = FileStat{};
 	stat.fs = fs;
 	if(S_ISDIR(s.st_mode)) {
 		stat.attr |= File::Attribute::Directory;

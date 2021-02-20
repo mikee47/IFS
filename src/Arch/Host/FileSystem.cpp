@@ -215,7 +215,7 @@ int FileSystem::mkdir(const char* path)
 
 void FileSystem::fillStat(const struct stat& s, FileStat& stat)
 {
-	stat.clear();
+	stat = FileStat{};
 	stat.fs = this;
 	stat.id = s.st_ino;
 	if((s.st_mode & S_IWUSR) == 0) {

@@ -457,7 +457,7 @@ int FileSystem::stat(const char* path, FileStat* stat)
 	}
 
 	if(stat != nullptr) {
-		stat->clear();
+		*stat = FileStat{};
 		stat->fs = this;
 		stat->name.copy(reinterpret_cast<const char*>(ss.name));
 		stat->size = ss.size;
@@ -492,7 +492,7 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 #endif
 
 	if(stat != nullptr) {
-		stat->clear();
+		*stat = FileStat{};
 		stat->fs = this;
 		stat->name.copy(reinterpret_cast<const char*>(ss.name));
 		stat->size = ss.size;
@@ -653,7 +653,7 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 			*nextSep = '\0';
 		}
 
-		stat.clear();
+		stat = FileStat{};
 		stat.fs = this;
 		stat.name.copy(name);
 		if(nextSep != nullptr) {
