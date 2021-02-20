@@ -753,6 +753,16 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 	return stat ? fillStat(*stat, fd.odFile) : Error::BadParam;
 }
 
+int FileSystem::fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize)
+{
+	switch(code) {
+	case FCNTL_GET_MD5_HASH:
+		return getMd5Hash(file, buffer, bufSize);
+	default:
+		return Error::NotSupported;
+	}
+}
+
 int FileSystem::eof(File::Handle file)
 {
 	GET_FD();
@@ -879,6 +889,32 @@ int FileSystem::seekFilePath(FWObjDesc& parent, File::ID fileid, NameBuffer& pat
 	closeObject(parent);
 
 	return res == Error::EndOfObjects ? Error::NotFound : res;
+}
+
+int FileSystem::getMd5Hash(File::Handle file, void* buffer, size_t bufSize)
+{
+	constexpr size_t md5HashSize{16};
+	if(bufSize < md5HashSize) {
+		return Error::BadParam;
+	}
+
+	GET_FD();
+
+	FWObjDesc child;
+	int res = findChildObjectHeader(fd.odFile, child, Object::Type::Md5Hash);
+	if(res < 0) {
+		return res;
+	}
+
+	if(child.obj.contentSize() != md5HashSize) {
+		return Error::BadObject;
+	}
+	FWObjDesc od;
+	openChildObject(fd.odFile, child, od);
+	readObjectContent(od, 0, md5HashSize, buffer);
+	closeObject(od);
+
+	return md5HashSize;
 }
 
 } // namespace FWFS

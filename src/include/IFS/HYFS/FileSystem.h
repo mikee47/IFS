@@ -57,6 +57,7 @@ public:
 	int mkdir(const char* path) override;
 	int stat(const char* path, FileStat* stat) override;
 	int fstat(File::Handle file, FileStat* stat) override;
+	int fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize) override;
 	int setacl(File::Handle file, const File::ACL& acl) override;
 	int setattr(const char* path, File::Attributes attr) override;
 	int settime(File::Handle file, time_t mtime) override;

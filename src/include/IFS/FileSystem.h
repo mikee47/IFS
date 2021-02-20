@@ -16,6 +16,7 @@
 #include "File/OpenFlags.h"
 #include <Storage/Partition.h>
 #include "Error.h"
+#include "Control.h"
 #include <Data/Stream/SeekOrigin.h>
 
 /**
@@ -270,6 +271,23 @@ public:
 	}
 
 	/** @} */
+
+	/**
+	 * @brief Low-level and non-standard file control operations
+	 * @param file
+	 * @param code FCNTL_XXX code
+	 * @param buffer Input/Output buffer
+	 * @param bufSize Size of buffer
+	 * @retval int error code or, on success, data size
+	 * 
+	 * To simplify usage the same buffer is used for both input and output.
+	 * Only the size of the buffer is provided. If a specific FCNTL code requires more
+	 * information then it will be contained within the provided data.
+	 */
+	virtual int fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize)
+	{
+		return Error::NotSupported;
+	}
 
 	/**
 	 * @name open a file by name/path

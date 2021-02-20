@@ -121,6 +121,7 @@ public:
 	}
 	int stat(const char* path, FileStat* stat) override;
 	int fstat(File::Handle file, FileStat* stat) override;
+	int fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize) override;
 	int setacl(File::Handle file, const File::ACL& acl) override
 	{
 		return Error::ReadOnly;
@@ -186,6 +187,8 @@ public:
 	 *  @retval int error code
 	 */
 	int getFilePath(File::ID fileid, NameBuffer& path);
+
+	int getMd5Hash(File::Handle file, void* buffer, size_t bufSize);
 
 private:
 	int seekFilePath(FWObjDesc& parent, File::ID fileid, NameBuffer& path);

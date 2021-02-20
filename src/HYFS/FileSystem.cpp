@@ -451,6 +451,12 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 	return fs->fstat(file, stat);
 }
 
+int FileSystem::fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize)
+{
+	GET_FS(file)
+	return fs->fcontrol(file, code, buffer, bufSize);
+}
+
 int FileSystem::setacl(File::Handle file, const File::ACL& acl)
 {
 	GET_FS(file)

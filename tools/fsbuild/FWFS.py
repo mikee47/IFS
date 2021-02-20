@@ -2,7 +2,7 @@
 # Firmware Filesystem support
 #
 
-import struct, sys, util, time, numbers
+import struct, sys, util, time, numbers, hashlib
 from enum import IntEnum
 from util import _BV
 from access import UserRole
@@ -31,6 +31,7 @@ class FwObt(IntEnum):
     ReadACE = 5,  # minimum UserRole for read access
     WriteACE = 6,  # minimum UserRole for write access
     ObjectStore = 7, # Identifier for object store
+    Md5Hash = 8, # MD5 Hash Value
     # 2-byte sized
     Data16 = 32,
     # Named
@@ -89,6 +90,10 @@ class Object(object):
 
     def obt(self):
         return self.__obt
+
+    def isEmpty(self):
+        """Return True if object is to be discarded before emitting"""
+        return False
 
     def isNamed(self):
         return self.__obt >= FwObt.Volume and self.__obt < FwObt.Data24
@@ -265,6 +270,27 @@ class ObjectStoreObject(Object8):
         return self.__store
 
 
+class Md5Object(Object8):
+    """Maintains Md5 hash for named object"""
+    def __init__(self, parent):
+        super().__init__(parent, FwObt.Md5Hash)
+        self.__md5 = hashlib.md5()
+        self.__length = 0
+
+    def contentSize(self):
+        return self.__md5.digest_size
+
+    def isEmpty(self):
+        return self.__length == 0
+
+    def content(self):
+        return self.__md5.digest()
+
+    def update(self, content):
+        self.__md5.update(content)
+        self.__length += len(content)
+
+
 class ID32Object(Object8):
     def __init__(self, parent, obt, value):
         super().__init__(parent, obt)
@@ -297,6 +323,7 @@ class NamedObject(Object16):
         self.name = name
         self.mtime = time.time()
         self.__dataSize = 0
+        self.__md5 = Md5Object(self)
 
     def pathsep(self):
         return ':'
@@ -420,6 +447,7 @@ class NamedObject(Object16):
             print("Object data too large")
             exit(1)
         self.__dataSize += len(content)
+        self.__md5.update(content)
 
 
     def childCount(self):
@@ -464,6 +492,13 @@ class NamedObject(Object16):
             if child.isNamed():
                 total += child.totalOriginalDataSize()
         return total
+
+    def prune(self):
+        for child in self.__children:
+            if child.isEmpty():
+                self.__children.remove(child)
+            elif child.isNamed():
+                child.prune()
 
     def emit(self, image):
         for child in self.__children:
@@ -533,6 +568,7 @@ class Image:
         return self.__objectCount
 
     def writeToFile(self, filename):
+        self.__root.prune()
         self.__fout = open(filename, "wb")
         self.__fout.write(struct.pack("<L", SYS_START_MARKER))
         self.__vol.emit(self)

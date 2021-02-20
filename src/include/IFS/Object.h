@@ -107,6 +107,7 @@ template <typename T> static T at_offset(void* current, int offset)
 	XX(5, ReadACE, "minimum UserRole for read access")                                                                 \
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
 	XX(7, ObjectStore, "Identifier for object store")                                                                  \
+	XX(8, Md5Hash, "MD5 Hash Value")                                                                                   \
 	XX(32, Data16, "Data, max 64K - 1")                                                                                \
 	XX(33, Volume, "Volume, top-level container object")                                                               \
 	XX(34, MountPoint, "Root for another filesystem")                                                                  \
