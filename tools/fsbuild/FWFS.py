@@ -89,7 +89,7 @@ class Object(object):
 
     def obt(self):
         return self.__obt
-    
+
     def isNamed(self):
         return self.__obt >= FwObt.Volume and self.__obt < FwObt.Data24
 
@@ -117,8 +117,8 @@ class Object(object):
         # Check we haven't already been emitted
         if self.__offset != 0:
             return
-#        print("emit " + FwObt.strings[self.obt()])
         contentSize = self.contentSize()
+        # print("emit %s, %d" % (self.obt(), contentSize))
         if contentSize > self.maxContentSize():
             print("Content too big: object is {} bytes, maximum is {}".format(contentSize, self.maxContentSize()))
         self.__offset = image.offset()
@@ -127,7 +127,7 @@ class Object(object):
 
 class Object8(Object):
     def __init__(self, parent, obt, content = ""):
-        super(Object8, self).__init__(parent, obt, content)
+        super().__init__(parent, obt, content)
         self.isRef = False
 
     def header(self):
@@ -165,7 +165,7 @@ class Object24(Object):
 
 class AttrObject(Object8):
     def __init__(self, parent):
-        super(AttrObject, self).__init__(parent, FwObt.ObjAttr)
+        super().__init__(parent, FwObt.ObjAttr)
         self.__attr = 0
 
     # Update attributes from a string
@@ -207,7 +207,7 @@ class AttrObject(Object8):
 
 class CompressionObject(Object8):
     def __init__(self, parent, s = CompressionType.none):
-        super(CompressionObject, self).__init__(parent, FwObt.Compression)
+        super().__init__(parent, FwObt.Compression)
         if isNumberType(s):
             self.__compressionType = s
         else:
@@ -232,7 +232,7 @@ class CompressionObject(Object8):
 
 class AceObject(Object8):
     def __init__(self, parent, obt, s):
-        super(AceObject, self).__init__(parent, obt)
+        super().__init__(parent, obt)
         if isNumberType(s):
             self.__role = s
         else:
@@ -252,7 +252,7 @@ class AceObject(Object8):
 class ObjectStoreObject(Object8):
     """Identifies an object store for a mount point"""
     def __init__(self, parent, store):
-        super(ObjectStoreObject, self).__init__(parent, FwObt.ObjectStore)
+        super().__init__(parent, FwObt.ObjectStore)
         if isNumberType(store):
             self.__store = store
         else:
@@ -267,7 +267,7 @@ class ObjectStoreObject(Object8):
 
 class ID32Object(Object8):
     def __init__(self, parent, obt, value):
-        super(ID32Object, self).__init__(parent, obt)
+        super().__init__(parent, obt)
         self.__value = value
 
     def content(self):
@@ -279,7 +279,7 @@ class ID32Object(Object8):
 
 class EndObject(Object8):
     def __init__(self, parent, checksum):
-        super(EndObject, self).__init__(parent, FwObt.End)
+        super().__init__(parent, FwObt.End)
         self.__checksum = checksum
 
     def content(self):
@@ -292,7 +292,7 @@ class EndObject(Object8):
 
 class NamedObject(Object16):
     def __init__(self, parent, obt, name):
-        super(NamedObject, self).__init__(parent, obt)
+        super().__init__(parent, obt)
         self.__children = []
         self.name = name
         self.mtime = time.time()
@@ -317,8 +317,7 @@ class NamedObject(Object16):
         if obj is None:
             obj = AttrObject(None)
         return obj
-        
-    
+
     def compression(self):
         """Get compression object, or temporary empty one if there isn't one"""
         obj = self.findObject(FwObt.Compression)
@@ -326,7 +325,6 @@ class NamedObject(Object16):
             obj = CompressionObject(None)
         return obj
 
-    
     def childTableSize(self):
         size = 0
         for obj in self.__children:
@@ -342,6 +340,7 @@ class NamedObject(Object16):
             if obj.isRef:
                 table += obj.refHeader()
             else:
+                # print("emit %s, %d" % (obj.obt(), obj.contentSize()))
                 table += util.pad(obj.header() + obj.content())
         cts = self.childTableSize()
         if len(table) != cts:
@@ -470,7 +469,7 @@ class NamedObject(Object16):
         for child in self.__children:
             if child.isRef:
                 child.emit(image)
-        Object.emit(self, image)
+        super().emit(image)
 
     #
     def toString(self):
@@ -483,7 +482,7 @@ class NamedObject(Object16):
 
 class Volume(NamedObject):
     def __init__(self, name):
-        super(Volume, self).__init__(None, FwObt.Volume, name)
+        super().__init__(None, FwObt.Volume, name)
 
     def pathsep(self):
         return ''
@@ -496,7 +495,7 @@ class Directory(NamedObject):
     """Directory object"""
 
     def __init__(self, parent, name):
-        super(Directory, self).__init__(parent, FwObt.Directory, name)
+        super().__init__(parent, FwObt.Directory, name)
 
     def pathsep(self):
         return '/'
@@ -506,7 +505,7 @@ class MountPoint(NamedObject):
     """Mount point object"""
     
     def __init__(self, parent, name):
-        super(MountPoint, self).__init__(parent, FwObt.MountPoint, name)
+        super().__init__(parent, FwObt.MountPoint, name)
 
     def pathsep(self):
         return '/'
@@ -516,7 +515,7 @@ class File(NamedObject):
     """File object"""
 
     def __init__(self, parent, name):
-        super(File, self).__init__(parent, FwObt.File, name)
+        super().__init__(parent, FwObt.File, name)
 
 
 # Used to build a Firmware file image
