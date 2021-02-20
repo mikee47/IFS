@@ -133,8 +133,6 @@ struct Object {
 #define XX(value, tag, text) tag = value,
 		FWFS_OBJTYPE_MAP(XX)
 #undef XX
-		// Start of named objects
-		Named = 33
 	};
 
 	// Top bit of object type set to indicate a reference
@@ -171,7 +169,7 @@ struct Object {
 
 	bool isNamed() const
 	{
-		return type() >= Type::Named;
+		return type() >= Type::Volume && type() < Type::Data24;
 	}
 
 	bool isData() const
