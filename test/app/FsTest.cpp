@@ -47,7 +47,7 @@ void printFsInfo(IFileSystem* fs)
 	debug_i("freeSpace:     %u", info.freeSpace);
 }
 
-void printFileInfo(const IFS::FileStat& stat)
+void printFileInfo(const IFS::Stat& stat)
 {
 	IFileSystem::Info info;
 	stat.fs->getinfo(info);
@@ -82,7 +82,7 @@ int listdir(IFS::IFileSystem* fs, const String& path, Flags flags)
 		if(flags[Flag::recurse]) {
 			dir.rewind();
 			while(dir.next()) {
-				if(dir.stat().attr[IFS::File::Attribute::Directory]) {
+				if(dir.stat().attr[IFS::FileAttribute::Directory]) {
 					String subdir = path;
 					if(subdir.length() != 0) {
 						subdir += '/';

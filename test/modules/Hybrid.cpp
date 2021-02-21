@@ -32,9 +32,7 @@ IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 // Arbitrary limit on file size
 #define FWFILE_MAX_SIZE 0x100000
 
-auto& hostfs{IFS::Host::fileSystem};
-
-IFileSystem* fwfsRef;
+FileSystem* fwfsRef;
 
 } // namespace
 
@@ -85,6 +83,7 @@ public:
 	{
 		Storage::Partition part;
 
+		auto& hostfs = IFS::Host::getFileSystem();
 		auto file = hostfs.open(imgfile, File::Create | File::ReadWrite);
 		debug_ifs(&hostfs, file, "open('%s'", imgfile.c_str());
 
@@ -111,12 +110,12 @@ public:
 		return Storage::progMem.createPartition(FS_PART_FWFS1, image, Storage::Partition::SubType::Data::fwfs);
 	}
 
-	Storage::Partition createFwfsPartition(IFileSystem& fileSys, const String& imgfile)
+	Storage::Partition createFwfsPartition(FileSystem& fileSys, const String& imgfile)
 	{
 		Storage::Partition part;
 
 		auto file = fileSys.open(imgfile, File::ReadOnly);
-		debug_ifs(&hostfs, file, "open('%s'", imgfile.c_str());
+		debug_ifs(&fileSys, file, "open('%s'", imgfile.c_str());
 		if(file < 0) {
 			TEST_ASSERT(false);
 		} else {
@@ -143,51 +142,35 @@ public:
 		return true;
 	}
 
-	int copyfile(IFileSystem* dst, IFileSystem* src, const FileStat& stat)
+	int copyfile(FileSystem* dst, FileSystem* src, const IFS::Stat& stat)
 	{
-		if(stat.attr[File::Attribute::Directory]) {
+		if(stat.attr[IFS::FileAttribute::Directory]) {
 			return IFS::Error::NotSupported;
 		}
 
-		int res = FS_OK;
-		IFileSystem* fserr{};
-
-		File::Handle srcfile = src->fopen(stat, File::OpenFlag::Read);
-		if(srcfile < 0) {
-			res = srcfile;
-			fserr = src;
-		} else {
-			File::Handle dstfile = dst->open(stat.name, File::CreateNewAlways | File::OpenFlag::Write);
-			if(dstfile < 0) {
-				res = dstfile;
-				fserr = dst;
-			} else {
-				uint8_t buffer[512];
-				for(;;) {
-					res = src->read(srcfile, buffer, sizeof(buffer));
-					if(res <= 0) {
-						fserr = src;
-						break;
-					}
-					int nread = res;
-
-					res = dst->write(dstfile, buffer, nread);
-					if(res < 0) {
-						fserr = dst;
-						break;
-					}
-				}
-				dst->close(dstfile);
-			}
-			src->close(srcfile);
+		IFS::File srcFile(src);
+		IFS::File dstFile(dst);
+		if(srcFile.open(stat) && dstFile.open(stat.name.buffer, IFS::File::CreateNewAlways | IFS::File::WriteOnly)) {
+			srcFile.readContent([&dstFile](const char* buffer, size_t size) { return dstFile.write(buffer, size); });
 		}
 
-		debug_i("Copy '%s': %s", stat.name.buffer, getErrorString(fserr, res).c_str());
+		int err = dstFile.getLastError();
+		if(err < 0) {
+			debug_e("Copy: write '%s' faile: %s", stat.name.buffer, dstFile.getLastErrorString().c_str());
+			return err;
+		}
 
-		return res;
+		err = srcFile.getLastError();
+		if(err < 0) {
+			debug_e("Copy: read '%s' faile: %s", stat.name.buffer, srcFile.getLastErrorString().c_str());
+			return err;
+		}
+
+		debug_i("Copy '%s': OK", stat.name.buffer);
+		return FS_OK;
 	}
 
-	IFileSystem* initSpiffs(const String& imgfile, size_t imgsize)
+	FileSystem* initSpiffs(const String& imgfile, size_t imgsize)
 	{
 		auto part = createSpiffsPartition(imgfile, imgsize);
 		if(!part) {
@@ -203,7 +186,7 @@ public:
 			return nullptr;
 		}
 
-		IFileSystem::Info info;
+		FileSystem::Info info;
 		err = ffs->getinfo(info);
 		debug_ifs(ffs, err, "getinfo");
 		if(err < 0) {
@@ -214,7 +197,7 @@ public:
 
 		if(info.freeSpace < info.volumeSize) {
 			// Filesystem is populated
-			return ffs;
+			return FileSystem::cast(ffs);
 		}
 
 		debug_i("SPIFFS is empty, copy some stuff from FWFS");
@@ -231,19 +214,19 @@ public:
 			if(err < 0) {
 				debug_e("FWFS opendir failed: %s", getErrorString(fwfs, err).c_str());
 			} else {
-				FileNameStat stat;
+				IFS::NameStat stat;
 				while((err = fwfs->readdir(dir, stat)) >= 0) {
-					copyfile(ffs, fwfs, stat);
+					copyfile(FileSystem::cast(ffs), FileSystem::cast(fwfs), stat);
 				}
 				fwfs->closedir(dir);
 			}
 		}
 		delete fwfs;
 
-		return ffs;
+		return FileSystem::cast(ffs);
 	}
 
-	IFileSystem* initFWFS(Storage::Partition part, Flags flags)
+	FileSystem* initFWFS(Storage::Partition part, Flags flags)
 	{
 		IFileSystem* fs;
 		if(flags[Flag::hybrid]) {
@@ -267,10 +250,10 @@ public:
 			return nullptr;
 		}
 
-		return fs;
+		return FileSystem::cast(fs);
 	}
 
-	IFileSystem* initFWFSOnFile(IFileSystem& fileSys, const String& imgfile, Flags flags)
+	FileSystem* initFWFSOnFile(FileSystem& fileSys, const String& imgfile, Flags flags)
 	{
 		auto part = createFwfsPartition(fileSys, imgfile);
 		if(!part) {
@@ -280,62 +263,51 @@ public:
 		return initFWFS(part, flags);
 	}
 
-	void readFileTest(IFileSystem* fs, const String& filename, const File::Stat& stat)
+	void readFileTest(FileSystem* fs, const String& filename, const IFS::Stat& stat)
 	{
 		Crypto::Md5 ctx;
-
-		File::Handle file = fs->open(filename, File::OpenFlag::Read);
-
-		if(file < 0) {
-			debug_w("fopen(): %s", getErrorString(fs, file).c_str());
+		IFS::File file(fs);
+		if(!file.open(filename)) {
+			debug_e("open('%s'): %s", filename.c_str(), file.getLastErrorString().c_str());
+			TEST_ASSERT(false);
+			return;
+		}
+		int res = file.readContent([&ctx](const char* buffer, size_t size) {
+			ctx.update(buffer, size);
+			return size;
+		});
+		if(res < 0) {
+			debug_e("readContent('%s'): %s", filename.c_str(), file.getLastErrorString().c_str());
 			TEST_ASSERT(false);
 			return;
 		}
 
-		char buf[1024];
-		uint32_t total{0};
-		while(!fs->eof(file)) {
-			int len = fs->read(file, buf, sizeof(buf));
-			if(len <= 0) {
-				if(len < 0) {
-					debug_e("Error! %s", getErrorString(fs, len).c_str());
-					TEST_ASSERT(false);
-				}
-				break;
-			}
-			total += len;
-			ctx.update(buf, len);
+		CHECK(res == int(stat.size));
+
+		if(stat.size == 0) {
+			return;
 		}
 
 		Crypto::Md5::Hash fileHash;
 
 		// Fetch MD5 hash either from this volume or reference
-		if(stat.size != 0) {
-			int res = fs->fcontrol(file, IFS::FCNTL_GET_MD5_HASH, fileHash.data(), fileHash.size());
-			if(res == IFS::Error::NotFound || res == IFS::Error::NotSupported) {
-				auto f = fwfsRef->open(filename, File::OpenFlag::Read);
-				CHECK(f >= 0);
-				res = fwfsRef->fcontrol(f, IFS::FCNTL_GET_MD5_HASH, fileHash.data(), fileHash.size());
-				fwfsRef->close(f);
-			}
-			CHECK(res == 16);
+		res = file.control(IFS::FCNTL_GET_MD5_HASH, fileHash.data(), fileHash.size());
+		if(res == IFS::Error::NotFound || res == IFS::Error::NotSupported) {
+			IFS::File ref(fwfsRef);
+			CHECK(ref.open(filename));
+			res = ref.control(IFS::FCNTL_GET_MD5_HASH, fileHash.data(), fileHash.size());
 		}
+		CHECK(res == int(fileHash.size()));
 
-		fs->close(file);
-
-		CHECK_EQ(total, stat.size);
-
-		if(stat.size != 0) {
-			auto hash = ctx.getHash();
-			CHECK(hash == fileHash);
-		}
+		auto hash = ctx.getHash();
+		CHECK(hash == fileHash);
 	}
 
-	void writeThroughTest(IFileSystem* fs, const String& filename, const FileStat& stat)
+	void writeThroughTest(FileSystem* fs, const String& filename, const IFS::Stat& stat)
 	{
-		IFS::IFileSystem::Info info;
+		IFS::FileSystem::Info info;
 		CHECK(stat.fs->getinfo(info) >= 0);
-		if(info.type == IFS::IFileSystem::Type::SPIFFS) {
+		if(info.type == IFS::FileSystem::Type::SPIFFS) {
 			return; // Already in SPIFFS
 		}
 
@@ -343,35 +315,34 @@ public:
 		auto originalContent = fs->getContent(filename);
 
 		// On the hybrid volume this will copy FW file onto SPIFFS
-		IFS::IFileSystem::Info fsinfo;
+		IFS::FileSystem::Info fsinfo;
 		fs->getinfo(fsinfo);
 		if(filename.length() > fsinfo.maxPathLength || stat.name.length > fsinfo.maxNameLength) {
 			debug_w("** Skipping: File name too long for writethrough");
 			return;
 		}
 
-		auto file = fs->open(filename, File::OpenFlag::Write | File::OpenFlag::Append);
-		if(stat.attr[File::Attribute::ReadOnly]) {
+		IFS::File file(fs);
+		file.open(filename, IFS::OpenFlag::Write | IFS::OpenFlag::Append);
+		if(stat.attr[IFS::FileAttribute::ReadOnly]) {
 			debug_i("** Skipping copy, '%s' is marked read-only", stat.name.buffer);
-			REQUIRE(file < 0);
+			REQUIRE(!file);
 			return;
 		}
 
-		if(file < 0) {
-			debug_ifs(fs, file, "open('%s')", stat.name.buffer);
+		if(!file) {
+			debug_i("open('%s'): %s", stat.name.buffer, file.getLastErrorString().c_str());
 			return;
 		}
 
-		fs->write(file, nullptr, 0);
-		fs->close(file);
+		file.write(nullptr, 0);
+		file.close();
 
-		file = fs->open(filename, File::ReadOnly);
-		CHECK(file >= 0);
-		FileStat copyStat;
-		int res = fs->stat(filename, &copyStat);
-		CHECK(res >= 0);
-
-		fs->close(file);
+		file.open(filename, IFS::File::ReadOnly);
+		CHECK(file);
+		IFS::Stat copyStat;
+		CHECK(file.stat(copyStat));
+		file.close();
 
 		printFileInfo(copyStat);
 
@@ -386,7 +357,7 @@ public:
 		REQUIRE(copyContent == originalContent);
 	}
 
-	int scandir(IFileSystem* fs, const String& path, Flags flags)
+	int scandir(FileSystem* fs, const String& path, Flags flags)
 	{
 		debug_i("Scanning '%s'", path.c_str());
 
@@ -397,7 +368,7 @@ public:
 			dir.open(path);
 			while(dir.next()) {
 				auto name = dir.stat().name.buffer;
-				if(dir.stat().attr[File::Attribute::Directory]) {
+				if(dir.stat().attr[IFS::FileAttribute::Directory]) {
 					directories.add(name);
 				} else {
 					files.add(name);
@@ -412,7 +383,7 @@ public:
 			}
 			filename += name;
 
-			FileStat stat;
+			IFS::Stat stat;
 			fs->stat(filename, &stat);
 			stat.name.buffer = filename.begin();
 			printFileInfo(stat);
@@ -440,7 +411,7 @@ public:
 		return FS_OK;
 	}
 
-	void fstest(IFileSystem* fs, Flags flags)
+	void fstest(FileSystem* fs, Flags flags)
 	{
 		Serial.println();
 		Serial.print("FS Test: ");

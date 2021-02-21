@@ -12,7 +12,13 @@
 		debug_e(func ": %s (%d)", ##__VA_ARGS__, getErrorString(fs, errorCode).c_str(), err);                          \
 	} while(0)
 
+#define debug_file(file, func, ...)                                                                                    \
+	do {                                                                                                               \
+		debug_e(func ": %s", ##__VA_ARGS__, file.getLastErrorString().c_str());                              \
+	} while(0)
+
 using IFileSystem = IFS::IFileSystem;
+using FileSystem = IFS::FileSystem;
 
 #define FLAG_MAP(XX)                                                                                                   \
 	XX(hybrid, "Use hybrid filesystem, enabling write tests")                                                          \
@@ -34,7 +40,7 @@ String toString(Flag f);
 
 void printFsInfo(IFileSystem* fs);
 
-void printFileInfo(const IFS::FileStat& stat);
+void printFileInfo(const IFS::Stat& stat);
 
 // Displays as local time
 String timeToStr(time_t t, const char* dtsep);

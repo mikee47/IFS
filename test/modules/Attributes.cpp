@@ -8,11 +8,6 @@
 #include <FsTest.h>
 #include <IFS/Host/FileSystem.h>
 
-namespace
-{
-auto& hostfs{IFS::Host::fileSystem};
-} // namespace
-
 class AttributesTest : public TestGroup
 {
 public:
@@ -40,7 +35,7 @@ public:
 		int res = fileSetAttr(filename, 0);
 		debug_ifs(fs, res, "fileSetAttr()");
 
-		File::Handle f;
+		FileHandle f;
 
 		TEST_CASE("Create test file")
 		{
@@ -56,7 +51,7 @@ public:
 		// Now set the file to read-only and try again
 		TEST_CASE("Set file to read-only")
 		{
-			res = fileSetAttr(filename, File::Attribute::ReadOnly);
+			res = fileSetAttr(filename, IFS::FileAttribute::ReadOnly);
 			debug_ifs(fs, res, "fileSetAttr()");
 			REQUIRE(res == FS_OK);
 		}
@@ -111,6 +106,7 @@ public:
 
 	void hostAttributeTest()
 	{
+		auto& hostfs = IFS::Host::getFileSystem();
 		auto f = hostfs.open("attrtest1.txt", File::Create | File::ReadWrite);
 		CHECK(f >= 0);
 		hostfs.write(f, "Hello", 5);
