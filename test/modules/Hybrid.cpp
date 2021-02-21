@@ -13,6 +13,7 @@
 #include <IFS/HYFS/FileSystem.h>
 #include <Storage/FileDevice.h>
 #include <Storage/ProgMem.h>
+#include <Crypto/Md5.h>
 
 namespace
 {
@@ -33,6 +34,8 @@ IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
 
 auto& hostfs{IFS::Host::fileSystem};
 
+IFileSystem* fwfsRef;
+
 } // namespace
 
 class HybridTest : public TestGroup
@@ -47,6 +50,7 @@ public:
 		Serial.println();
 
 		auto part = createFwfsPartition(fwfsImage1);
+		fwfsRef = initFWFS(part, 0);
 		auto fs = initFWFS(part, Flag::hybrid);
 		CHECK(fs != nullptr);
 		if(fs != nullptr) {
@@ -278,6 +282,8 @@ public:
 
 	void readFileTest(IFileSystem* fs, const String& filename, const File::Stat& stat)
 	{
+		Crypto::Md5 ctx;
+
 		File::Handle file = fs->open(filename, File::OpenFlag::Read);
 
 		if(file < 0) {
@@ -298,11 +304,31 @@ public:
 				break;
 			}
 			total += len;
+			ctx.update(buf, len);
+		}
+
+		Crypto::Md5::Hash fileHash;
+
+		// Fetch MD5 hash either from this volume or reference
+		if(stat.size != 0) {
+			int res = fs->fcontrol(file, IFS::FCNTL_GET_MD5_HASH, fileHash.data(), fileHash.size());
+			if(res == IFS::Error::NotFound || res == IFS::Error::NotSupported) {
+				auto f = fwfsRef->open(filename, File::OpenFlag::Read);
+				CHECK(f >= 0);
+				res = fwfsRef->fcontrol(f, IFS::FCNTL_GET_MD5_HASH, fileHash.data(), fileHash.size());
+				fwfsRef->close(f);
+			}
+			CHECK(res == 16);
 		}
 
 		fs->close(file);
 
 		CHECK_EQ(total, stat.size);
+
+		if(stat.size != 0) {
+			auto hash = ctx.getHash();
+			CHECK(hash == fileHash);
+		}
 	}
 
 	void writeThroughTest(IFileSystem* fs, const String& filename, const FileStat& stat)
