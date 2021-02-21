@@ -5,7 +5,8 @@
     // Where to read files from
     "source": {
         "/": "files",
-        "README.rst": "README.rst"
+        "README.rst": "README.rst",
+        "backup.fwfs.bin": "out/backup.fwfs.bin"
     },
     // Directories to mount other object stores
     "mountpoints": {

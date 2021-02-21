@@ -32,7 +32,7 @@ COMPONENT_DOXYGEN_INPUT := src
 
 DEBUG_VARS += FSBUILD
 FSBUILD_PATH := $(COMPONENT_PATH)/tools/fsbuild/fsbuild.py
-FSBUILD := $(PYTHON) $(FSBUILD_PATH)
+FSBUILD := $(PYTHON) $(FSBUILD_PATH) $(if $V,--verbose -l -)
 
 # Target invoked via partition table
 ifneq (,$(filter fwfs-build,$(MAKECMDGOALS)))
@@ -43,6 +43,6 @@ $(eval PART_CONFIG := $(call HwExpr,part.build['config']))
 .PHONY: fwfs-build
 fwfs-build:
 	@echo "Creating FWFS image '$(PART_TARGET)'"
-	$(Q) $(FSBUILD) -i $(PART_CONFIG) -o $(PART_TARGET) $(if $V,--verbose -l -)
+	$(Q) $(FSBUILD) -i $(PART_CONFIG) -o $(PART_TARGET)
 endif
 endif
