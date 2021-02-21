@@ -34,10 +34,10 @@ public:
 		return getErrorString(lastError);
 	}
 
-	IFileSystem* getFileSystem() const
+	FileSystem* getFileSystem() const
 	{
 		lastError = (fileSystem == nullptr) ? Error::NoFileSystem : FS_OK;
-		return fileSystem;
+		return static_cast<FileSystem*>(fileSystem);
 	}
 
 protected:

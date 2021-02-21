@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <IFS/FileSystem.h>
+#include <IFS/IFileSystem.h>
 
 namespace IFS
 {

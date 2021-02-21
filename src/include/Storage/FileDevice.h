@@ -20,8 +20,9 @@ public:
 	}
 
 	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::File::Handle file)
-		: name(name), size(fileSys.getSize(file)), fileSystem(fileSys), file(file)
+		: name(name), fileSystem(fileSys), file(file)
 	{
+		size = IFS::FileSystem::cast(fileSys).getSize(file);
 	}
 
 	~FileDevice()

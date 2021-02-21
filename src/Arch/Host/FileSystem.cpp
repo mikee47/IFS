@@ -37,11 +37,13 @@ struct FileDir {
 	DIR* d;
 };
 
+class FileSystem;
+
 namespace Host
 {
 namespace
 {
-IFS::Host::FileSystem hostFileSystem;
+FileSystem hostFileSystem;
 
 const char* extendedAttributeName{"user.sming.ifs"};
 
@@ -109,7 +111,7 @@ int getUserAttributes(File::Handle file, FileStat& stat)
 
 int getUserAttributes(const char* path, FileStat& stat)
 {
-	auto f = fileSystem.open(path, File::ReadOnly);
+	auto f = hostFileSystem.open(path, File::ReadOnly);
 	if(f < 0) {
 		return f;
 	}
@@ -119,13 +121,18 @@ int getUserAttributes(const char* path, FileStat& stat)
 		stat.compression.originalSize = stat.size;
 	}
 
-	fileSystem.close(f);
+	hostFileSystem.close(f);
 	return res;
 }
 
 } // namespace
 
 IFileSystem& fileSystem{hostFileSystem};
+
+IFS::FileSystem& getFileSystem()
+{
+	return reinterpret_cast<IFS::FileSystem&>(hostFileSystem);
+}
 
 int FileSystem::getinfo(Info& info)
 {

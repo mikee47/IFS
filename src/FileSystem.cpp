@@ -6,30 +6,10 @@
  */
 
 #include "include/IFS/FileSystem.h"
-#include <FlashString/Vector.hpp>
-
-namespace
-{
-#define XX(name, tag, desc) DEFINE_FSTR_LOCAL(typestr_##name, #tag)
-FILESYSTEM_TYPE_MAP(XX)
-#undef XX
-
-#define XX(name, tag, desc) &typestr_##name,
-DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FILESYSTEM_TYPE_MAP(XX))
-#undef XX
-
-#define XX(tag, comment) DEFINE_FSTR_LOCAL(attrstr_##tag, #tag)
-FILE_SYSTEM_ATTR_MAP(XX)
-#undef XX
-
-#define XX(tag, comment) &attrstr_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILE_SYSTEM_ATTR_MAP(XX))
-#undef XX
-} // namespace
 
 namespace IFS
 {
-uint32_t IFileSystem::getSize(File::Handle file)
+uint32_t FileSystem::getSize(FileHandle file)
 {
 	auto curpos = lseek(file, 0, SeekOrigin::Current);
 	lseek(file, 0, SeekOrigin::End);
@@ -38,7 +18,7 @@ uint32_t IFileSystem::getSize(File::Handle file)
 	return (size > 0) ? uint32_t(size) : 0;
 }
 
-uint32_t IFileSystem::getSize(const char* fileName)
+uint32_t FileSystem::getSize(const char* fileName)
 {
 	auto file = open(fileName, File::OpenFlag::Read);
 	if(file < 0) {
@@ -51,7 +31,7 @@ uint32_t IFileSystem::getSize(const char* fileName)
 	return (size > 0) ? uint32_t(size) : 0;
 }
 
-int IFileSystem::truncate(const char* fileName, size_t newSize)
+int FileSystem::truncate(const char* fileName, size_t newSize)
 {
 	auto file = open(fileName, File::OpenFlag::Write);
 	if(file < 0) {
@@ -63,7 +43,7 @@ int IFileSystem::truncate(const char* fileName, size_t newSize)
 	return res;
 }
 
-int IFileSystem::setContent(const char* fileName, const char* content, size_t length)
+int FileSystem::setContent(const char* fileName, const char* content, size_t length)
 {
 	auto file = open(fileName, File::OpenFlag::Create | File::OpenFlag::Truncate | File::OpenFlag::Write);
 	if(file < 0) {
@@ -75,7 +55,7 @@ int IFileSystem::setContent(const char* fileName, const char* content, size_t le
 	return res;
 }
 
-String IFileSystem::getContent(const String& fileName)
+String FileSystem::getContent(const String& fileName)
 {
 	String res;
 	auto file = open(fileName, File::OpenFlag::Read);
@@ -97,7 +77,7 @@ String IFileSystem::getContent(const String& fileName)
 	return res;
 }
 
-size_t IFileSystem::getContent(const char* fileName, char* buffer, size_t bufSize)
+size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize)
 {
 	if(buffer == nullptr || bufSize == 0) {
 		return 0;
@@ -139,16 +119,3 @@ int IFileSystem::makedirs(const char* path)
 }
 
 } // namespace IFS
-
-String toString(IFS::IFileSystem::Type type)
-{
-	if(type >= IFS::IFileSystem::Type::MAX) {
-		type = IFS::IFileSystem::Type::Unknown;
-	}
-	return typeStrings[(unsigned)type];
-}
-
-String toString(IFS::IFileSystem::Attribute attr)
-{
-	return attributeStrings[unsigned(attr)];
-}

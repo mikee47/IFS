@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include <IFS/FileSystem.h>
+#include <IFS/IFileSystem.h>
 
 struct stat;
 
@@ -90,8 +90,6 @@ public:
 private:
 	void fillStat(const struct stat& s, FileStat& stat);
 };
-
-extern IFileSystem& fileSystem;
 
 } // namespace Host
 } // namespace IFS
