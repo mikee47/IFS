@@ -12,7 +12,7 @@
 namespace IFS
 {
 // Access Control level
-#define USER_ROLE_MAP(XX)                                                                                              \
+#define IFS_USER_ROLE_MAP(XX)                                                                                          \
 	XX(None, -, "No assigned role")                                                                                    \
 	XX(Guest, g, "User-type access without authentication")                                                            \
 	XX(User, u, "Normal user")                                                                                         \
@@ -21,7 +21,7 @@ namespace IFS
 
 enum class UserRole : uint8_t {
 #define XX(_tag, _char, _comment) _tag,
-	USER_ROLE_MAP(XX)
+	IFS_USER_ROLE_MAP(XX)
 #undef XX
 		MAX ///< Actually maxmimum value + 1...
 };

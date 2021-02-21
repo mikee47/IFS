@@ -1,26 +1,26 @@
 /*
- * File::OpenFlags.cpp
+ * OpenFlags.cpp
  *
  *  Created on: 31 Aug 2018
  *      Author: mikee47
  */
 
-#include "../include/IFS/File/OpenFlags.h"
+#include "include/IFS/OpenFlags.h"
 #include <FlashString/Vector.hpp>
 
 namespace
 {
 #define XX(tag, comment) DEFINE_FSTR_LOCAL(flagstr_##tag, #tag)
-FILE_OPEN_FLAG_MAP(XX)
+IFS_OPEN_FLAG_MAP(XX)
 #undef XX
 
 #define XX(tag, comment) &flagstr_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(flagStrings, FSTR::String, FILE_OPEN_FLAG_MAP(XX))
+DEFINE_FSTR_VECTOR_LOCAL(flagStrings, FSTR::String, IFS_OPEN_FLAG_MAP(XX))
 #undef XX
 
 } // namespace
 
-String toString(IFS::File::OpenFlag flag)
+String toString(IFS::OpenFlag flag)
 {
 	return flagStrings[unsigned(flag)];
 }

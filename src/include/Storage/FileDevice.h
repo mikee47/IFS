@@ -14,12 +14,12 @@ namespace Storage
 class FileDevice : public CustomDevice
 {
 public:
-	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::File::Handle file, size_t size)
+	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, size_t size)
 		: name(name), size(size), fileSystem(fileSys), file(file)
 	{
 	}
 
-	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::File::Handle file)
+	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file)
 		: name(name), fileSystem(fileSys), file(file)
 	{
 		size = IFS::FileSystem::cast(fileSys).getSize(file);
@@ -58,7 +58,7 @@ private:
 	CString name;
 	size_t size;
 	IFS::IFileSystem& fileSystem;
-	IFS::File::Handle file;
+	IFS::FileHandle file;
 };
 
 } // namespace Storage

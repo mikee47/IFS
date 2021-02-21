@@ -7,31 +7,29 @@
 
 #pragma once
 
-#include "../NameBuffer.h"
-#include "../TimeStamp.h"
+#include "NameBuffer.h"
+#include "TimeStamp.h"
 #include "Access.h"
 #include "Compression.h"
-#include "Attributes.h"
+#include "FileAttributes.h"
 
 namespace IFS
 {
 class IFileSystem;
 
-namespace File
-{
 /**
  * @brief File handle
  *
  * References an open file
  */
-using Handle = int16_t;
+using FileHandle = int16_t;
 
 /**
  * @brief File identifier
  *
  * Contained within Stat, uniquely identifies any file on the file system.
  */
-using ID = uint32_t;
+using FileID = uint32_t;
 
 /**
  * @brief File Status structure
@@ -40,9 +38,9 @@ struct Stat {
 	IFileSystem* fs{nullptr}; ///< The filing system owning this file
 	NameBuffer name;		  ///< Name of file
 	uint32_t size{0};		  ///< Size of file in bytes
-	ID id{0};				  ///< Internal file identifier
+	FileID id{0};				  ///< Internal file identifier
 	Compression compression{};
-	Attributes attr{};
+	FileAttributes attr{};
 	ACL acl{UserRole::None, UserRole::None}; ///< Access Control
 	TimeStamp mtime{};						 ///< File modification time
 
@@ -97,10 +95,5 @@ public:
 private:
 	char buffer[256];
 };
-
-} // namespace File
-
-using FileStat = File::Stat;
-using FileNameStat = File::NameStat;
 
 } // namespace IFS

@@ -5,35 +5,33 @@
  *      Author: mikee47
  */
 
-#include "../include/IFS/File/Attributes.h"
+#include "include/IFS/FileAttributes.h"
 #include <FlashString/Vector.hpp>
 
 namespace
 {
 #define XX(tag, ch, comment) #ch
-DEFINE_FSTR_LOCAL(attributeChars, FILEATTR_MAP(XX))
+DEFINE_FSTR_LOCAL(attributeChars, IFS_FILEATTR_MAP(XX))
 #undef XX
 
 #define XX(tag, ch, comment) DEFINE_FSTR_LOCAL(attstr_##tag, #tag)
-FILEATTR_MAP(XX)
+IFS_FILEATTR_MAP(XX)
 #undef XX
 
 #define XX(tag, ch, comment) &attstr_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILEATTR_MAP(XX))
+DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, IFS_FILEATTR_MAP(XX))
 #undef XX
 
 } // namespace
 
 namespace IFS
 {
-namespace File
-{
-String getAttributeString(File::Attributes attr)
+String getFileAttributeString(FileAttributes attr)
 {
 	String s = attributeChars;
 
 	for(unsigned a = 0; a < s.length(); ++a) {
-		if(!attr[File::Attribute(a)]) {
+		if(!attr[FileAttribute(a)]) {
 			s[a] = '.';
 		}
 	}
@@ -41,10 +39,9 @@ String getAttributeString(File::Attributes attr)
 	return s;
 }
 
-} // namespace File
 } // namespace IFS
 
-String toString(IFS::File::Attribute attr)
+String toString(IFS::FileAttribute attr)
 {
 	String s = attributeStrings[unsigned(attr)];
 	return s ?: F("UNK#") + String(unsigned(attr));

@@ -52,12 +52,12 @@ const char* extendedAttributeName{"user.sming.ifs"};
  */
 struct ExtendedAttributes {
 	uint32_t size; ///< Size of this structure
-	File::ACL acl;
-	File::Attributes attr;
-	File::Compression compression;
+	ACL acl;
+	FileAttributes attr;
+	IFS::Compression compression;
 };
 
-int setExtendedAttributes(File::Handle file, const ExtendedAttributes& ea)
+int setExtendedAttributes(FileHandle file, const ExtendedAttributes& ea)
 {
 	ExtendedAttributes buf{ea};
 	buf.size = sizeof(ea);
@@ -69,7 +69,7 @@ int setExtendedAttributes(File::Handle file, const ExtendedAttributes& ea)
 	return (res == 0) ? FS_OK : syserr();
 }
 
-int getExtendedAttributes(File::Handle file, ExtendedAttributes& ea)
+int getExtendedAttributes(FileHandle file, ExtendedAttributes& ea)
 {
 #if defined(__MACOS)
 	auto len = fgetxattr(file, extendedAttributeName, &ea, sizeof(ea), 0, 0);
@@ -85,15 +85,15 @@ int getExtendedAttributes(File::Handle file, ExtendedAttributes& ea)
 	return FS_OK;
 }
 
-int getUserAttributes(File::Handle file, FileStat& stat)
+int getUserAttributes(FileHandle file, Stat& stat)
 {
 	ExtendedAttributes ea{};
 
 #ifdef __WIN32
 	uint32_t attr{0};
 	if(fgetattr(file, attr) == 0) {
-		stat.attr[File::Attribute::ReadOnly] = (attr & _A_RDONLY);
-		stat.attr[File::Attribute::Archive] = (attr & _A_ARCH);
+		stat.attr[FileAttribute::ReadOnly] = (attr & _A_RDONLY);
+		stat.attr[FileAttribute::Archive] = (attr & _A_ARCH);
 	}
 #endif
 
@@ -109,15 +109,15 @@ int getUserAttributes(File::Handle file, FileStat& stat)
 	return FS_OK;
 }
 
-int getUserAttributes(const char* path, FileStat& stat)
+int getUserAttributes(const char* path, Stat& stat)
 {
-	auto f = hostFileSystem.open(path, File::ReadOnly);
+	auto f = hostFileSystem.open(path, OpenFlag::Read);
 	if(f < 0) {
 		return f;
 	}
 
 	int res = getUserAttributes(f, stat);
-	if(!stat.attr[File::Attribute::Compressed]) {
+	if(!stat.attr[FileAttribute::Compressed]) {
 		stat.compression.originalSize = stat.size;
 	}
 
@@ -182,7 +182,7 @@ int FileSystem::rewinddir(DirHandle dir)
 	return FS_OK;
 }
 
-int FileSystem::readdir(DirHandle dir, FileStat& stat)
+int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
 	while(true) {
 		errno = 0;
@@ -220,22 +220,22 @@ int FileSystem::mkdir(const char* path)
 	return (res >= 0) ? res : syserr();
 }
 
-void FileSystem::fillStat(const struct stat& s, FileStat& stat)
+void FileSystem::fillStat(const struct stat& s, Stat& stat)
 {
-	stat = FileStat{};
+	stat = Stat{};
 	stat.fs = this;
 	stat.id = s.st_ino;
 	if((s.st_mode & S_IWUSR) == 0) {
-		stat.attr |= File::Attribute::ReadOnly;
+		stat.attr |= FileAttribute::ReadOnly;
 	}
 	if(S_ISDIR(s.st_mode)) {
-		stat.attr |= File::Attribute::Directory;
+		stat.attr |= FileAttribute::Directory;
 	}
 	stat.mtime = s.st_mtime;
 	stat.size = s.st_size;
 }
 
-int FileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, Stat* stat)
 {
 	struct stat s;
 	int res = ::stat(path, &s);
@@ -253,7 +253,7 @@ int FileSystem::stat(const char* path, FileStat* stat)
 	return FS_OK;
 }
 
-int FileSystem::fstat(File::Handle file, FileStat* stat)
+int FileSystem::fstat(FileHandle file, Stat* stat)
 {
 	struct stat s;
 	int res = ::fstat(file, &s);
@@ -269,7 +269,7 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 	return res;
 }
 
-int FileSystem::setacl(File::Handle file, const File::ACL& acl)
+int FileSystem::setacl(FileHandle file, const ACL& acl)
 {
 	ExtendedAttributes ea{};
 	getExtendedAttributes(file, ea);
@@ -277,7 +277,7 @@ int FileSystem::setacl(File::Handle file, const File::ACL& acl)
 	return setExtendedAttributes(file, ea);
 }
 
-int FileSystem::setattr(const char* path, File::Attributes attr)
+int FileSystem::setattr(const char* path, FileAttributes attr)
 {
 	int file = ::open(path, O_RDWR);
 	if(file < 0) {
@@ -287,7 +287,7 @@ int FileSystem::setattr(const char* path, File::Attributes attr)
 	ExtendedAttributes ea{};
 	getExtendedAttributes(file, ea);
 
-	constexpr File::Attributes mask{File::Attribute::ReadOnly | File::Attribute::Archive};
+	constexpr FileAttributes mask{FileAttribute::ReadOnly + FileAttribute::Archive};
 	ea.attr -= mask;
 	ea.attr += attr & mask;
 	int res = setExtendedAttributes(file, ea);
@@ -296,7 +296,7 @@ int FileSystem::setattr(const char* path, File::Attributes attr)
 	return res;
 }
 
-int FileSystem::settime(File::Handle file, time_t mtime)
+int FileSystem::settime(FileHandle file, time_t mtime)
 {
 #ifdef __WIN32
 	_utimbuf times{mtime, mtime};
@@ -308,7 +308,7 @@ int FileSystem::settime(File::Handle file, time_t mtime)
 	return (res >= 0) ? res : syserr();
 }
 
-int FileSystem::setcompression(File::Handle file, const File::Compression& compression)
+int FileSystem::setcompression(FileHandle file, const IFS::Compression& compression)
 {
 	ExtendedAttributes ea{};
 	getExtendedAttributes(file, ea);
@@ -316,43 +316,43 @@ int FileSystem::setcompression(File::Handle file, const File::Compression& compr
 	return setExtendedAttributes(file, ea);
 }
 
-File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
+FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	int res = ::open(path, mapFlags(flags), 0644);
-	assert(File::Handle(res) == res);
+	assert(FileHandle(res) == res);
 	return (res >= 0) ? res : syserr();
 }
 
-File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
+FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
 {
 	return Error::NotImplemented;
 }
 
-int FileSystem::close(File::Handle file)
+int FileSystem::close(FileHandle file)
 {
 	int res = ::close(file);
 	return (res >= 0) ? res : syserr();
 }
 
-int FileSystem::read(File::Handle file, void* data, size_t size)
+int FileSystem::read(FileHandle file, void* data, size_t size)
 {
 	int res = ::read(file, data, size);
 	return (res >= 0) ? res : syserr();
 }
 
-int FileSystem::write(File::Handle file, const void* data, size_t size)
+int FileSystem::write(FileHandle file, const void* data, size_t size)
 {
 	int res = ::write(file, data, size);
 	return (res >= 0) ? res : syserr();
 }
 
-int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
+int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 {
 	int res = ::lseek(file, offset, uint8_t(origin));
 	return (res >= 0) ? res : syserr();
 }
 
-int FileSystem::eof(File::Handle file)
+int FileSystem::eof(FileHandle file)
 {
 	// POSIX doesn't appear to have eof()
 
@@ -370,12 +370,12 @@ int FileSystem::eof(File::Handle file)
 	return (pos >= stat.st_size) ? 1 : 0;
 }
 
-int32_t FileSystem::tell(File::Handle file)
+int32_t FileSystem::tell(FileHandle file)
 {
 	return lseek(file, 0, SeekOrigin::Current);
 }
 
-int FileSystem::truncate(File::Handle file, size_t new_size)
+int FileSystem::truncate(FileHandle file, size_t new_size)
 {
 	int res = ::ftruncate(file, new_size);
 	return (res >= 0) ? res : syserr();

@@ -13,15 +13,15 @@
 namespace
 {
 #define XX(tag, char, comment) DEFINE_FSTR_LOCAL(str_##tag, #tag)
-USER_ROLE_MAP(XX)
+IFS_USER_ROLE_MAP(XX)
 #undef XX
 
 #define XX(tag, char, comment) &str_##tag,
-DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, USER_ROLE_MAP(XX))
+DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, IFS_USER_ROLE_MAP(XX))
 #undef XX
 
 #define XX(tag, ch, comment) #ch
-DEFINE_FSTR_LOCAL(userRoleChars, USER_ROLE_MAP(XX))
+DEFINE_FSTR_LOCAL(userRoleChars, IFS_USER_ROLE_MAP(XX))
 #undef XX
 } // namespace
 

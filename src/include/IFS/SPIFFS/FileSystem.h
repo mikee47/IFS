@@ -60,32 +60,32 @@ public:
 	int getinfo(Info& info) override;
 	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
-	int readdir(DirHandle dir, FileStat& stat) override;
+	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override
 	{
 		return Error::NotSupported;
 	}
 	int closedir(DirHandle dir) override;
 	int mkdir(const char* path) override;
-	int stat(const char* path, FileStat* stat) override;
-	int fstat(File::Handle file, FileStat* stat) override;
-	int setacl(File::Handle file, const File::ACL& acl) override;
-	int setattr(const char* path, File::Attributes attr) override;
-	int settime(File::Handle file, time_t mtime) override;
-	int setcompression(File::Handle file, const File::Compression& compression) override;
-	File::Handle open(const char* path, File::OpenFlags flags) override;
-	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
-	int close(File::Handle file) override;
-	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override;
-	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
-	int eof(File::Handle file) override;
-	int32_t tell(File::Handle file) override;
-	int truncate(File::Handle file, size_t new_size) override;
-	int flush(File::Handle file) override;
+	int stat(const char* path, Stat* stat) override;
+	int fstat(FileHandle file, Stat* stat) override;
+	int setacl(FileHandle file, const ACL& acl) override;
+	int setattr(const char* path, FileAttributes attr) override;
+	int settime(FileHandle file, time_t mtime) override;
+	int setcompression(FileHandle file, const Compression& compression) override;
+	FileHandle open(const char* path, OpenFlags flags) override;
+	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
+	int close(FileHandle file) override;
+	int read(FileHandle file, void* data, size_t size) override;
+	int write(FileHandle file, const void* data, size_t size) override;
+	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
+	int eof(FileHandle file) override;
+	int32_t tell(FileHandle file) override;
+	int truncate(FileHandle file, size_t new_size) override;
+	int flush(FileHandle file) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(File::Handle file) override;
+	int fremove(FileHandle file) override;
 	int format() override;
 	int check() override;
 
@@ -94,7 +94,7 @@ public:
 	 *  @param buffer
 	 *  @retval int error code
 	 */
-	int getFilePath(File::ID fileid, NameBuffer& buffer);
+	int getFilePath(FileID fileid, NameBuffer& buffer);
 
 private:
 	spiffs* handle()
@@ -104,11 +104,11 @@ private:
 
 	int tryMount(spiffs_config& cfg);
 
-	SpiffsMetaBuffer* initMetaBuffer(File::Handle file);
-	SpiffsMetaBuffer* getMetaBuffer(File::Handle file);
-	int flushMeta(File::Handle file);
+	SpiffsMetaBuffer* initMetaBuffer(FileHandle file);
+	SpiffsMetaBuffer* getMetaBuffer(FileHandle file);
+	int flushMeta(FileHandle file);
 
-	void touch(File::Handle file)
+	void touch(FileHandle file)
 	{
 		settime(file, fsGetTimeUTC());
 	}

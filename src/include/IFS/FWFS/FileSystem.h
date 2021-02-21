@@ -111,49 +111,49 @@ public:
 	int mount() override;
 	int getinfo(Info& info) override;
 	int opendir(const char* path, DirHandle& dir) override;
-	int fopendir(const FileStat* stat, DirHandle& dir) override;
-	int readdir(DirHandle dir, FileStat& stat) override;
+	int fopendir(const Stat* stat, DirHandle& dir) override;
+	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
 	int mkdir(const char* path) override
 	{
 		return Error::ReadOnly;
 	}
-	int stat(const char* path, FileStat* stat) override;
-	int fstat(File::Handle file, FileStat* stat) override;
-	int fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize) override;
-	int setacl(File::Handle file, const File::ACL& acl) override
+	int stat(const char* path, Stat* stat) override;
+	int fstat(FileHandle file, Stat* stat) override;
+	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
+	int setacl(FileHandle file, const ACL& acl) override
 	{
 		return Error::ReadOnly;
 	}
-	int setattr(const char* path, File::Attributes attr)
+	int setattr(const char* path, FileAttributes attr)
 	{
 		return Error::ReadOnly;
 	}
-	int settime(File::Handle file, time_t mtime) override
+	int settime(FileHandle file, time_t mtime) override
 	{
 		return Error::ReadOnly;
 	}
-	int setcompression(File::Handle file, const File::Compression& compression)
+	int setcompression(FileHandle file, const Compression& compression)
 	{
 		return Error::ReadOnly;
 	}
-	File::Handle open(const char* path, File::OpenFlags flags) override;
-	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
-	int close(File::Handle file) override;
-	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override
+	FileHandle open(const char* path, OpenFlags flags) override;
+	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
+	int close(FileHandle file) override;
+	int read(FileHandle file, void* data, size_t size) override;
+	int write(FileHandle file, const void* data, size_t size) override
 	{
 		return Error::ReadOnly;
 	}
-	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
-	int eof(File::Handle file) override;
-	int32_t tell(File::Handle file) override;
-	int truncate(File::Handle file, size_t new_size) override
+	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
+	int eof(FileHandle file) override;
+	int32_t tell(FileHandle file) override;
+	int truncate(FileHandle file, size_t new_size) override
 	{
 		return Error::ReadOnly;
 	}
-	int flush(File::Handle file) override
+	int flush(FileHandle file) override
 	{
 		return Error::ReadOnly;
 	}
@@ -165,7 +165,7 @@ public:
 	{
 		return Error::ReadOnly;
 	}
-	int fremove(File::Handle file) override
+	int fremove(FileHandle file) override
 	{
 		return Error::ReadOnly;
 	}
@@ -186,12 +186,12 @@ public:
 	 *  @param path
 	 *  @retval int error code
 	 */
-	int getFilePath(File::ID fileid, NameBuffer& path);
+	int getFilePath(FileID fileid, NameBuffer& path);
 
-	int getMd5Hash(File::Handle file, void* buffer, size_t bufSize);
+	int getMd5Hash(FileHandle file, void* buffer, size_t bufSize);
 
 private:
-	int seekFilePath(FWObjDesc& parent, File::ID fileid, NameBuffer& path);
+	int seekFilePath(FWObjDesc& parent, FileID fileid, NameBuffer& path);
 
 	/** @brief Mount the given volume, scanning its contents for verification
 	 *  @param volume IN: identifies object store, OUT: contains volume object reference
@@ -300,14 +300,14 @@ private:
 	int resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
-	File::Handle allocateFileDescriptor(FWObjDesc& odFile);
-	int fillStat(FileStat& stat, const FWObjDesc& entry);
+	FileHandle allocateFileDescriptor(FWObjDesc& odFile);
+	int fillStat(Stat& stat, const FWObjDesc& entry);
 
 	void printObject(const FWObjDesc& od);
 
 private:
 	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
-	File::ACL rootACL;
+	ACL rootACL;
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 };
 

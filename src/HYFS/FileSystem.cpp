@@ -139,7 +139,7 @@ int FileSystem::hideFWFile(const char* path, bool hide)
 {
 	int res = FS_OK;
 #if HYFS_HIDE_FLAGS == 1
-	FileStat stat;
+	Stat stat;
 	res = fwfs.stat(path, &stat);
 	if(res >= 0) {
 		if(hide) {
@@ -154,7 +154,7 @@ int FileSystem::hideFWFile(const char* path, bool hide)
 	return res;
 }
 
-bool FileSystem::isFWFileHidden(const FileStat& fwstat)
+bool FileSystem::isFWFileHidden(const Stat& fwstat)
 {
 #if HYFS_HIDE_FLAGS == 1
 	return hiddenFwFiles.contains(fwstat.id);
@@ -195,7 +195,7 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	return res;
 }
 
-int FileSystem::readdir(DirHandle dir, FileStat& stat)
+int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
 	if(dir == nullptr) {
 		return Error::BadParam;
@@ -291,27 +291,27 @@ int FileSystem::mkdir(const char* path)
  *      fail
  *
  */
-File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
+FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	// If file exists on FFS then open it and return
-	FileStat stat;
+	Stat stat;
 	int res = ffs.stat(path, &stat);
 	if(res >= 0) {
 		return ffs.fopen(stat, flags);
 	}
 
 	// OK, so no FFS file exists. Get the FW file.
-	File::Handle fwfile = fwfs.open(path, File::OpenFlag::Read);
+	FileHandle fwfile = fwfs.open(path, OpenFlag::Read);
 
 	// If we're only reading the file then return FW file directly
-	if(flags == File::OpenFlag::Read) {
+	if(flags == OpenFlag::Read) {
 		return fwfile;
 	}
 
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
 		int err = fwfs.fstat(fwfile, &stat);
-		if(err >= 0 && stat.attr[File::Attribute::ReadOnly]) {
+		if(err >= 0 && stat.attr[FileAttribute::ReadOnly]) {
 			err = Error::ReadOnly;
 		}
 		if(err < 0) {
@@ -322,9 +322,9 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 
 	// Now copy FW file to FFS
 	if(fwfile >= 0) {
-		flags |= File::OpenFlag::Create | File::OpenFlag::Read | File::OpenFlag::Write;
+		flags |= OpenFlag::Create | OpenFlag::Read | OpenFlag::Write;
 	}
-	File::Handle ffsfile = ffs.open(path, flags);
+	FileHandle ffsfile = ffs.open(path, flags);
 
 	// If there's no FW file, nothing further to do so return FFS result (success or failure)
 	if(fwfile < 0) {
@@ -344,7 +344,7 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 	}
 
 	// If not truncating then copy content into FFS file
-	if(!flags[File::OpenFlag::Truncate]) {
+	if(!flags[OpenFlag::Truncate]) {
 		ffs.lseek(ffsfile, 0, SeekOrigin::Start);
 		uint8_t buffer[512];
 		while(fwfs.eof(fwfile) == 0) {
@@ -363,7 +363,7 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 			}
 		}
 		// Move back to beginning if we're not appending
-		if(!flags[File::OpenFlag::Append]) {
+		if(!flags[OpenFlag::Append]) {
 			ffs.lseek(ffsfile, 0, SeekOrigin::Start);
 		}
 	}
@@ -378,7 +378,7 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
  * only returns the file name, omitting the path. So we need to do a lower-level
  * SPIFS stat to get the real file path.
  */
-File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
+FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
 {
 	if(stat.fs == nullptr) {
 		return Error::BadParam;
@@ -389,7 +389,7 @@ File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 	}
 
 	// If we're only reading the file then return FW file directly
-	if(flags == File::OpenFlag::Read) {
+	if(flags == OpenFlag::Read) {
 		return fwfs.fopen(stat, flags);
 	}
 
@@ -400,7 +400,7 @@ File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
 	return res < 0 ? res : open(name.buffer, flags);
 }
 
-int FileSystem::close(File::Handle file)
+int FileSystem::close(FileHandle file)
 {
 	GET_FS(file)
 	return fs->close(file);
@@ -436,7 +436,7 @@ int FileSystem::check()
 	return ffs.check();
 }
 
-int FileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, Stat* stat)
 {
 	int res = ffs.stat(path, stat);
 	if(res < 0) {
@@ -445,25 +445,25 @@ int FileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int FileSystem::fstat(File::Handle file, FileStat* stat)
+int FileSystem::fstat(FileHandle file, Stat* stat)
 {
 	GET_FS(file)
 	return fs->fstat(file, stat);
 }
 
-int FileSystem::fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize)
+int FileSystem::fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize)
 {
 	GET_FS(file)
 	return fs->fcontrol(file, code, buffer, bufSize);
 }
 
-int FileSystem::setacl(File::Handle file, const File::ACL& acl)
+int FileSystem::setacl(FileHandle file, const ACL& acl)
 {
 	GET_FS(file)
 	return fs->setacl(file, acl);
 }
 
-int FileSystem::setattr(const char* path, File::Attributes attr)
+int FileSystem::setattr(const char* path, FileAttributes attr)
 {
 	if(ffs.stat(path, nullptr) == FS_OK) {
 		return ffs.setattr(path, attr);
@@ -472,31 +472,31 @@ int FileSystem::setattr(const char* path, File::Attributes attr)
 	}
 }
 
-int FileSystem::settime(File::Handle file, time_t mtime)
+int FileSystem::settime(FileHandle file, time_t mtime)
 {
 	GET_FS(file)
 	return fs->settime(file, mtime);
 }
 
-int FileSystem::setcompression(File::Handle file, const File::Compression& compression)
+int FileSystem::setcompression(FileHandle file, const Compression& compression)
 {
 	GET_FS(file)
 	return fs->setcompression(file, compression);
 }
 
-int FileSystem::read(File::Handle file, void* data, size_t size)
+int FileSystem::read(FileHandle file, void* data, size_t size)
 {
 	GET_FS(file)
 	return fs->read(file, data, size);
 }
 
-int FileSystem::write(File::Handle file, const void* data, size_t size)
+int FileSystem::write(FileHandle file, const void* data, size_t size)
 {
 	GET_FS(file)
 	return fs->write(file, data, size);
 }
 
-int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
+int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 {
 	GET_FS(file)
 	int res = fs->lseek(file, offset, origin);
@@ -504,25 +504,25 @@ int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 	return res;
 }
 
-int FileSystem::eof(File::Handle file)
+int FileSystem::eof(FileHandle file)
 {
 	GET_FS(file)
 	return fs->eof(file);
 }
 
-int32_t FileSystem::tell(File::Handle file)
+int32_t FileSystem::tell(FileHandle file)
 {
 	GET_FS(file)
 	return fs->tell(file);
 }
 
-int FileSystem::truncate(File::Handle file, size_t new_size)
+int FileSystem::truncate(FileHandle file, size_t new_size)
 {
 	GET_FS(file)
 	return fs->truncate(file, new_size);
 }
 
-int FileSystem::flush(File::Handle file)
+int FileSystem::flush(FileHandle file)
 {
 	GET_FS(file)
 	return fs->flush(file);
@@ -537,7 +537,7 @@ int FileSystem::flush(File::Handle file)
 int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	// Make sure file exists on FFS
-	auto file = open(oldpath, File::OpenFlag::Read | File::OpenFlag::Write);
+	auto file = open(oldpath, OpenFlag::Read | OpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}
@@ -551,7 +551,7 @@ int FileSystem::rename(const char* oldpath, const char* newpath)
  * @note can only delete files with write permission, which means the
  * file is on FFS.
  */
-int FileSystem::fremove(File::Handle file)
+int FileSystem::fremove(FileHandle file)
 {
 	GET_FS(file)
 	return fs->fremove(file);

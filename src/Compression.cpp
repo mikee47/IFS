@@ -5,36 +5,33 @@
  *      Author: mikee47
  */
 
-#include "../include/IFS/File/Compression.h"
+#include "include/IFS/Compression.h"
 #include <FlashString/String.hpp>
 #include <FlashString/Vector.hpp>
 
 namespace
 {
 #define XX(tag, comment) DEFINE_FSTR_LOCAL(str_##tag, #tag)
-COMPRESSION_TYPE_MAP(XX)
+IFS_COMPRESSION_TYPE_MAP(XX)
 #undef XX
 
 #define XX(tag, comment) &str_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(strings, FSTR::String, COMPRESSION_TYPE_MAP(XX))
+DEFINE_FSTR_VECTOR_LOCAL(strings, FSTR::String, IFS_COMPRESSION_TYPE_MAP(XX))
 #undef XX
 
 } // namespace
 
 namespace IFS
 {
-namespace File
-{
-File::Compression::Type getCompressionType(const char* str, File::Compression::Type defaultValue)
+Compression::Type getCompressionType(const char* str, Compression::Type defaultValue)
 {
 	int i = strings.indexOf(str);
-	return (i < 0) ? defaultValue : File::Compression::Type(i);
+	return (i < 0) ? defaultValue : Compression::Type(i);
 }
 
-} // namespace File
 } // namespace IFS
 
-String toString(IFS::File::Compression::Type type)
+String toString(IFS::Compression::Type type)
 {
 	String s = strings[unsigned(type)];
 	return s ?: F("UNK#") + String(unsigned(type));

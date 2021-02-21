@@ -7,11 +7,9 @@
 
 #pragma once
 
-#include "../UserRole.h"
+#include "UserRole.h"
 
 namespace IFS
-{
-namespace File
 {
 /*
  * Role-based Access Control List.
@@ -40,9 +38,8 @@ struct ACL {
  * @param acl
  * @retval String
  */
-String getAclString(const IFS::File::ACL& acl);
+String getAclString(const IFS::ACL& acl);
 
-} // namespace File
 } // namespace IFS
 
 /**
@@ -50,4 +47,4 @@ String getAclString(const IFS::File::ACL& acl);
  * @param acl
  * @retval String
  */
-String toString(const IFS::File::ACL& acl);
+String toString(const IFS::ACL& acl);

@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "File/Stat.h"
-#include "File/OpenFlags.h"
+#include "Stat.h"
+#include "OpenFlags.h"
 #include <Storage/Partition.h>
 #include "Error.h"
 #include "Control.h"
@@ -185,7 +185,7 @@ public:
      * @param dir returns a pointer to the directory object
      * @retval int error code
      */
-	virtual int fopendir(const File::Stat* stat, DirHandle& dir)
+	virtual int fopendir(const Stat* stat, DirHandle& dir)
 	{
 		return opendir(stat == nullptr ? nullptr : stat->name.buffer, dir);
 	}
@@ -198,7 +198,7 @@ public:
      * @note File system allocates entries structure as it usually needs
      * to track other information. It releases memory when closedir() is called.
      */
-	virtual int readdir(DirHandle dir, File::Stat& stat) = 0;
+	virtual int readdir(DirHandle dir, Stat& stat) = 0;
 
 	/**
 	 * @brief Reset directory read position to start
@@ -231,7 +231,7 @@ public:
      * @param s structure to return information in, may be null to do a simple file existence check
      * @retval int error code
      */
-	virtual int stat(const char* path, File::Stat* stat) = 0;
+	virtual int stat(const char* path, Stat* stat) = 0;
 
 	/**
 	 * @brief get file information
@@ -239,7 +239,7 @@ public:
      * @param stat structure to return information in, may be null
      * @retval int error code
      */
-	virtual int fstat(File::Handle file, File::Stat* stat) = 0;
+	virtual int fstat(FileHandle file, Stat* stat) = 0;
 
 	/**
 	 * @brief Low-level and non-standard file control operations
@@ -253,7 +253,7 @@ public:
 	 * Only the size of the buffer is provided. If a specific FCNTL code requires more
 	 * information then it will be contained within the provided data.
 	 */
-	virtual int fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize)
+	virtual int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize)
 	{
 		return Error::NotSupported;
 	}
@@ -262,24 +262,24 @@ public:
 	 * @brief open a file by name/path
      * @param path full path to file
      * @param flags opens for opening file
-     * @retval File::Handle file handle or error code
+     * @retval FileHandle file handle or error code
      */
-	virtual File::Handle open(const char* path, File::OpenFlags flags) = 0;
+	virtual FileHandle open(const char* path, OpenFlags flags) = 0;
 
 	/**
 	 * @brief open a file from it's stat structure
      * @param stat obtained from readdir()
      * @param flags opens for opening file
-     * @retval File::Handle file handle or error code
+     * @retval FileHandle file handle or error code
      */
-	virtual File::Handle fopen(const File::Stat& stat, File::OpenFlags flags) = 0;
+	virtual FileHandle fopen(const Stat& stat, OpenFlags flags) = 0;
 
 	/**
 	 * @brief close an open file
      * @param file handle to open file
      * @retval int error code
      */
-	virtual int close(File::Handle file) = 0;
+	virtual int close(FileHandle file) = 0;
 
 	/**
 	 * @brief read content from a file and advance cursor
@@ -288,7 +288,7 @@ public:
      * @param size size of file buffer, maximum number of bytes to read
      * @retval int number of bytes read or error code
      */
-	virtual int read(File::Handle file, void* data, size_t size) = 0;
+	virtual int read(FileHandle file, void* data, size_t size) = 0;
 
 	/**
 	 * @brief write content to a file at current position and advance cursor
@@ -297,7 +297,7 @@ public:
      * @param size number of bytes to write
      * @retval int number of bytes written or error code
      */
-	virtual int write(File::Handle file, const void* data, size_t size) = 0;
+	virtual int write(FileHandle file, const void* data, size_t size) = 0;
 
 	/**
 	 * @brief change file read/write position
@@ -306,21 +306,21 @@ public:
      * @param origin where to seek from (start/end or current position)
      * @retval int current position or error code
      */
-	virtual int lseek(File::Handle file, int offset, SeekOrigin origin) = 0;
+	virtual int lseek(FileHandle file, int offset, SeekOrigin origin) = 0;
 
 	/**
 	 * @brief determine if current file position is at end of file
      * @param file handle to open file
      * @retval int 0 - not EOF, > 0 - at EOF, < 0 - error
      */
-	virtual int eof(File::Handle file) = 0;
+	virtual int eof(FileHandle file) = 0;
 
 	/**
 	 * @brief get current file position
      * @param file handle to open file
      * @retval int32_t current position relative to start of file, or error code
      */
-	virtual int32_t tell(File::Handle file) = 0;
+	virtual int32_t tell(FileHandle file) = 0;
 
 	/**
 	 * @brief Truncate (reduce) the size of an open file
@@ -330,14 +330,14 @@ public:
 	 * @note In POSIX `ftruncate()` can also make the file bigger, however SPIFFS can only
 	 * reduce the file size and will return an error if newSize > fileSize
 	 */
-	virtual int truncate(File::Handle file, size_t new_size) = 0;
+	virtual int truncate(FileHandle file, size_t new_size) = 0;
 
 	/**
 	 * @brief flush any buffered data to physical media
      * @param file handle to open file
      * @retval int error code
      */
-	virtual int flush(File::Handle file) = 0;
+	virtual int flush(FileHandle file) = 0;
 
 	/**
 	 * @brief Set access control information for file
@@ -345,7 +345,7 @@ public:
      * @param acl
      * @retval int error code
      */
-	virtual int setacl(File::Handle file, const File::ACL& acl) = 0;
+	virtual int setacl(FileHandle file, const ACL& acl) = 0;
 
 	/**
 	 * @brief Set file attributes
@@ -353,7 +353,7 @@ public:
      * @param attr
      * @retval int error code
      */
-	virtual int setattr(const char* path, File::Attributes attr) = 0;
+	virtual int setattr(const char* path, FileAttributes attr) = 0;
 
 	/**
 	 * @brief Set modificatino tiem for file
@@ -361,7 +361,7 @@ public:
      * @retval int error code
      * @note any subsequent writes to file will reset this to current time
      */
-	virtual int settime(File::Handle file, time_t mtime) = 0;
+	virtual int settime(FileHandle file, time_t mtime) = 0;
 
 	/**
 	 * @brief Set file compression information
@@ -369,7 +369,7 @@ public:
      * @param compression
      * @retval int error code
      */
-	virtual int setcompression(File::Handle file, const File::Compression& compression) = 0;
+	virtual int setcompression(FileHandle file, const Compression& compression) = 0;
 
 	/**
 	 * @brief rename a file
@@ -391,7 +391,7 @@ public:
      * @param file handle to open file
      * @retval int error code
      */
-	virtual int fremove(File::Handle file) = 0;
+	virtual int fremove(FileHandle file) = 0;
 
 	/**
 	 * @brief format the filing system

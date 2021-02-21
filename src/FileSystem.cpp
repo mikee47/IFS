@@ -20,7 +20,7 @@ uint32_t FileSystem::getSize(FileHandle file)
 
 uint32_t FileSystem::getSize(const char* fileName)
 {
-	auto file = open(fileName, File::OpenFlag::Read);
+	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		return 0;
 	}
@@ -33,7 +33,7 @@ uint32_t FileSystem::getSize(const char* fileName)
 
 int FileSystem::truncate(const char* fileName, size_t newSize)
 {
-	auto file = open(fileName, File::OpenFlag::Write);
+	auto file = open(fileName, OpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}
@@ -45,7 +45,7 @@ int FileSystem::truncate(const char* fileName, size_t newSize)
 
 int FileSystem::setContent(const char* fileName, const char* content, size_t length)
 {
-	auto file = open(fileName, File::OpenFlag::Create | File::OpenFlag::Truncate | File::OpenFlag::Write);
+	auto file = open(fileName, OpenFlag::Create | OpenFlag::Truncate | OpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}
@@ -58,7 +58,7 @@ int FileSystem::setContent(const char* fileName, const char* content, size_t len
 String FileSystem::getContent(const String& fileName)
 {
 	String res;
-	auto file = open(fileName, File::OpenFlag::Read);
+	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		return nullptr;
 	}
@@ -83,7 +83,7 @@ size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize
 		return 0;
 	}
 
-	auto file = open(fileName, File::OpenFlag::Read);
+	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		buffer[0] = '\0';
 		return 0;
@@ -103,7 +103,7 @@ size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize
 	return size;
 }
 
-int FileSystem::readContent(File::Handle file, size_t size, ReadContentCallback callback)
+int FileSystem::readContent(FileHandle file, size_t size, ReadContentCallback callback)
 {
 	constexpr size_t bufSize{512};
 	char buf[bufSize];
@@ -128,7 +128,7 @@ int FileSystem::readContent(File::Handle file, size_t size, ReadContentCallback 
 	return count;
 }
 
-int FileSystem::readContent(File::Handle file, ReadContentCallback callback)
+int FileSystem::readContent(FileHandle file, ReadContentCallback callback)
 {
 	constexpr size_t bufSize{512};
 	char buf[bufSize];
@@ -147,7 +147,7 @@ int FileSystem::readContent(File::Handle file, ReadContentCallback callback)
 
 int FileSystem::readContent(const String& filename, ReadContentCallback callback)
 {
-	auto file = open(filename, File::OpenFlag::Read);
+	auto file = open(filename, OpenFlag::Read);
 	if(file < 0) {
 		return file;
 	}

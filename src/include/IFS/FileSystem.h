@@ -55,7 +55,7 @@ public:
 	/**
 	 * @brief get file information
      */
-	int stat(const String& path, File::Stat* s)
+	int stat(const String& path, Stat* s)
 	{
 		return stat(path.c_str(), s);
 	}
@@ -64,7 +64,7 @@ public:
 	/**
 	 * @brief get file information
      */
-	int fstat(File::Handle file, File::Stat& stat)
+	int fstat(FileHandle file, Stat& stat)
 	{
 		return fstat(file, &stat);
 	}
@@ -74,10 +74,10 @@ public:
 	 * @brief open a file by name/path
      * @param path full path to file
      * @param flags opens for opening file
-     * @retval File::Handle file handle or error code
+     * @retval FileHandle file handle or error code
      * @{
      */
-	File::Handle open(const String& path, File::OpenFlags flags)
+	FileHandle open(const String& path, OpenFlags flags)
 	{
 		return open(path.c_str(), flags);
 	}
@@ -86,7 +86,7 @@ public:
 	/**
 	 * @brief Truncate an open file at the current cursor position
 	 */
-	int truncate(File::Handle file)
+	int truncate(FileHandle file)
 	{
 		int pos = tell(file);
 		return (pos < 0) ? pos : truncate(file, pos);
@@ -132,7 +132,7 @@ public:
 	 *  @param  file File handle
 	 *  @retval uint32_t Size of file in bytes, 0 on error
 	 */
-	uint32_t getSize(File::Handle file);
+	uint32_t getSize(FileHandle file);
 
 	/** @brief  Get size of file
 	 *  @param  fileName Name of file
@@ -161,7 +161,7 @@ public:
 	 * @param callback
 	 * @retval int Number of bytes processed, or error code
 	 */
-	int readContent(File::Handle file, size_t size, ReadContentCallback callback);
+	int readContent(FileHandle file, size_t size, ReadContentCallback callback);
 
 	/**
 	 * @brief Read from current file position to end of file and invoke callback for each block read
@@ -169,7 +169,7 @@ public:
 	 * @param callback
 	 * @retval int Number of bytes processed, or error code
 	 */
-	int readContent(File::Handle file, ReadContentCallback callback);
+	int readContent(FileHandle file, ReadContentCallback callback);
 
 	/**
 	 * @brief Read entire file content in blocks, invoking callback after every read

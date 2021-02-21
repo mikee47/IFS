@@ -27,7 +27,7 @@ namespace Error
  * An IFS implementation must return negative values for errors. Wrappers may
  * use these IFS codes instead of their own.
  * If returning an internal error code it may need to be translated.
- * Methods returning ONLY an error code (i.e. not File::Handle) may return positive 'error'
+ * Methods returning ONLY an error code (i.e. not FileHandle) may return positive 'error'
  * codes for information purposes. See IFileSystem::check() as an example.
  * Return value usage is consistent with SPIFFS.
  *

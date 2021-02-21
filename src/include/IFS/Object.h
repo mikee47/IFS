@@ -60,8 +60,8 @@
 #pragma once
 
 #include "TimeStamp.h"
-#include "File/Attributes.h"
-#include "File/Compression.h"
+#include "FileAttributes.h"
+#include "Compression.h"
 #include "UserRole.h"
 
 namespace IFS
@@ -221,7 +221,7 @@ struct Object {
 
 				// Compression descriptor
 				struct {
-					File::Compression::Type type;
+					Compression::Type type;
 					uint32_t originalSize;
 				} compression;
 

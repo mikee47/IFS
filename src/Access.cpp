@@ -7,13 +7,11 @@
  * Access control definitions
  */
 
-#include "../include/IFS/File/Access.h"
+#include "../include/IFS/Access.h"
 
 namespace IFS
 {
-namespace File
-{
-String getAclString(const IFS::File::ACL& acl)
+String getAclString(const IFS::ACL& acl)
 {
 	String s;
 	s += IFS::getChar(acl.readAccess);
@@ -21,10 +19,9 @@ String getAclString(const IFS::File::ACL& acl)
 	return s;
 }
 
-} // namespace File
 } // namespace IFS
 
-String toString(const IFS::File::ACL& acl)
+String toString(const IFS::ACL& acl)
 {
 	String s;
 	s += toString(acl.readAccess);

@@ -46,7 +46,7 @@ public:
 	{
 		return Error::NotSupported;
 	}
-	int readdir(DirHandle dir, FileStat& stat) override
+	int readdir(DirHandle dir, Stat& stat) override
 	{
 		return Error::NotSupported;
 	}
@@ -58,46 +58,46 @@ public:
 	{
 		return Error::NotSupported;
 	}
-	int stat(const char* path, FileStat* stat) override;
-	int fstat(File::Handle file, FileStat* stat) override;
-	int setacl(File::Handle file, const File::ACL& acl) override
+	int stat(const char* path, Stat* stat) override;
+	int fstat(FileHandle file, Stat* stat) override;
+	int setacl(FileHandle file, const ACL& acl) override
 	{
 		return Error::NotSupported;
 	}
-	int setattr(const char* filename, File::Attributes attr) override
+	int setattr(const char* filename, FileAttributes attr) override
 	{
 		return Error::NotSupported;
 	}
-	int settime(File::Handle file, time_t mtime) override
+	int settime(FileHandle file, time_t mtime) override
 	{
 		return Error::NotSupported;
 	}
-	int setcompression(File::Handle file, const File::Compression& compression) override
+	int setcompression(FileHandle file, const Compression& compression) override
 	{
 		return Error::NotSupported;
 	}
-	File::Handle open(const char* path, File::OpenFlags flags) override;
-	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override
+	FileHandle open(const char* path, OpenFlags flags) override;
+	FileHandle fopen(const Stat& stat, OpenFlags flags) override
 	{
 		return Error::NotSupported;
 	}
-	int close(File::Handle file) override;
-	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override;
-	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
-	int eof(File::Handle file) override;
-	int32_t tell(File::Handle file) override;
-	int truncate(File::Handle file, size_t new_size) override
+	int close(FileHandle file) override;
+	int read(FileHandle file, void* data, size_t size) override;
+	int write(FileHandle file, const void* data, size_t size) override;
+	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
+	int eof(FileHandle file) override;
+	int32_t tell(FileHandle file) override;
+	int truncate(FileHandle file, size_t new_size) override
 	{
 		return Error::NotSupported;
 	}
-	int flush(File::Handle file) override
+	int flush(FileHandle file) override
 	{
 		return Error::NotSupported;
 	}
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(File::Handle file) override
+	int fremove(FileHandle file) override
 	{
 		return Error::NotImplemented;
 	}

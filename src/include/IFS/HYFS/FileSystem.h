@@ -51,42 +51,42 @@ public:
 	int getinfo(Info& info) override;
 	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
-	int readdir(DirHandle dir, FileStat& stat) override;
+	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
 	int mkdir(const char* path) override;
-	int stat(const char* path, FileStat* stat) override;
-	int fstat(File::Handle file, FileStat* stat) override;
-	int fcontrol(File::Handle file, ControlCode code, void* buffer, size_t bufSize) override;
-	int setacl(File::Handle file, const File::ACL& acl) override;
-	int setattr(const char* path, File::Attributes attr) override;
-	int settime(File::Handle file, time_t mtime) override;
-	int setcompression(File::Handle file, const File::Compression& compression) override;
-	File::Handle open(const char* path, File::OpenFlags flags) override;
-	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
-	int close(File::Handle file) override;
-	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override;
-	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
-	int eof(File::Handle file) override;
-	int32_t tell(File::Handle file) override;
-	int truncate(File::Handle file, size_t new_size) override;
-	int flush(File::Handle file) override;
+	int stat(const char* path, Stat* stat) override;
+	int fstat(FileHandle file, Stat* stat) override;
+	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
+	int setacl(FileHandle file, const ACL& acl) override;
+	int setattr(const char* path, FileAttributes attr) override;
+	int settime(FileHandle file, time_t mtime) override;
+	int setcompression(FileHandle file, const Compression& compression) override;
+	FileHandle open(const char* path, OpenFlags flags) override;
+	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
+	int close(FileHandle file) override;
+	int read(FileHandle file, void* data, size_t size) override;
+	int write(FileHandle file, const void* data, size_t size) override;
+	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
+	int eof(FileHandle file) override;
+	int32_t tell(FileHandle file) override;
+	int truncate(FileHandle file, size_t new_size) override;
+	int flush(FileHandle file) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(File::Handle file) override;
+	int fremove(FileHandle file) override;
 	int format() override;
 	int check() override;
 
 private:
 	int hideFWFile(const char* path, bool hide);
-	bool isFWFileHidden(const FileStat& fwstat);
+	bool isFWFileHidden(const Stat& fwstat);
 
 private:
 	FWFS::FileSystem fwfs;
 	SPIFFS::FileSystem ffs;
 #if HYFS_HIDE_FLAGS == 1
-	Vector<File::ID> hiddenFwFiles;
+	Vector<FileID> hiddenFwFiles;
 #endif
 };
 

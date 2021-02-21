@@ -11,7 +11,7 @@
 #pragma once
 
 #include "../Error.h"
-#include "../File/OpenFlags.h"
+#include "../OpenFlags.h"
 #include <errno.h>
 #include <WString.h>
 
@@ -32,7 +32,7 @@ inline int syserr()
 /**
  * @brief Get corresponding host flags for given IFS flags
  */
-int mapFlags(File::OpenFlags flags);
+int mapFlags(OpenFlags flags);
 
 String getErrorString(int err);
 

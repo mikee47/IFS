@@ -20,25 +20,25 @@ namespace IFS
 {
 namespace Host
 {
-int mapFlags(File::OpenFlags flags)
+int mapFlags(OpenFlags flags)
 {
 	int ret = O_BINARY;
-	if(flags[File::OpenFlag::Append]) {
+	if(flags[OpenFlag::Append]) {
 		ret |= O_APPEND;
 	}
-	if(flags[File::OpenFlag::Create]) {
+	if(flags[OpenFlag::Create]) {
 		ret |= O_CREAT;
 	}
-	if(flags[File::OpenFlag::Truncate]) {
+	if(flags[OpenFlag::Truncate]) {
 		ret |= O_TRUNC;
 	}
-	if(flags[File::OpenFlag::Read]) {
-		if(flags[File::OpenFlag::Write]) {
+	if(flags[OpenFlag::Read]) {
+		if(flags[OpenFlag::Write]) {
 			ret |= O_RDWR;
 		} else {
 			ret |= O_RDONLY;
 		}
-	} else if(flags[File::OpenFlag::Write]) {
+	} else if(flags[OpenFlag::Write]) {
 		ret |= O_WRONLY;
 	}
 	return ret;

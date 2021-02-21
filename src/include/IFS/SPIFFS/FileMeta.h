@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "../File/Access.h"
-#include "../File/Attributes.h"
-#include "../File/Compression.h"
+#include "../Access.h"
+#include "../FileAttributes.h"
+#include "../Compression.h"
 
 namespace IFS
 {
@@ -29,13 +29,13 @@ struct FileMeta {
 	uint32_t magic;
 	// Modification time
 	TimeStamp mtime;
-	// File::Attributes - default indicates content has changed
-	File::Attributes attr;
+	// FileAttributes - default indicates content has changed
+	FileAttributes attr;
 	// Security
-	File::ACL acl;
+	ACL acl;
 	// Compression
 	struct {
-		File::Compression::Type type;
+		Compression::Type type;
 		uint32_t originalSize;
 	} compression;
 
@@ -86,15 +86,15 @@ struct SpiffsMetaBuffer {
 		}
 	}
 
-	void copyTo(FileStat& stat)
+	void copyTo(Stat& stat)
 	{
 		stat.acl = meta.acl;
 		stat.attr = meta.attr;
 		stat.mtime = meta.mtime;
-		stat.compression = File::Compression{meta.compression.type, meta.compression.originalSize};
+		stat.compression = Compression{meta.compression.type, meta.compression.originalSize};
 	}
 
-	void setAcl(const File::ACL& newAcl)
+	void setAcl(const ACL& newAcl)
 	{
 		if(meta.acl != newAcl) {
 			meta.acl = newAcl;
@@ -110,17 +110,17 @@ struct SpiffsMetaBuffer {
 		}
 	}
 
-	void setCompression(const File::Compression& c)
+	void setCompression(const Compression& c)
 	{
 		if(meta.compression.type != c.type || meta.compression.originalSize != c.originalSize) {
 			meta.compression.type = c.type;
 			meta.compression.originalSize = c.originalSize;
-			meta.attr[File::Attribute::Compressed] = (c.type != File::Compression::Type::None);
+			meta.attr[FileAttribute::Compressed] = (c.type != Compression::Type::None);
 			flags[Flag::dirty] = true;
 		}
 	}
 
-	void setattr(File::Attributes newAttr)
+	void setattr(FileAttributes newAttr)
 	{
 		if(meta.attr != newAttr) {
 			meta.attr = newAttr;

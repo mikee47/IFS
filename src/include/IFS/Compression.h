@@ -7,16 +7,14 @@
 
 #pragma once
 
-#include "../Types.h"
+#include "Types.h"
 
 namespace IFS
-{
-namespace File
 {
 /**
  * @brief compression type
  */
-#define COMPRESSION_TYPE_MAP(XX)                                                                                       \
+#define IFS_COMPRESSION_TYPE_MAP(XX)                                                                                       \
 	XX(None, "Normal file, no compression")                                                                            \
 	XX(GZip, "GZIP compressed for serving via HTTP")
 
@@ -26,7 +24,7 @@ namespace File
 struct Compression {
 	enum class Type : uint8_t {
 #define XX(_tag, _comment) _tag,
-		COMPRESSION_TYPE_MAP(XX)
+		IFS_COMPRESSION_TYPE_MAP(XX)
 #undef XX
 			MAX ///< Actually maxmimum value + 1...
 	};
@@ -59,11 +57,10 @@ inline Compression::Type getCompressionType(const String& str, Compression::Type
 
 /** @} */
 
-} // namespace File
 } // namespace IFS
 
 /**
  * @brief Get the string representation for the given compression type
  * @retval String
  */
-String toString(IFS::File::Compression::Type type);
+String toString(IFS::Compression::Type type);

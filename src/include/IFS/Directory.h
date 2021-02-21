@@ -88,7 +88,7 @@ public:
 		return totalSize;
 	}
 
-	const FileStat& stat() const
+	const Stat& stat() const
 	{
 		return dirStat;
 	}
@@ -98,7 +98,7 @@ public:
 private:
 	String name;
 	DirHandle dir{};
-	FileNameStat dirStat;
+	NameStat dirStat;
 	int currentIndex{-1};
 	size_t totalSize{0};
 };
