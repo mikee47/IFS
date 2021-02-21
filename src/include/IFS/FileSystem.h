@@ -13,6 +13,7 @@
 #pragma once
 
 #include "IFileSystem.h"
+#include <Delegate.h>
 
 namespace IFS
 {
@@ -145,7 +146,41 @@ public:
 	}
 
 	/**
-	 * @brief  Read content of a file
+	 * @brief Callback for readContent method
+	 * @param buffer
+	 * @param size
+	 * @retval int Return number of bytes consumed, < size to stop
+	 * If < 0 then this is returned as error code to `readContent` call.
+	 */
+	using ReadContentCallback = Delegate<int(const char* buffer, size_t size)>;
+
+	/**
+	 * @brief Read from current file position and invoke callback for each block read
+	 * @param file
+	 * @param size Maximum number of bytes to read
+	 * @param callback
+	 * @retval int Number of bytes processed, or error code
+	 */
+	int readContent(File::Handle file, size_t size, ReadContentCallback callback);
+
+	/**
+	 * @brief Read from current file position to end of file and invoke callback for each block read
+	 * @param file
+	 * @param callback
+	 * @retval int Number of bytes processed, or error code
+	 */
+	int readContent(File::Handle file, ReadContentCallback callback);
+
+	/**
+	 * @brief Read entire file content in blocks, invoking callback after every read
+	 * @param filename
+	 * @param callback
+	 * @retval int Number of bytes processed, or error code
+	 */
+	int readContent(const String& filename, ReadContentCallback callback);
+
+	/**
+	 * @name  Read content of a file
 	 * @param  fileName Name of file to read from
 	 * @param  buffer Pointer to a character buffer in to which to read the file content
 	 * @param  bufSize Quantity of bytes to read from file
@@ -157,6 +192,8 @@ public:
 	 * Always check the return value!
 	 *
 	 * Returns 0 if the file could not be read
+	 * 
+	 * @{
 	 */
 	size_t getContent(const char* fileName, char* buffer, size_t bufSize);
 
@@ -164,6 +201,8 @@ public:
 	{
 		return getContent(fileName.c_str(), buffer, bufSize);
 	}
+
+	/** @} */
 
 	/**
 	 * @brief  Read content of a file
@@ -176,7 +215,7 @@ public:
 	String getContent(const String& fileName);
 
 	/**
-	 * @brief  Create or replace file with defined content
+	 * @name  Create or replace file with defined content
 	 * @param  fileName Name of file to create or replace
 	 * @param  content Pointer to c-string containing content to populate file with
 	 * @retval int Number of bytes transferred or error code
@@ -184,12 +223,11 @@ public:
 	 *
 	 * This function creates a new file or replaces an existing file and
 	 * populates the file with the content of a c-string buffer.
+	 * 
+	 * @{
 	 */
 	int setContent(const char* fileName, const char* content, size_t length);
 
-	/**
-	 * @param content A NUL-terminated C string
-	 */
 	int setContent(const char* fileName, const char* content)
 	{
 		return setContent(fileName, content, (content == nullptr) ? 0 : strlen(content));
@@ -204,6 +242,8 @@ public:
 	{
 		return setContent(fileName.c_str(), content.c_str(), content.length());
 	}
+
+	/** @} */
 };
 
 #ifdef ARCH_HOST

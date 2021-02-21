@@ -103,7 +103,60 @@ size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize
 	return size;
 }
 
-int IFileSystem::makedirs(const char* path)
+int FileSystem::readContent(File::Handle file, size_t size, ReadContentCallback callback)
+{
+	constexpr size_t bufSize{512};
+	char buf[bufSize];
+	size_t count{0};
+	while(size > 0) {
+		size_t toRead = std::min(bufSize, size);
+		int len = read(file, buf, toRead);
+		if(len < 0) {
+			return len;
+		}
+		if(len == 0) {
+			break;
+		}
+		int res = callback(buf, len);
+		if(res < 0) {
+			return res;
+		}
+		count += size_t(len);
+		size -= size_t(len);
+	}
+
+	return count;
+}
+
+int FileSystem::readContent(File::Handle file, ReadContentCallback callback)
+{
+	constexpr size_t bufSize{512};
+	char buf[bufSize];
+	size_t count{0};
+	int len;
+	while((len = read(file, buf, bufSize)) > 0) {
+		int res = callback(buf, len);
+		if(res < 0) {
+			return res;
+		}
+		count += size_t(len);
+	}
+
+	return (len < 0) ? len : count;
+}
+
+int FileSystem::readContent(const String& filename, ReadContentCallback callback)
+{
+	auto file = open(filename, File::OpenFlag::Read);
+	if(file < 0) {
+		return file;
+	}
+	int res = readContent(file, callback);
+	close(file);
+	return res;
+}
+
+int FileSystem::makedirs(const char* path)
 {
 	auto pos = path;
 	while(auto sep = strchr(pos, '/')) {
