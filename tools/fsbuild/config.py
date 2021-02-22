@@ -7,28 +7,26 @@
 import sys, os, json
 from fnmatch import fnmatch
 from FWFS import ObjectAttr
-
-try:
-    from rjsmin import jsmin
-    from jsonschema import Draft7Validator
-except ImportError as err:
-    sys.stderr.write("\n** %s: please run `make python-requirements` **\n\n" % str(err))
-    sys.exit(1)
+from rjsmin import jsmin
 
 class Config:
     def __init__(self, filename):
         din = open(filename).read()
         self.data = json.loads(jsmin(din))
 
-        # Validate configuration against schema
-        schemaPath = os.path.dirname(__file__) + '/schema.json'
-        schema = json.load(open(schemaPath))
-        v = Draft7Validator(schema)
-        errors = sorted(v.iter_errors(self.data), key=lambda e: e.path)
-        if errors != []:
-            for e in errors:
-                sys.stderr.write("%s @ %s\n" % (e.message, e.path))
-            sys.exit(1)
+        try:
+            from jsonschema import Draft7Validator
+            # Validate configuration against schema
+            schemaPath = os.path.dirname(__file__) + '/schema.json'
+            schema = json.load(open(schemaPath))
+            v = Draft7Validator(schema)
+            errors = sorted(v.iter_errors(self.data), key=lambda e: e.path)
+            if errors != []:
+                for e in errors:
+                    sys.stderr.write("%s @ %s\n" % (e.message, e.path))
+                sys.exit(1)
+        except ImportError as err:
+            sys.stderr.write("\n** WARNING! %s: Cannot validate config '%s', please run `make python-requirements` **\n\n" % (str(err), filename))
 
     def sourceMap(self):
         """ Each entry consists of "{target}": "{source}", where
