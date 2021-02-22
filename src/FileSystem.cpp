@@ -52,7 +52,7 @@ int FileSystem::truncate(const char* fileName, size_t newSize)
 		return file;
 	}
 
-	int res = truncate(file, newSize);
+	int res = ftruncate(file, newSize);
 	close(file);
 	return res;
 }

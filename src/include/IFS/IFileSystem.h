@@ -345,7 +345,7 @@ public:
 	 * @note In POSIX `ftruncate()` can also make the file bigger, however SPIFFS can only
 	 * reduce the file size and will return an error if newSize > fileSize
 	 */
-	virtual int truncate(FileHandle file, size_t new_size) = 0;
+	virtual int ftruncate(FileHandle file, size_t new_size) = 0;
 
 	/**
 	 * @brief flush any buffered data to physical media

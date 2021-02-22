@@ -96,14 +96,14 @@ public:
 		return open(path.c_str(), flags);
 	}
 
-	using IFileSystem::truncate;
+	using IFileSystem::ftruncate;
 	/**
 	 * @brief Truncate an open file at the current cursor position
 	 */
-	int truncate(FileHandle file)
+	int ftruncate(FileHandle file)
 	{
 		int pos = tell(file);
-		return (pos < 0) ? pos : truncate(file, pos);
+		return (pos < 0) ? pos : ftruncate(file, pos);
 	}
 
 	/**

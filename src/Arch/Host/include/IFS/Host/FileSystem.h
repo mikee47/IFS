@@ -71,7 +71,7 @@ public:
 	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
 	int eof(FileHandle file) override;
 	int32_t tell(FileHandle file) override;
-	int truncate(FileHandle file, size_t new_size) override;
+	int ftruncate(FileHandle file, size_t new_size) override;
 	int flush(FileHandle file) override
 	{
 		return Error::ReadOnly;

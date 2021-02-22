@@ -533,10 +533,10 @@ int32_t FileSystem::tell(FileHandle file)
 	return fs->tell(file);
 }
 
-int FileSystem::truncate(FileHandle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, size_t new_size)
 {
 	GET_FS(file)
-	return fs->truncate(file, new_size);
+	return fs->ftruncate(file, new_size);
 }
 
 int FileSystem::flush(FileHandle file)

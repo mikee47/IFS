@@ -218,7 +218,7 @@ public:
 	bool truncate(size_t new_size)
 	{
 		GET_FS();
-		int res = fs->truncate(handle, new_size);
+		int res = fs->ftruncate(handle, new_size);
 		check(res);
 		return res;
 	}
@@ -230,7 +230,7 @@ public:
 	bool truncate()
 	{
 		GET_FS();
-		int res = fs->truncate(handle);
+		int res = fs->ftruncate(handle);
 		check(res);
 		return res;
 	}

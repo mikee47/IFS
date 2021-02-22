@@ -92,7 +92,7 @@ public:
 		} else {
 			size_t curSize = hostfs.getSize(file);
 			if(curSize < FFS_FLASH_SIZE) {
-				hostfs.truncate(file, FFS_FLASH_SIZE);
+				hostfs.ftruncate(file, FFS_FLASH_SIZE);
 			}
 			auto dev = new Storage::FileDevice(imgfile, hostfs, file);
 			Storage::registerDevice(dev);

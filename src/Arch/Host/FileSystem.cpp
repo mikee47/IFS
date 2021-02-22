@@ -389,7 +389,7 @@ int32_t FileSystem::tell(FileHandle file)
 	return lseek(file, 0, SeekOrigin::Current);
 }
 
-int FileSystem::truncate(FileHandle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, size_t new_size)
 {
 	int res = ::ftruncate(file, new_size);
 	return (res >= 0) ? res : syserr();

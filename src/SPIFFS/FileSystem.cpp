@@ -352,7 +352,7 @@ int32_t FileSystem::tell(FileHandle file)
 	return Error::fromSystem(res);
 }
 
-int FileSystem::truncate(FileHandle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, size_t new_size)
 {
 	int res = SPIFFS_ftruncate(handle(), file, new_size);
 	return Error::fromSystem(res);
