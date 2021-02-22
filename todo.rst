@@ -1,59 +1,18 @@
 Installable File System
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Future additions
-----------------
-
-Control Operations
-~~~~~~~~~~~~~~~~~~
-
-To keep the API as simple as possible we should only define `IFileSystem` methods for calls we'd normally expect to find in a POSIX-style filing system API.
-
-The GNU C library includes `fcntl` to perform various miscellaneous activities on files. We might define such a function to handle these sorts of things:
-
--  getinfo
--  setacl
--  setattr
--  settime
--  check
--  isfile
-
-The method would take the general form `fcntl(file_t file, int command, ...)`
-
-Note that `ioctl` is a more generic function which applies to any type of device driver. It doesn't really apply here.
-
-So these are the filesystem methods defined:
-
-FileSystem
-   -  mount
-   -  getinfo
-   -  geterrortext
-
-File
-   -  stat
-   -  fstat
-   -  open
-   -  fopen
-   -  close
-   -  read
-   -  write
-   -  lseek
-   -  eof
-   -  tell
-   -  truncate
-   -  flush
-   -  fnctl
-
-Directory
--  opendir
--  readdir
--  closedir
-
+=======================
 
 SpiFlashFileSystem V2
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 [31/1/19 in progress]
+
+.. note::
+
+   LittleFS may be a better choice for implementing writeable FWFS, i.e. an object store.
+   It is also designed for resilience which is greatly desirable for configuration storage.
+
+   See https://github.com/littlefs-project/littlefs.
+
 
 FWFS can be implemented using SPIFFS files. A SPIFFS file contains a directory or file object. Content is stored in separate file(s). File references are SPIFFS object IDs.
 
