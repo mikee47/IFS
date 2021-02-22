@@ -1,19 +1,34 @@
-/*
+/**
  * HybridFileSystem.h
- *
- *  Created on: 22 Jul 2018
- *      Author: mikee47
- *
  * Hybrid file system which layers SPIFFS over FW.
+ *
+ * Created on: 22 Jul 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ */
+
+/*
+ * 
  * Files on SPIFFS are used in preference to FW.
  *
  * Formatting this system wipes SPIFFS to reset to a 'factory default' state.
  *
  * Images are created using a python script.
  *
- */
-
-/* @todo
+ * @todo
  * 	When a file is deleted, if it exists on FW then a zero-length file should be placed on SPIFFS
  * 	with an attribute to indicate it has been deleted.
  * 	An 'undelete' could be added which would remove this to restore the FW file. It probably wouldn't

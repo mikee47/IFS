@@ -1,7 +1,21 @@
-/****
+/**
  * Stat.h
  *
- * Created August 2018 by mikee471
+ * Created: August 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
  *
  ****/
 
@@ -38,7 +52,7 @@ struct Stat {
 	IFileSystem* fs{nullptr}; ///< The filing system owning this file
 	NameBuffer name;		  ///< Name of file
 	uint32_t size{0};		  ///< Size of file in bytes
-	FileID id{0};				  ///< Internal file identifier
+	FileID id{0};			  ///< Internal file identifier
 	Compression compression{};
 	FileAttributes attr{};
 	ACL acl{UserRole::None, UserRole::None}; ///< Access Control

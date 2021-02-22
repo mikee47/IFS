@@ -1,20 +1,22 @@
-/*
+/**
  * FileSystem.h
- *
- *  Created on: 19 Jul 2018
- *      Author: mikee47
- *
  * FWFS - Firmware File System
  *
- * A read-only layout which uses an image baked into the firmware.
- * It uses very little RAM and supports all IFS features, except those which
- * modify the layout.
+ * Created on: 19 Jul 2018
  *
- * Layouts are built using a simple python script, so easily modified to add features.
- * It supports access control, compression, timestamps and file attributes as well
- * as multiple directories.
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
  *
+ * This file is part of the IFS Library
  *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
  *
  */
 

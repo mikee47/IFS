@@ -1,9 +1,23 @@
-/*
+/**
  * FileAttributes.h
  *
- *  Created on: 31 Aug 2018
- *      Author: mikee47
- */
+ * Created on: 31 Aug 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #pragma once
 
@@ -21,7 +35,7 @@ namespace IFS
  * Applications may find it useful to determine if a file has been modified whilst open. Clearing this
  * flag before closing a file will prevent any metadata changes being flushed to disk.
  */
-#define IFS_FILEATTR_MAP(XX)                                                                                               \
+#define IFS_FILEATTR_MAP(XX)                                                                                           \
 	XX(Compressed, C, "File content is compressed")                                                                    \
 	XX(Archive, A, "File modified flag")                                                                               \
 	XX(ReadOnly, R, "File may not be modified or deleted")                                                             \
