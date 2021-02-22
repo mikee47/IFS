@@ -17,14 +17,11 @@
  *
  ****/
 
-#undef __STRICT_ANSI__
-#undef _GNU_SOURCE
-
 #include "include/IFS/Host/Util.h"
 #include <fcntl.h>
 
 #include <string.h>
-extern "C" int strerror_r(int, char*, size_t);
+extern "C" char* strerror_r(int, char*, size_t);
 
 #ifndef O_BINARY
 #define O_BINARY 0
