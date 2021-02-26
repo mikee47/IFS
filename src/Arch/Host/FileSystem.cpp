@@ -47,7 +47,7 @@
 namespace IFS
 {
 struct FileDir {
-	char path[PATH_MAX + 1];
+	String path;
 	DIR* d;
 };
 
@@ -165,8 +165,6 @@ String FileSystem::getErrorString(int err)
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
-	assert(strlen(path) < PATH_MAX);
-
 	auto d = new FileDir;
 
 	// Interpret empty path as current directory
@@ -181,7 +179,7 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 		return err;
 	}
 
-	strcpy(d->path, path);
+	d->path = path;
 	dir = d;
 	return FS_OK;
 }
@@ -209,11 +207,8 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 			continue;
 		}
 
-		char path[PATH_MAX];
-		strcpy(path, dir->path);
-		strcat(path, "/");
-		strcat(path, e->d_name);
-		int res = this->stat(path, &stat);
+		String path = dir->path + '/' + e->d_name;
+		int res = this->stat(path.c_str(), &stat);
 		return res;
 	}
 }
