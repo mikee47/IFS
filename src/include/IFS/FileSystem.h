@@ -1,7 +1,21 @@
-/****
- * Installable File System
+/**
+ * FileSystem.h
  *
  * Created August 2018 by mikee471
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
  *
  ****/
 
@@ -12,222 +26,37 @@
 
 #pragma once
 
-#include "File/Stat.h"
-#include "File/OpenFlags.h"
-#include <Storage/Partition.h>
-#include "Error.h"
-#include <Data/Stream/SeekOrigin.h>
-
-/**
- * @brief Four-character tag to identify type of filing system
- * @note As new filing systems are incorporated into IFS, update this enumeration
- */
-#define FILESYSTEM_TYPE_MAP(XX)                                                                                        \
-	XX(Unknown, NULL, "Unknown")                                                                                       \
-	XX(FWFS, FWFS, "Firmware File System")                                                                             \
-	XX(SPIFFS, SPIF, "SPI Flash File System (SPIFFS)")                                                                 \
-	XX(Hybrid, HYFS, "Hybrid File System")
-
-/**
- * @brief Attribute flags for filing system
- */
-#define FILE_SYSTEM_ATTR_MAP(XX)                                                                                       \
-	XX(Mounted, "Filing system is mounted and in use")                                                                 \
-	XX(ReadOnly, "Writing not permitted to this volume")                                                               \
-	XX(Virtual, "Virtual filesystem, doesn't host files directly")                                                     \
-	XX(Check, "Volume check recommended")                                                                              \
-	XX(NoMeta, "Metadata unsupported")
+#include "IFileSystem.h"
+#include <Delegate.h>
 
 namespace IFS
 {
-class IFileSystem;
-
-/*
- * Opaque structure for directory reading
- */
-using DirHandle = struct FileDir*;
-
-/**
- * @brief Get current timestamp in UTC
- * @retval time_t
- * @note Filing systems must store timestamps in UTC
- * Use this function; makes porting easier.
- */
-time_t fsGetTimeUTC();
-
-#if DEBUG_BUILD
-#define debug_ifserr(err, func, ...)                                                                                   \
-	do {                                                                                                               \
-		int errorCode = err;                                                                                           \
-		(void)errorCode;                                                                                               \
-		debug_e(func ": %s (%d)", ##__VA_ARGS__, getErrorString(errorCode).c_str(), err);                              \
-	} while(0)
-#else
-#define debug_ifserr(err, func, ...)                                                                                   \
-	do {                                                                                                               \
-	} while(0)
-#endif
-
 /**
  * @brief Installable File System base class
- * @note The 'I' implies Installable but could be for Interface :-)
- *
- * Construction and initialisation of a filing system is implementation-dependent so there
- * are no methods here for that.
- *
- * Methods are defined as virtual abstract unless we actually have a default base implementation.
- * Whilst some methods could just return Error::NotImplemented by default, keeping them abstract forces
- * all file system implementations to consider them so provides an extra check for completeness.
- *
+ * 
+ * Adds additional methods to ease use over base IFileSystem.
  */
-class IFileSystem
+class FileSystem : public IFileSystem
 {
 public:
-	enum class Type {
-#define XX(_name, _tag, _desc) _name,
-		FILESYSTEM_TYPE_MAP(XX)
-#undef XX
-			MAX
-	};
-
-	enum class Attribute {
-#define XX(_tag, _comment) _tag,
-		FILE_SYSTEM_ATTR_MAP(XX)
-#undef XX
-			MAX
-	};
-
-	// The set of attributes
-	using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
-
-	/**
-	 * @brief Basic information about filing system
-	 */
-	struct Info {
-		Type type{}; ///< The filing system type identifier
-		Storage::Partition partition;
-		Attributes attr{};		///< Attribute flags
-		uint32_t volumeID{0};   ///< Unique identifier for volume
-		NameBuffer name;		///< Buffer for name
-		uint32_t volumeSize{0}; ///< Size of volume, in bytes
-		uint32_t freeSpace{0};  ///< Available space, in bytes
-
-		Info()
-		{
-		}
-
-		Info(char* namebuf, unsigned buflen) : name(namebuf, buflen)
-		{
-		}
-
-		Info& operator=(const Info& rhs)
-		{
-			type = rhs.type;
-			partition = rhs.partition;
-			attr = rhs.attr;
-			volumeID = rhs.volumeID;
-			name.copy(rhs.name);
-			volumeSize = rhs.volumeSize;
-			freeSpace = rhs.freeSpace;
-			return *this;
-		}
-
-		void clear()
-		{
-			*this = Info{};
-		}
-	};
-
-	/**
-	 * @brief Filing system implementations should dismount and cleanup here
-	 */
-	virtual ~IFileSystem()
+	static constexpr FileSystem& cast(IFileSystem& fs)
 	{
+		return static_cast<FileSystem&>(fs);
 	}
 
-	/**
-	 * @brief Mount file system, performing any required initialisation
-	 * @retval error code
-	 */
-	virtual int mount() = 0;
-
-	/**
-	 * @brief get filing system information
-     * @param info structure to read information into
-     * @retval int error code
-     */
-	virtual int getinfo(Info& info) = 0;
-
-	/**
-	 * @brief get the text for a returned error code
-     * @retval String
-     */
-	virtual String getErrorString(int err)
+	static constexpr FileSystem* cast(IFileSystem* fs)
 	{
-		return Error::toString(err);
+		return static_cast<FileSystem*>(fs);
 	}
 
+	using IFileSystem::opendir;
 	/**
-	 * @name open a directory for reading
-     * @param path path to directory. nullptr is interpreted as root directory
-     * @param dir returns a pointer to the directory object
-     * @retval int error code
-	 * @{
+	 * @brief open a directory for reading
      */
-	virtual int opendir(const char* path, DirHandle& dir) = 0;
-
 	int opendir(const String& path, DirHandle& dir)
 	{
 		return opendir(path.c_str(), dir);
 	}
-
-	/** @} */
-
-	/**
-	 * @brief open a directory for reading
-     * @param stat identifies directory to open. nullptr is interpreted as root directory
-     * @param dir returns a pointer to the directory object
-     * @retval int error code
-     */
-	virtual int fopendir(const File::Stat* stat, DirHandle& dir)
-	{
-		return opendir(stat == nullptr ? nullptr : stat->name.buffer, dir);
-	}
-
-	/**
-	 * @brief read a directory entry
-     * @param dir
-     * @param stat
-     * @retval int error code
-     * @note File system allocates entries structure as it usually needs
-     * to track other information. It releases memory when closedir() is called.
-     */
-	virtual int readdir(DirHandle dir, File::Stat& stat) = 0;
-
-	/**
-	 * @brief Reset directory read position to start
-     * @param dir
-     * @retval int error code
-     */
-	virtual int rewinddir(DirHandle dir) = 0;
-
-	/**
-	 * @brief close a directory object
-     * @param dir directory to close
-     * @retval int error code
-     */
-	virtual int closedir(DirHandle dir) = 0;
-
-	/**
-	 * @brief Create a directory
-	 * @param path Path to directory
-	 * @retval int error code
-	 *
-	 * Only the final directory in the path is guaranteed to be created.
-	 * Usually, this call will fail if intermediate directories are not present.
-	 * Use `makedirs()` for this purpose.
-	 */
-	virtual int mkdir(const char* path) = 0;
 
 	/**
 	 * @brief Create a directory and any intermediate directories if they do not already exist
@@ -236,129 +65,45 @@ public:
 	 */
 	int makedirs(const char* path);
 
+	using IFileSystem::stat;
 	/**
-	 * @name get file information
-     * @param path name or path of file
-     * @param s structure to return information in, may be null to do a simple file existence check
-     * @retval int error code
-     * @{
+	 * @brief get file information
      */
-	virtual int stat(const char* path, File::Stat* stat) = 0;
-
-	int stat(const String& path, File::Stat* s)
+	int stat(const String& path, Stat* s)
 	{
 		return stat(path.c_str(), s);
 	}
 
-	/** @} */
-
+	using IFileSystem::fstat;
 	/**
-	 * @name get file information
-     * @param file handle to open file
-     * @param stat structure to return information in, may be null
-     * @retval int error code
-     * @{
+	 * @brief get file information
      */
-	virtual int fstat(File::Handle file, File::Stat* stat) = 0;
-
-	int fstat(File::Handle file, File::Stat& stat)
+	int fstat(FileHandle file, Stat& stat)
 	{
 		return fstat(file, &stat);
 	}
 
-	/** @} */
-
+	using IFileSystem::open;
 	/**
-	 * @name open a file by name/path
+	 * @brief open a file by name/path
      * @param path full path to file
      * @param flags opens for opening file
-     * @retval File::Handle file handle or error code
+     * @retval FileHandle file handle or error code
      * @{
      */
-	virtual File::Handle open(const char* path, File::OpenFlags flags) = 0;
-
-	File::Handle open(const String& path, File::OpenFlags flags)
+	FileHandle open(const String& path, OpenFlags flags)
 	{
 		return open(path.c_str(), flags);
 	}
 
-	/** @} */
-
-	/**
-	 * @brief open a file from it's stat structure
-     * @param stat obtained from readdir()
-     * @param flags opens for opening file
-     * @retval File::Handle file handle or error code
-     */
-	virtual File::Handle fopen(const File::Stat& stat, File::OpenFlags flags) = 0;
-
-	/**
-	 * @brief close an open file
-     * @param file handle to open file
-     * @retval int error code
-     */
-	virtual int close(File::Handle file) = 0;
-
-	/**
-	 * @brief read content from a file and advance cursor
-     * @param file handle to open file
-     * @param data buffer to write into
-     * @param size size of file buffer, maximum number of bytes to read
-     * @retval int number of bytes read or error code
-     */
-	virtual int read(File::Handle file, void* data, size_t size) = 0;
-
-	/**
-	 * @brief write content to a file at current position and advance cursor
-     * @param file handle to open file
-     * @param data buffer to read from
-     * @param size number of bytes to write
-     * @retval int number of bytes written or error code
-     */
-	virtual int write(File::Handle file, const void* data, size_t size) = 0;
-
-	/**
-	 * @brief change file read/write position
-     * @param file handle to open file
-     * @param offset position relative to origin
-     * @param origin where to seek from (start/end or current position)
-     * @retval int current position or error code
-     */
-	virtual int lseek(File::Handle file, int offset, SeekOrigin origin) = 0;
-
-	/**
-	 * @brief determine if current file position is at end of file
-     * @param file handle to open file
-     * @retval int 0 - not EOF, > 0 - at EOF, < 0 - error
-     */
-	virtual int eof(File::Handle file) = 0;
-
-	/**
-	 * @brief get current file position
-     * @param file handle to open file
-     * @retval int32_t current position relative to start of file, or error code
-     */
-	virtual int32_t tell(File::Handle file) = 0;
-
-	/**
-	 * @brief Truncate (reduce) the size of an open file
-	 * @param file Open file handle, must have Write access
-	 * @param newSize
-	 * @retval int Error code
-	 * @note In POSIX `ftruncate()` can also make the file bigger, however SPIFFS can only
-	 * reduce the file size and will return an error if newSize > fileSize
-	 */
-	virtual int truncate(File::Handle file, size_t new_size) = 0;
-
+	using IFileSystem::ftruncate;
 	/**
 	 * @brief Truncate an open file at the current cursor position
-	 * @param file Open file handle, must have Write access
-     * @retval int new file size, or error code
 	 */
-	int truncate(File::Handle file)
+	int ftruncate(FileHandle file)
 	{
 		int pos = tell(file);
-		return (pos < 0) ? pos : truncate(file, pos);
+		return (pos < 0) ? pos : ftruncate(file, pos);
 	}
 
 	/**
@@ -373,37 +118,7 @@ public:
 		return truncate(fileName.c_str(), newSize);
 	}
 
-	/**
-	 * @brief flush any buffered data to physical media
-     * @param file handle to open file
-     * @retval int error code
-     */
-	virtual int flush(File::Handle file) = 0;
-
-	/**
-	 * @brief Set access control information for file
-     * @param file handle to open file
-     * @param acl
-     * @retval int error code
-     */
-	virtual int setacl(File::Handle file, const File::ACL& acl) = 0;
-
-	/**
-	 * @brief Set file attributes
-     * @param file handle to open file, must have write access
-     * @param attr
-     * @retval int error code
-     */
-	virtual int setattr(File::Handle file, File::Attributes attr) = 0;
-
-	/**
-	 * @brief Set access control information for file
-     * @param file handle to open file, must have write access
-     * @retval int error code
-     * @note any writes to file will reset this to current time
-     */
-	virtual int settime(File::Handle file, time_t mtime) = 0;
-
+	using IFileSystem::rename;
 	/**
 	 * @name rename a file
      * @param oldpath
@@ -411,72 +126,27 @@ public:
      * @retval int error code
      * @{
      */
-	virtual int rename(const char* oldpath, const char* newpath) = 0;
-
 	int rename(const String& oldpath, const String& newpath)
 	{
 		return rename(oldpath.c_str(), newpath.c_str());
 	}
 
-	/** @} */
-
+	using IFileSystem::remove;
 	/**
-	 * @name remove (delete) a file by path
+	 * @brief remove (delete) a file by path
      * @param path
      * @retval int error code
-     * @{
      */
-	virtual int remove(const char* path) = 0;
-
 	int remove(const String& path)
 	{
 		return remove(path.c_str());
 	}
 
-	/** @} */
-
-	/**
-	 * @brief remove (delete) a file by handle
-     * @param file handle to open file
-     * @retval int error code
-     */
-	virtual int fremove(File::Handle file) = 0;
-
-	/**
-	 * @brief format the filing system
-     * @retval int error code
-     * @note this does a default format, returning file system to a fresh state
-     * The filing system implementation may define more specialised methods
-     * which can be called directly.
-     */
-	virtual int format() = 0;
-
-	/**
-	 * @brief Perform a file system consistency check
-     * @retval int error code
-     * @note if possible, issues should be resolved. Returns 0 if file system
-     * checked out OK. Otherwise there were issues: < 0 for unrecoverable errors,
-     * > 0 for recoverable errors.
-     */
-	virtual int check()
-	{
-		return Error::NotImplemented;
-	}
-
-	/**
-	 * @brief Determine if the given file handle is valid
-	 * @param file handle to check
-	 * @retval int error code
-	 * @note error code typically Error::InvalidHandle if handle is outside valid range,
-	 * or Error::FileNotOpen if handle range is valid but handle not in use
-	 */
-	virtual int isfile(File::Handle file) = 0;
-
 	/** @brief  Get size of file
 	 *  @param  file File handle
 	 *  @retval uint32_t Size of file in bytes, 0 on error
 	 */
-	uint32_t getSize(File::Handle file);
+	uint32_t getSize(FileHandle file);
 
 	/** @brief  Get size of file
 	 *  @param  fileName Name of file
@@ -490,7 +160,41 @@ public:
 	}
 
 	/**
-	 * @brief  Read content of a file
+	 * @brief Callback for readContent method
+	 * @param buffer
+	 * @param size
+	 * @retval int Return number of bytes consumed, < size to stop
+	 * If < 0 then this is returned as error code to `readContent` call.
+	 */
+	using ReadContentCallback = Delegate<int(const char* buffer, size_t size)>;
+
+	/**
+	 * @brief Read from current file position and invoke callback for each block read
+	 * @param file
+	 * @param size Maximum number of bytes to read
+	 * @param callback
+	 * @retval int Number of bytes processed, or error code
+	 */
+	int readContent(FileHandle file, size_t size, ReadContentCallback callback);
+
+	/**
+	 * @brief Read from current file position to end of file and invoke callback for each block read
+	 * @param file
+	 * @param callback
+	 * @retval int Number of bytes processed, or error code
+	 */
+	int readContent(FileHandle file, ReadContentCallback callback);
+
+	/**
+	 * @brief Read entire file content in blocks, invoking callback after every read
+	 * @param filename
+	 * @param callback
+	 * @retval int Number of bytes processed, or error code
+	 */
+	int readContent(const String& filename, ReadContentCallback callback);
+
+	/**
+	 * @name  Read content of a file
 	 * @param  fileName Name of file to read from
 	 * @param  buffer Pointer to a character buffer in to which to read the file content
 	 * @param  bufSize Quantity of bytes to read from file
@@ -502,6 +206,8 @@ public:
 	 * Always check the return value!
 	 *
 	 * Returns 0 if the file could not be read
+	 * 
+	 * @{
 	 */
 	size_t getContent(const char* fileName, char* buffer, size_t bufSize);
 
@@ -509,6 +215,8 @@ public:
 	{
 		return getContent(fileName.c_str(), buffer, bufSize);
 	}
+
+	/** @} */
 
 	/**
 	 * @brief  Read content of a file
@@ -521,7 +229,7 @@ public:
 	String getContent(const String& fileName);
 
 	/**
-	 * @brief  Create or replace file with defined content
+	 * @name  Create or replace file with defined content
 	 * @param  fileName Name of file to create or replace
 	 * @param  content Pointer to c-string containing content to populate file with
 	 * @retval int Number of bytes transferred or error code
@@ -529,12 +237,11 @@ public:
 	 *
 	 * This function creates a new file or replaces an existing file and
 	 * populates the file with the content of a c-string buffer.
+	 * 
+	 * @{
 	 */
 	int setContent(const char* fileName, const char* content, size_t length);
 
-	/**
-	 * @param content A NUL-terminated C string
-	 */
 	int setContent(const char* fileName, const char* content)
 	{
 		return setContent(fileName, content, (content == nullptr) ? 0 : strlen(content));
@@ -549,18 +256,17 @@ public:
 	{
 		return setContent(fileName.c_str(), content.c_str(), content.length());
 	}
+
+	/** @} */
 };
 
+#ifdef ARCH_HOST
+namespace Host
+{
+FileSystem& getFileSystem();
+}
+#endif
+
 } // namespace IFS
-
-/**
- * @brief Get String for filesystem type
- */
-String toString(IFS::IFileSystem::Type type);
-
-/**
- * @brief Get String for a filesystem attribute
- */
-String toString(IFS::IFileSystem::Attribute attr);
 
 /** @} */

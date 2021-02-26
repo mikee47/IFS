@@ -1,35 +1,29 @@
-/*
+/**
  * FileSystemAttributes.cpp
  *
- *  Created on: 31 Aug 2018
- *      Author: mikee47
- */
+ * Created on: 31 Aug 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #include "include/IFS/FileSystem.h"
-#include <FlashString/Vector.hpp>
-
-namespace
-{
-#define XX(name, tag, desc) DEFINE_FSTR_LOCAL(typestr_##name, #tag)
-FILESYSTEM_TYPE_MAP(XX)
-#undef XX
-
-#define XX(name, tag, desc) &typestr_##name,
-DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FILESYSTEM_TYPE_MAP(XX))
-#undef XX
-
-#define XX(tag, comment) DEFINE_FSTR_LOCAL(attrstr_##tag, #tag)
-FILE_SYSTEM_ATTR_MAP(XX)
-#undef XX
-
-#define XX(tag, comment) &attrstr_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILE_SYSTEM_ATTR_MAP(XX))
-#undef XX
-} // namespace
 
 namespace IFS
 {
-uint32_t IFileSystem::getSize(File::Handle file)
+uint32_t FileSystem::getSize(FileHandle file)
 {
 	auto curpos = lseek(file, 0, SeekOrigin::Current);
 	lseek(file, 0, SeekOrigin::End);
@@ -38,9 +32,9 @@ uint32_t IFileSystem::getSize(File::Handle file)
 	return (size > 0) ? uint32_t(size) : 0;
 }
 
-uint32_t IFileSystem::getSize(const char* fileName)
+uint32_t FileSystem::getSize(const char* fileName)
 {
-	auto file = open(fileName, File::OpenFlag::Read);
+	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		return 0;
 	}
@@ -51,21 +45,21 @@ uint32_t IFileSystem::getSize(const char* fileName)
 	return (size > 0) ? uint32_t(size) : 0;
 }
 
-int IFileSystem::truncate(const char* fileName, size_t newSize)
+int FileSystem::truncate(const char* fileName, size_t newSize)
 {
-	auto file = open(fileName, File::OpenFlag::Write);
+	auto file = open(fileName, OpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}
 
-	int res = truncate(file, newSize);
+	int res = ftruncate(file, newSize);
 	close(file);
 	return res;
 }
 
-int IFileSystem::setContent(const char* fileName, const char* content, size_t length)
+int FileSystem::setContent(const char* fileName, const char* content, size_t length)
 {
-	auto file = open(fileName, File::OpenFlag::Create | File::OpenFlag::Truncate | File::OpenFlag::Write);
+	auto file = open(fileName, OpenFlag::Create | OpenFlag::Truncate | OpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}
@@ -75,10 +69,10 @@ int IFileSystem::setContent(const char* fileName, const char* content, size_t le
 	return res;
 }
 
-String IFileSystem::getContent(const String& fileName)
+String FileSystem::getContent(const String& fileName)
 {
 	String res;
-	auto file = open(fileName, File::OpenFlag::Read);
+	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		return nullptr;
 	}
@@ -97,13 +91,13 @@ String IFileSystem::getContent(const String& fileName)
 	return res;
 }
 
-size_t IFileSystem::getContent(const char* fileName, char* buffer, size_t bufSize)
+size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize)
 {
 	if(buffer == nullptr || bufSize == 0) {
 		return 0;
 	}
 
-	auto file = open(fileName, File::OpenFlag::Read);
+	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		buffer[0] = '\0';
 		return 0;
@@ -123,7 +117,60 @@ size_t IFileSystem::getContent(const char* fileName, char* buffer, size_t bufSiz
 	return size;
 }
 
-int IFileSystem::makedirs(const char* path)
+int FileSystem::readContent(FileHandle file, size_t size, ReadContentCallback callback)
+{
+	constexpr size_t bufSize{512};
+	char buf[bufSize];
+	size_t count{0};
+	while(size > 0) {
+		size_t toRead = std::min(bufSize, size);
+		int len = read(file, buf, toRead);
+		if(len < 0) {
+			return len;
+		}
+		if(len == 0) {
+			break;
+		}
+		int res = callback(buf, len);
+		if(res < 0) {
+			return res;
+		}
+		count += size_t(len);
+		size -= size_t(len);
+	}
+
+	return count;
+}
+
+int FileSystem::readContent(FileHandle file, ReadContentCallback callback)
+{
+	constexpr size_t bufSize{512};
+	char buf[bufSize];
+	size_t count{0};
+	int len;
+	while((len = read(file, buf, bufSize)) > 0) {
+		int res = callback(buf, len);
+		if(res < 0) {
+			return res;
+		}
+		count += size_t(len);
+	}
+
+	return (len < 0) ? len : count;
+}
+
+int FileSystem::readContent(const String& filename, ReadContentCallback callback)
+{
+	auto file = open(filename, OpenFlag::Read);
+	if(file < 0) {
+		return file;
+	}
+	int res = readContent(file, callback);
+	close(file);
+	return res;
+}
+
+int FileSystem::makedirs(const char* path)
 {
 	auto pos = path;
 	while(auto sep = strchr(pos, '/')) {
@@ -139,16 +186,3 @@ int IFileSystem::makedirs(const char* path)
 }
 
 } // namespace IFS
-
-String toString(IFS::IFileSystem::Type type)
-{
-	if(type >= IFS::IFileSystem::Type::MAX) {
-		type = IFS::IFileSystem::Type::Unknown;
-	}
-	return typeStrings[(unsigned)type];
-}
-
-String toString(IFS::IFileSystem::Attribute attr)
-{
-	return attributeStrings[unsigned(attr)];
-}

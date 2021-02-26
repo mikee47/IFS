@@ -1,37 +1,49 @@
-/****
+/**
  * Stat.h
  *
- * Created August 2018 by mikee471
+ * Created: August 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
  *
  ****/
 
 #pragma once
 
-#include "../NameBuffer.h"
-#include "../TimeStamp.h"
+#include "NameBuffer.h"
+#include "TimeStamp.h"
 #include "Access.h"
 #include "Compression.h"
-#include "Attributes.h"
+#include "FileAttributes.h"
 
 namespace IFS
 {
 class IFileSystem;
 
-namespace File
-{
 /**
  * @brief File handle
  *
  * References an open file
  */
-using Handle = int16_t;
+using FileHandle = int16_t;
 
 /**
  * @brief File identifier
  *
  * Contained within Stat, uniquely identifies any file on the file system.
  */
-using ID = uint32_t;
+using FileID = uint32_t;
 
 /**
  * @brief File Status structure
@@ -40,10 +52,9 @@ struct Stat {
 	IFileSystem* fs{nullptr}; ///< The filing system owning this file
 	NameBuffer name;		  ///< Name of file
 	uint32_t size{0};		  ///< Size of file in bytes
-	uint32_t originalSize{0}; ///< If compressed, gives original file size
-	ID id{0};				  ///< Internal file identifier
+	FileID id{0};			  ///< Internal file identifier
 	Compression compression{};
-	Attributes attr{};
+	FileAttributes attr{};
 	ACL acl{UserRole::None, UserRole::None}; ///< Access Control
 	TimeStamp mtime{};						 ///< File modification time
 
@@ -65,18 +76,12 @@ struct Stat {
 		fs = rhs.fs;
 		name.copy(rhs.name);
 		size = rhs.size;
-		originalSize = rhs.originalSize;
 		id = rhs.id;
 		compression = rhs.compression;
 		attr = rhs.attr;
 		acl = rhs.acl;
 		mtime = rhs.mtime;
 		return *this;
-	}
-
-	void clear()
-	{
-		*this = Stat{};
 	}
 };
 
@@ -90,13 +95,19 @@ public:
 	{
 	}
 
+	NameStat(const Stat& other) : NameStat()
+	{
+		*this = other;
+	}
+
+	NameStat& operator=(const Stat& rhs)
+	{
+		*static_cast<Stat*>(this) = rhs;
+		return *this;
+	}
+
 private:
 	char buffer[256];
 };
-
-} // namespace File
-
-using FileStat = File::Stat;
-using FileNameStat = File::NameStat;
 
 } // namespace IFS

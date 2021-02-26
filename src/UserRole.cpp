@@ -1,11 +1,23 @@
-/*
+/**
  * UserRole.cpp
  *
- *  Created on: 6 Jun 2018
- *      Author: mikee47
+ * Created on: 6 Jun 2018
  *
- * User roles used for access control
- */
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #include "include/IFS/UserRole.h"
 #include <FlashString/Vector.hpp>
@@ -13,15 +25,15 @@
 namespace
 {
 #define XX(tag, char, comment) DEFINE_FSTR_LOCAL(str_##tag, #tag)
-USER_ROLE_MAP(XX)
+IFS_USER_ROLE_MAP(XX)
 #undef XX
 
 #define XX(tag, char, comment) &str_##tag,
-DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, USER_ROLE_MAP(XX))
+DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, IFS_USER_ROLE_MAP(XX))
 #undef XX
 
 #define XX(tag, ch, comment) #ch
-DEFINE_FSTR_LOCAL(userRoleChars, USER_ROLE_MAP(XX))
+DEFINE_FSTR_LOCAL(userRoleChars, IFS_USER_ROLE_MAP(XX))
 #undef XX
 } // namespace
 
@@ -51,5 +63,6 @@ UserRole getUserRole(char code, UserRole defaultRole)
 
 String toString(IFS::UserRole role)
 {
-	return userRoleStrings[unsigned(role)];
+	String s = userRoleStrings[unsigned(role)];
+	return s ?: F("UNK#") + String(unsigned(role));
 }

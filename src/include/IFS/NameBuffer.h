@@ -1,9 +1,23 @@
-/*
+/**
  * NameBuffer.h
  *
- *  Created on: 31 Aug 2018
- *      Author: mikee47
- */
+ * Created on: 31 Aug 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #pragma once
 
@@ -14,7 +28,7 @@ namespace IFS
 {
 /**
  * @brief defines a 'safe' name buffer
- * @note Instead of including a fixed name array in FileStat (and IFileSystem::Info) structures,
+ * @note Instead of including a fixed name array in Stat (and IFileSystem::Info) structures,
  * we use a NameBuffer to identify a separate buffer. This has several advantages:
  *
  *		- Maximum size is not fixed

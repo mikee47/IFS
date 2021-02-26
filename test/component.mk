@@ -32,15 +32,20 @@ endif
 endif
 APP_CFLAGS += -DRESTART_DELAY=$(RESTART_DELAY)
 
-export HOST_PARAMETERS="hybrid=1 readFileTest=1 writeThroughTest=1"
-
 .PHONY: execute
 execute: flash run
 
+# This gets referred to using IMPORT_FSTR so need to build before code is compiled
 all: out/fwfsImage1.bin
+
+out/fwfsImage1.bin: out/backup.fwfs.bin out/large-random.bin
+out/backup.fwfs.bin:
+	$(Q) $(FSBUILD) -i backup.fwfs -o $@
+# Checks Data24 so size needs to be >= 0x10000
+out/large-random.bin:
+	openssl rand -out $@ $$((0x12340))
 
 clean: fstest-clean
 .PHONY: fstest-clean
 fstest-clean:
-	rm -f out/flashmem.dmp
-	rm -f out/fwfsImage1.bin
+	$(Q) rm -f out/*.bin

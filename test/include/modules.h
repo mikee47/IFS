@@ -1,3 +1,5 @@
 // List of test modules to register
 
-#define TEST_MAP(XX) XX(General)
+#define TEST_MAP(XX)                                                                                                   \
+	XX(Hybrid)                                                                                                         \
+	XX(Attributes)

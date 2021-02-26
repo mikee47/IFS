@@ -1,10 +1,23 @@
-/*
+/**
  * FileSystem.h
- *
- *  Created on: 21 Jul 2018
- *      Author: mikee47
- *
  * Provides an IFS FileSystem implementation for SPIFFS.
+ *
+ * Created on: 21 Jul 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
  *
  * This is mostly a straightforward wrapper around SPIFFS, with a few enhancements:
  *
@@ -29,6 +42,7 @@
 #pragma once
 
 #include "../FileSystem.h"
+#include "FileMeta.h"
 #include <spiffs.h>
 extern "C" {
 #include <spiffs_nucleus.h>
@@ -39,57 +53,10 @@ extern "C" {
  */
 #define FFS_MAX_FILEDESC 8
 
-#pragma pack(1)
-
 namespace IFS
 {
 namespace SPIFFS
 {
-/// This number is made up, but serves to identify that metadata is valid
-static constexpr uint32_t metaMagic{0xE3457A77};
-
-/** @brief Content of SPIFFS metadata area
- */
-struct FileMeta {
-	// Magic
-	uint32_t magic;
-	// Modification time
-	time_t mtime;
-	// File::Attributes - default indicates content has changed
-	uint8_t attr;
-	// Used internally, always 0xFF on disk
-	uint8_t flags_;
-	// Security
-	File::ACL acl;
-
-	// We use '0' for dirty so when it's clear disk gets a '1', flash default
-	void setDirty()
-	{
-		bitClear(flags_, 0);
-	}
-
-	void clearDirty()
-	{
-		bitSet(flags_, 0);
-	}
-
-	bool isDirty()
-	{
-		return !bitRead(flags_, 0);
-	}
-};
-
-#define SPIFFS_STORE_META (SPIFFS_OBJ_META_LEN >= 16)
-
-union SpiffsMetaBuffer {
-#if SPIFFS_STORE_META
-	uint8_t buffer[SPIFFS_OBJ_META_LEN]{0};
-#endif
-	FileMeta meta;
-};
-
-#pragma pack()
-
 /*
  * Wraps SPIFFS
  */
@@ -106,41 +73,41 @@ public:
 	int getinfo(Info& info) override;
 	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
-	int readdir(DirHandle dir, FileStat& stat) override;
+	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override
 	{
 		return Error::NotSupported;
 	}
 	int closedir(DirHandle dir) override;
 	int mkdir(const char* path) override;
-	int stat(const char* path, FileStat* stat) override;
-	int fstat(File::Handle file, FileStat* stat) override;
-	int setacl(File::Handle file, const File::ACL& acl) override;
-	int setattr(File::Handle file, File::Attributes attr) override;
-	int settime(File::Handle file, time_t mtime) override;
-	File::Handle open(const char* path, File::OpenFlags flags) override;
-	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override;
-	int close(File::Handle file) override;
-	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override;
-	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
-	int eof(File::Handle file) override;
-	int32_t tell(File::Handle file) override;
-	int truncate(File::Handle file, size_t new_size) override;
-	int flush(File::Handle file) override;
+	int stat(const char* path, Stat* stat) override;
+	int fstat(FileHandle file, Stat* stat) override;
+	int setacl(FileHandle file, const ACL& acl) override;
+	int setattr(const char* path, FileAttributes attr) override;
+	int settime(FileHandle file, time_t mtime) override;
+	int setcompression(FileHandle file, const Compression& compression) override;
+	FileHandle open(const char* path, OpenFlags flags) override;
+	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
+	int close(FileHandle file) override;
+	int read(FileHandle file, void* data, size_t size) override;
+	int write(FileHandle file, const void* data, size_t size) override;
+	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
+	int eof(FileHandle file) override;
+	int32_t tell(FileHandle file) override;
+	int ftruncate(FileHandle file, size_t new_size) override;
+	int flush(FileHandle file) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(File::Handle file) override;
+	int fremove(FileHandle file) override;
 	int format() override;
 	int check() override;
-	int isfile(File::Handle file) override;
 
 	/** @brief get the full path of a file from its ID
 	 *  @param fileid
 	 *  @param buffer
 	 *  @retval int error code
 	 */
-	int getFilePath(File::ID fileid, NameBuffer& buffer);
+	int getFilePath(FileID fileid, NameBuffer& buffer);
 
 private:
 	spiffs* handle()
@@ -150,17 +117,11 @@ private:
 
 	int tryMount(spiffs_config& cfg);
 
-	/** @brief Pull metadata from SPIFFS
-	 *  @param file valid file handle
-	 * 	@retval FileMeta& reference to the metadata
-	 *  @note Called when file opened
-	 */
-	SpiffsMetaBuffer* cacheMeta(File::Handle file);
+	SpiffsMetaBuffer* initMetaBuffer(FileHandle file);
+	SpiffsMetaBuffer* getMetaBuffer(FileHandle file);
+	int flushMeta(FileHandle file);
 
-	int getMeta(File::Handle file, SpiffsMetaBuffer*& meta);
-	void updateMetaCache(File::Handle file, const spiffs_stat& ss);
-	int flushMeta(File::Handle file);
-	void touch(File::Handle file)
+	void touch(FileHandle file)
 	{
 		settime(file, fsGetTimeUTC());
 	}

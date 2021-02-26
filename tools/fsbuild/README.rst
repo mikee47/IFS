@@ -16,6 +16,8 @@ A schema for this configuration is provided in ``tools/fsbuild/schema.json``.
 The builder checks the configuration against this schema and will fail if it is non-compliant.
 Your IDE (e.g. vscode) may also be able to use this to assist editing the configuration.
 
+MD5 hashes are calculated and stored in metadata for all files (unless they're empty).
+
 Usage
 -----
 

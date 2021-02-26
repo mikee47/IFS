@@ -1,7 +1,22 @@
-/****
+/**
+ * Error.h
  * IFS Error codes and related stuff
  *
- * Created August 2018 by mikee471
+ * Created: August 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
  *
  ****/
 
@@ -27,7 +42,7 @@ namespace Error
  * An IFS implementation must return negative values for errors. Wrappers may
  * use these IFS codes instead of their own.
  * If returning an internal error code it may need to be translated.
- * Methods returning ONLY an error code (i.e. not File::Handle) may return positive 'error'
+ * Methods returning ONLY an error code (i.e. not FileHandle) may return positive 'error'
  * codes for information purposes. See IFileSystem::check() as an example.
  * Return value usage is consistent with SPIFFS.
  *
@@ -75,7 +90,7 @@ enum class Value {
 IFS_ERROR_MAP(XX)
 #undef XX
 
-constexpr ErrorCode USER{-100};	 // Start of user-defined codes
+constexpr ErrorCode USER{-100};	// Start of user-defined codes
 constexpr ErrorCode SYSTEM{-1000}; // Non-FWFS filing systems map custom codes starting here
 
 /**
