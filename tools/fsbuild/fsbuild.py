@@ -7,7 +7,6 @@
 
 import os, json, sys
 import util, FWFS, config
-from util import _BV
 from FWFS import FwObt
 from compress import CompressionType
 from rjsmin import jsmin
@@ -176,7 +175,7 @@ if __name__ == "__main__":
     fileCount = img.root().fileCount(True)
     if logfile:
         logfile.write(fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", ""))
-        logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", ""))
+        logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", ""))
 
     print("Image '%s' contains %u objects, %u bytes in %u files (%u%% of source data size)" % (imgFilePath, img.objectCount(), totalDataSize, fileCount, pc))
 
