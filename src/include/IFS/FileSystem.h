@@ -65,6 +65,11 @@ public:
 	 */
 	int makedirs(const char* path);
 
+	int makedirs(const String& path)
+	{
+		return makedirs(path.c_str());
+	}
+
 	using IFileSystem::stat;
 	/**
 	 * @brief get file information
@@ -240,7 +245,7 @@ public:
 	 * 
 	 * @{
 	 */
-	int setContent(const char* fileName, const char* content, size_t length);
+	int setContent(const char* fileName, const void* content, size_t length);
 
 	int setContent(const char* fileName, const char* content)
 	{
@@ -250,6 +255,11 @@ public:
 	int setContent(const String& fileName, const char* content)
 	{
 		return setContent(fileName.c_str(), content);
+	}
+
+	int setContent(const String& fileName, const void* content, size_t length)
+	{
+		return setContent(fileName.c_str(), content, length);
 	}
 
 	int setContent(const String& fileName, const String& content)

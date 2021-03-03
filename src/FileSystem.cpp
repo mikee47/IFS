@@ -57,7 +57,7 @@ int FileSystem::truncate(const char* fileName, size_t newSize)
 	return res;
 }
 
-int FileSystem::setContent(const char* fileName, const char* content, size_t length)
+int FileSystem::setContent(const char* fileName, const void* content, size_t length)
 {
 	auto file = open(fileName, OpenFlag::Create | OpenFlag::Truncate | OpenFlag::Write);
 	if(file < 0) {
