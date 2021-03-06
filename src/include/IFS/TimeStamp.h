@@ -19,8 +19,9 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <time.h>
+#include <cstring>
 
 namespace IFS
 {
@@ -41,7 +42,7 @@ struct TimeStamp {
 
 	TimeStamp& operator=(time_t t)
 	{
-		mValue = static_cast<uint32_t>(t);
+		memcpy(&mValue, &t, sizeof(mValue));
 		return *this;
 	}
 };
