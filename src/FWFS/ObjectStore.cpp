@@ -31,7 +31,11 @@ namespace FWFS
 int ObjectStore::initialise()
 {
 	if(!partition) {
-		return Error::NoMedia;
+		return Error::NoPartition;
+	}
+
+	if(!partition.verify(Storage::Partition::SubType::Data::fwfs)) {
+		return Error::BadPartition;
 	}
 
 	uint32_t marker;

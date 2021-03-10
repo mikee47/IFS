@@ -14,7 +14,7 @@
 
 #define debug_file(file, func, ...)                                                                                    \
 	do {                                                                                                               \
-		debug_e(func ": %s", ##__VA_ARGS__, file.getLastErrorString().c_str());                              \
+		debug_e(func ": %s", ##__VA_ARGS__, file.getLastErrorString().c_str());                                        \
 	} while(0)
 
 using IFileSystem = IFS::IFileSystem;

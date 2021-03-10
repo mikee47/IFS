@@ -99,7 +99,11 @@ FileSystem::~FileSystem()
 int FileSystem::mount()
 {
 	if(!partition) {
-		return Error::NoMedia;
+		return Error::NoPartition;
+	}
+
+	if(!partition.verify(Storage::Partition::SubType::Data::spiffs)) {
+		return Error::BadPartition;
 	}
 
 	fs.user_data = &partition;

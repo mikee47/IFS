@@ -51,7 +51,8 @@ namespace Error
 #define IFS_ERROR_MAP(XX)                                                                                              \
 	XX(Success, "Success")                                                                                             \
 	XX(NoFileSystem, "File system has not been set")                                                                   \
-	XX(NoMedia, "File system has no media object")                                                                     \
+	XX(NoPartition, "Partition not found / undefined")                                                                 \
+	XX(BadPartition, "Partition is not valid for this filesystem")                                                     \
 	XX(BadStore, "Store is invalid")                                                                                   \
 	XX(StoreNotMounted, "Store not mounted")                                                                           \
 	XX(NotMounted, "File system is not mounted")                                                                       \
