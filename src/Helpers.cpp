@@ -20,6 +20,7 @@
  ****/
 
 #include "include/IFS/Helpers.h"
+#include "include/IFS/SPIFFS/FileSystem.h"
 #include "include/IFS/FWFS/ObjectStore.h"
 #include "include/IFS/HYFS/FileSystem.h"
 #include <spiffs_sming.h>
@@ -32,6 +33,11 @@ namespace IFS
 time_t fsGetTimeUTC()
 {
 	return SystemClock.now(eTZ_UTC);
+}
+
+IFileSystem* createSpiffsFilesystem(Storage::Partition partition)
+{
+	return new SPIFFS::FileSystem(partition);
 }
 
 IFileSystem* createFirmwareFilesystem(Storage::Partition partition)

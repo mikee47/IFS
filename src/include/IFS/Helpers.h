@@ -27,6 +27,13 @@
 namespace IFS
 {
 /**
+ * @brief Create a SPIFFS filesystem
+ * @param partition
+ * @retval IFileSystem* constructed filesystem object
+ */
+IFileSystem* createSpiffsFilesystem(Storage::Partition partition);
+
+/**
  * @brief Create a firmware filesystem
  * @param partition
  * @retval IFileSystem* constructed filesystem object
