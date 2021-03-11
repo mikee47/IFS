@@ -66,6 +66,16 @@ struct NameBuffer {
 		return buffer;
 	}
 
+	char* begin()
+	{
+		return buffer;
+	}
+
+	const char* c_str() const
+	{
+		return buffer;
+	}
+
 	explicit operator String() const
 	{
 		return String(buffer, length);
