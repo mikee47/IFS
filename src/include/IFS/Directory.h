@@ -40,11 +40,11 @@ public:
 
 	/**
 	 * @brief Open a directory and attach this stream object to it
-	 * @param dirName
+	 * @param dirName Default is root directory
 	 * @retval bool true on success, false on error
 	 * @note call getLastError() to determine cause of failure
 	 */
-	bool open(const String& dirName);
+	bool open(const String& dirName = nullptr);
 
 	/**
 	 * @brief Close directory
@@ -90,6 +90,11 @@ public:
 	int index() const
 	{
 		return currentIndex;
+	}
+
+	size_t count() const
+	{
+		return size_t(currentIndex + 1);
 	}
 
 	bool isValid() const
