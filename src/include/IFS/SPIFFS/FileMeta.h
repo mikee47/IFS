@@ -29,8 +29,6 @@ namespace IFS
 {
 namespace SPIFFS
 {
-#pragma pack(1)
-
 /**
  * @brief Content of SPIFFS metadata area
  */
@@ -47,7 +45,7 @@ struct FileMeta {
 	// Security
 	ACL acl;
 	// Compression
-	struct {
+	struct __attribute__((packed)) {
 		Compression::Type type;
 		uint32_t originalSize;
 	} compression;
@@ -141,8 +139,6 @@ struct SpiffsMetaBuffer {
 		}
 	}
 };
-
-#pragma pack()
 
 } // namespace SPIFFS
 } // namespace IFS

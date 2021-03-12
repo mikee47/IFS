@@ -42,7 +42,7 @@ struct TimeStamp {
 
 	TimeStamp& operator=(time_t t)
 	{
-		memcpy(&mValue, &t, sizeof(mValue));
+		mValue = t;
 		return *this;
 	}
 };
