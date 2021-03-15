@@ -469,7 +469,7 @@ int FileSystem::flushMeta(FileHandle file)
 int FileSystem::stat(const char* path, Stat* stat)
 {
 	spiffs_stat ss;
-	int err = SPIFFS_stat(handle(), path, &ss);
+	int err = SPIFFS_stat(handle(), path ?: "", &ss);
 	if(err < 0) {
 		return Error::fromSystem(err);
 	}
