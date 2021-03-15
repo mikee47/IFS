@@ -238,10 +238,7 @@ class CompressionObject(Object8):
 class AceObject(Object8):
     def __init__(self, parent, obt, s):
         super().__init__(parent, obt)
-        if isNumberType(s):
-            self.__role = s
-        else:
-            self.__role = UserRole.__members__[s]
+        self.setRole(s)
 #        print "Adding ACE {}, {}, {}".format(obt, s, self.toString())
 
     def content(self):
@@ -249,6 +246,12 @@ class AceObject(Object8):
 
     def role(self):
         return self.__role
+
+    def setRole(self, s):
+        if isNumberType(s):
+            self.__role = s
+        else:
+            self.__role = UserRole.__members__[s]
 
     def toString(self):
         return self.__role.name
@@ -393,7 +396,7 @@ class NamedObject(Object16):
         self.__children.remove(obj)
 
     def appendCompression(self, compressionType):
-        obj = self.findObject(FwObt.Compression);
+        obj = self.findObject(FwObt.Compression)
         if not obj is None:
             self.removeObject(obj)
         obj = CompressionObject(self, compressionType)
@@ -404,8 +407,13 @@ class NamedObject(Object16):
         if not isNumberType(role):
             role = UserRole.__members__[role]
         ace = self.findInheritableObject(obt)
-        if ace is None or ace.role() != role:
-            AceObject(self, obt, role)
+        if ace is not None:
+            if ace.role() == role:
+                return
+            if ace.parent() == self:
+                ace.setRole(role)
+                return
+        AceObject(self, obt, role)
 
     def appendReadACE(self, role):
         self.appendACE(FwObt.ReadACE, role)
