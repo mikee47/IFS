@@ -62,6 +62,9 @@ class Config:
                 # print("'%s' matches '%s'" % (f.name, mask))
                 return True
 
+            if mask == '/' and f.path() == '':
+                return True
+
             return False
 
 
