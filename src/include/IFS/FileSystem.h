@@ -78,6 +78,10 @@ public:
 	{
 		return stat(path.c_str(), s);
 	}
+	int stat(const String& path, Stat& s)
+	{
+		return stat(path.c_str(), &s);
+	}
 
 	using IFileSystem::fstat;
 	/**
