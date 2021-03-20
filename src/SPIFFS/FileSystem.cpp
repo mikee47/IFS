@@ -31,6 +31,7 @@ namespace IFS
 struct FileDir {
 	char path[SPIFFS_OBJ_NAME_LEN]; ///< Filter for readdir()
 	unsigned pathlen;
+	String directories; // Names of discovered directories
 	spiffs_DIR d;
 };
 
@@ -614,6 +615,23 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	return FS_OK;
 }
 
+int FileSystem::rewinddir(DirHandle dir)
+{
+	if(dir == nullptr) {
+		return Error::BadParam;
+	}
+	SPIFFS_closedir(&dir->d);
+	dir->directories.setLength(0);
+	if(SPIFFS_opendir(handle(), nullptr, &dir->d) == nullptr) {
+		int err = SPIFFS_errno(handle());
+		err = Error::fromSystem(err);
+		debug_ifserr(err, "opendir");
+		return err;
+	}
+
+	return FS_OK;
+}
+
 int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
 	if(dir == nullptr) {
@@ -636,13 +654,6 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 		 */
 
 		auto name = (char*)e.name;
-		char* lastSep = strrchr(name, '/');
-
-		// For root directory, include only root objects
-		if(dir->pathlen == 0 && lastSep != nullptr) {
-			//			debug_i("Ignoring '%s' - root only", name);
-			continue;
-		}
 
 		// For sub-directories, match the parsing path
 		auto len = strlen(name);
@@ -669,6 +680,24 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 		char* nextSep = strchr(name, '/');
 		if(nextSep != nullptr) {
 			*nextSep = '\0';
+			auto len = 1 + nextSep - name; // Include NUL terminator
+			// Emit directory names only once
+			auto dirEmitted = [&]() {
+				unsigned i = 0;
+				while(i < dir->directories.length()) {
+					auto p = &dir->directories[i];
+					auto len = strlen(p);
+					if(strcmp(p, name) == 0) {
+						return true;
+					}
+					i += len + 1;
+				}
+				return false;
+			};
+			if(dirEmitted()) {
+				continue;
+			}
+			dir->directories.concat(name, len);
 		}
 
 		stat = Stat{};

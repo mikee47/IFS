@@ -74,10 +74,7 @@ public:
 	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;
-	int rewinddir(DirHandle dir) override
-	{
-		return Error::NotSupported;
-	}
+	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
 	int mkdir(const char* path) override;
 	int stat(const char* path, Stat* stat) override;
