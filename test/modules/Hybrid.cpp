@@ -144,7 +144,7 @@ public:
 
 	int copyfile(FileSystem* dst, FileSystem* src, const IFS::Stat& stat)
 	{
-		if(stat.attr[IFS::FileAttribute::Directory]) {
+		if(stat.isDir()) {
 			return IFS::Error::NotSupported;
 		}
 
@@ -368,7 +368,7 @@ public:
 			dir.open(path);
 			while(dir.next()) {
 				auto name = dir.stat().name.buffer;
-				if(dir.stat().attr[IFS::FileAttribute::Directory]) {
+				if(dir.stat().isDir()) {
 					directories.add(name);
 				} else {
 					files.add(name);

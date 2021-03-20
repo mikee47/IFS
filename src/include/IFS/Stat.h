@@ -83,6 +83,11 @@ struct Stat {
 		mtime = rhs.mtime;
 		return *this;
 	}
+
+	bool isDir() const
+	{
+		return attr[FileAttribute::Directory];
+	}
 };
 
 /**
