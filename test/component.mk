@@ -1,7 +1,3 @@
-ifneq ($(SMING_ARCH),Host)
-$(error fstest is Host-only application)
-endif
-
 HWCONFIG := fstest
 
 # Empty SPIFFS partition please
@@ -9,6 +5,10 @@ SPIFF_FILES :=
 
 COMPONENT_INCDIRS := include
 COMPONENT_SRCDIRS := app modules
+
+ifeq ($(SMING_ARCH),Host)
+COMPONENT_SRCDIRS += modules/Host
+endif
 
 # Don't need network
 HOST_NETWORK_OPTIONS := --nonet

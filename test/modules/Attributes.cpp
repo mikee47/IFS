@@ -6,7 +6,10 @@
  */
 
 #include <FsTest.h>
+
+#ifdef ARCH_HOST
 #include <IFS/Host/FileSystem.h>
+#endif
 
 class AttributesTest : public TestGroup
 {
@@ -18,13 +21,15 @@ public:
 	void execute() override
 	{
 		attributeTest();
+#ifdef ARCH_HOST
 		hostAttributeTest();
+#endif
 	}
 
 	void attributeTest()
 	{
-		DEFINE_FSTR(filename, "test.txt");
-		DEFINE_FSTR(content, "This is some test content");
+		DEFINE_FSTR_LOCAL(filename, "test.txt");
+		DEFINE_FSTR_LOCAL(content, "This is some test content");
 
 		spiffs_mount();
 
@@ -104,6 +109,7 @@ public:
 		}
 	}
 
+#ifdef ARCH_HOST
 	void hostAttributeTest()
 	{
 		auto& hostfs = IFS::Host::getFileSystem();
@@ -115,6 +121,7 @@ public:
 
 		listdir(&hostfs, nullptr, Flag::recurse);
 	}
+#endif
 };
 
 void REGISTER_TEST(Attributes)

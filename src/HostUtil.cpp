@@ -58,11 +58,17 @@ int mapFlags(OpenFlags flags)
 String getErrorString(int err)
 {
 	if(Error::isSystem(err)) {
-		char buffer[256];
-		buffer[0] = '\0';
+		char buffer[256]{};
 		auto r = strerror_r(-Error::toSystem(err), buffer, sizeof(buffer));
-		(void)r;
-		return String(buffer);
+		/*
+		 * There's no guarantee which version of strerror_r got linked,
+		 * but the return value gives us a clue
+		 */
+		if(int(r) == -1 || uint32_t(r) < 0x10000) {
+			return buffer;
+		} else {
+			return r;
+		}
 	}
 
 	return IFS::Error::toString(err);
