@@ -51,7 +51,9 @@ public:
 
 	FileSystem* getFileSystem() const
 	{
-		lastError = (fileSystem == nullptr) ? Error::NoFileSystem : FS_OK;
+		if(fileSystem == nullptr) {
+			lastError = Error::NoFileSystem;
+		}
 		return static_cast<FileSystem*>(fileSystem);
 	}
 
