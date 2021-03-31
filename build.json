@@ -1,0 +1,17 @@
+{
+    "fwfs-build": {
+        "title": "Firmware Filesystem support",
+        "partition": {
+            "type": "data",
+            "subtype": "fwfs"
+        },
+        "properties": {
+            "config": {
+                "type": "string",
+                "format": "filename",
+                "title": "Build config file",
+                "description": "Path to .fwfs build configuration file"
+            }
+        }
+    }
+}

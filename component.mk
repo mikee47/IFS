@@ -30,6 +30,8 @@ COMPONENT_DOXYGEN_INPUT := src
 
 ##@Building
 
+HWCONFIG_BUILDSPECS += $(COMPONENT_PATH)/build.json
+
 DEBUG_VARS += FSBUILD
 FSBUILD_PATH := $(COMPONENT_PATH)/tools/fsbuild/fsbuild.py
 FSBUILD := $(PYTHON) $(FSBUILD_PATH) $(if $V,--verbose -l -)
