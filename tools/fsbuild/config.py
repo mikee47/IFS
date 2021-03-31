@@ -36,13 +36,14 @@ class Config:
 
     def mountPoints(self):
         """Mount points create a virtual folder which is redirected to another object store"""
-        return self.data["mountpoints"].items()
+        return self.data.get('mountpoints', {}).items()
 
     def volumeName(self):
         return self.data['name']
 
     def volumeID(self):
-        return int(self.data['id'], 0)
+        id = self.data.get('id', 0)
+        return eval(id) if type(id) is str else id
 
     # Apply rules to given IFS.File object
     def applyRules(self, f):
@@ -68,7 +69,7 @@ class Config:
             return False
 
 
-        for rule in self.data['rules']:
+        for rule in self.data.get('rules', []):
             if match(rule['mask']):
                 value = rule.get('readonly')
                 if value is not None:
