@@ -1,6 +1,7 @@
 COMPONENT_DEPENDS := \
 	FlashString \
-	spiffs
+	spiffs \
+	littlefs
 
 COMPONENT_SRCDIRS := \
 	src \
@@ -8,6 +9,7 @@ COMPONENT_SRCDIRS := \
 	src/FWFS \
 	src/HYFS \
 	src/SPIFFS \
+	src/LittleFS \
 	src/Arch/$(SMING_ARCH)
 
 COMPONENT_INCDIRS := \

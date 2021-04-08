@@ -21,6 +21,7 @@
 
 #include "include/IFS/Helpers.h"
 #include "include/IFS/SPIFFS/FileSystem.h"
+#include "include/IFS/LittleFS/FileSystem.h"
 #include "include/IFS/FWFS/ObjectStore.h"
 #include "include/IFS/HYFS/FileSystem.h"
 #include <spiffs_sming.h>
@@ -38,6 +39,11 @@ time_t fsGetTimeUTC()
 IFileSystem* createSpiffsFilesystem(Storage::Partition partition)
 {
 	return new SPIFFS::FileSystem(partition);
+}
+
+IFileSystem* createLfsFilesystem(Storage::Partition partition)
+{
+	return new LittleFS::FileSystem(partition);
 }
 
 IFileSystem* createFirmwareFilesystem(Storage::Partition partition)
