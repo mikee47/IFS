@@ -58,6 +58,13 @@ public:
 		return opendir(path.c_str(), dir);
 	}
 
+	using IFileSystem::mkdir;
+
+	int mkdir(const String& path)
+	{
+		return mkdir(path.c_str());
+	}
+
 	/**
 	 * @brief Create a directory and any intermediate directories if they do not already exist
 	 * @param path Path to directory. If no trailing '/' is present the final element is considered a filename.
