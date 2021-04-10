@@ -219,8 +219,7 @@ public:
 	{
 		GET_FS();
 		int res = fs->ftruncate(handle, new_size);
-		check(res);
-		return res;
+		return check(res);
 	}
 
 	/**
@@ -231,8 +230,7 @@ public:
 	{
 		GET_FS();
 		int res = fs->ftruncate(handle);
-		check(res);
-		return res;
+		return check(res);
 	}
 
 	/**
