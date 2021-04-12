@@ -138,6 +138,61 @@ struct SpiffsMetaBuffer {
 			flags[Flag::dirty] = true;
 		}
 	}
+
+	int getattrtag(AttributeTag tag, void* buffer, size_t size)
+	{
+		auto attrSize = getAttributeSize(tag);
+		if(attrSize == 0) {
+			return Error::BadParam;
+		}
+		if(size >= attrSize) {
+			switch(tag) {
+			case AttributeTag::ModifiedTime:
+				memcpy(buffer, &meta.mtime, attrSize);
+				break;
+			case AttributeTag::Acl:
+				memcpy(buffer, &meta.acl, attrSize);
+				break;
+			case AttributeTag::Compression:
+				memcpy(buffer, &meta.compression, attrSize);
+				break;
+			case AttributeTag::FileAttributes:
+				memcpy(buffer, &meta.attr, attrSize);
+				break;
+			case AttributeTag::User:
+				break;
+			}
+		}
+		return attrSize;
+	}
+
+	int setattrtag(AttributeTag tag, const void* data, size_t size)
+	{
+		auto attrSize = getAttributeSize(tag);
+		if(attrSize == 0) {
+			return Error::BadParam;
+		}
+		if(size != attrSize) {
+			return Error::BadParam;
+		}
+		switch(tag) {
+		case AttributeTag::ModifiedTime:
+			memcpy(&meta.mtime, data, attrSize);
+			break;
+		case AttributeTag::Acl:
+			memcpy(&meta.acl, data, attrSize);
+			break;
+		case AttributeTag::Compression:
+			memcpy(&meta.compression, data, attrSize);
+			break;
+		case AttributeTag::FileAttributes:
+			memcpy(&meta.attr, data, attrSize);
+			break;
+		case AttributeTag::User:
+			break;
+		}
+		return FS_OK;
+	}
 };
 
 } // namespace SPIFFS

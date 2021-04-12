@@ -124,22 +124,16 @@ public:
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
-	int setacl(FileHandle file, const ACL& acl) override
+	int setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::ReadOnly;
 	}
-	int setattr(const char* path, FileAttributes attr)
+	int getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
+	int setattrtag(const char* path, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::ReadOnly;
 	}
-	int settime(FileHandle file, time_t mtime) override
-	{
-		return Error::ReadOnly;
-	}
-	int setcompression(FileHandle file, const Compression& compression)
-	{
-		return Error::ReadOnly;
-	}
+	int getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
 	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
 	int close(FileHandle file) override;
@@ -304,6 +298,7 @@ private:
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
 	FileHandle allocateFileDescriptor(FWObjDesc& odFile);
 	int fillStat(Stat& stat, const FWObjDesc& entry);
+	int readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size);
 
 	void printObject(const FWObjDesc& od);
 

@@ -45,6 +45,41 @@ using FileHandle = int16_t;
  */
 using FileID = uint32_t;
 
+#define IFS_ATTRIBUTE_TAG_MAP(XX)                                                                                      \
+	XX(ModifiedTime, sizeof(TimeStamp))                                                                                \
+	XX(FileAttributes, sizeof(FileAttributes))                                                                         \
+	XX(Acl, sizeof(ACL))                                                                                               \
+	XX(Compression, sizeof(Compression))
+
+/**
+ * @brief Identifies a specific attribute
+ */
+enum class AttributeTag {
+#define XX(tag, size) tag,
+	IFS_ATTRIBUTE_TAG_MAP(XX)
+#undef XX
+		User = 16, ///< First user attribute
+};
+
+inline AttributeTag getUserAttributeTag(uint8_t value)
+{
+	value += uint8_t(AttributeTag::User);
+	return AttributeTag(value);
+}
+
+inline size_t getAttributeSize(AttributeTag tag)
+{
+	switch(tag) {
+#define XX(tag, size)                                                                                                  \
+	case AttributeTag::tag:                                                                                            \
+		return size;
+		IFS_ATTRIBUTE_TAG_MAP(XX)
+#undef XX
+	default:
+		return 0;
+	}
+}
+
 /**
  * @brief File Status structure
  */

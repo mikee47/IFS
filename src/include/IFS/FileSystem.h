@@ -158,6 +158,96 @@ public:
 		return remove(path.c_str());
 	}
 
+	using IFileSystem::setattrtag;
+	int setattrtag(const String& path, AttributeTag tag, const void* data, size_t size)
+	{
+		return setattrtag(path.c_str(), tag, data, size);
+	}
+
+	using IFileSystem::getattrtag;
+	int getattrtag(const String& path, AttributeTag tag, void* buffer, size_t size)
+	{
+		return getattrtag(path.c_str(), tag, buffer, size);
+	}
+
+	int removefattrtag(FileHandle file, AttributeTag tag)
+	{
+		return setfattrtag(file, tag, nullptr, 0);
+	}
+
+	template <typename T> int removeattrtag(const T& path, AttributeTag tag)
+	{
+		return setattrtag(path, tag, nullptr, 0);
+	}
+
+	/**
+	 * @brief Set access control information for file
+     * @param file handle to open file
+     * @param acl
+     * @retval int error code
+     */
+	int setacl(FileHandle file, const ACL& acl)
+	{
+		return setfattrtag(file, AttributeTag::Acl, &acl, sizeof(acl));
+	}
+
+	int setacl(const char* path, const ACL& acl)
+	{
+		return setattrtag(path, AttributeTag::Acl, &acl, sizeof(acl));
+	}
+
+	/**
+	 * @brief Set file attributes
+     * @param path Full path to file
+     * @param attr
+     * @retval int error code
+     */
+	template <typename T> int setattr(const T& path, FileAttributes attr)
+	{
+		return setattrtag(path, AttributeTag::FileAttributes, &attr, sizeof(attr));
+	}
+
+	/**
+	 * @brief Set modification time for file
+     * @param file handle to open file, must have write access
+     * @retval int error code
+     * @note any subsequent writes to file will reset this to current time
+     */
+	int settime(FileHandle file, time_t mtime)
+	{
+		TimeStamp ts;
+		ts = mtime;
+		return setfattrtag(file, AttributeTag::ModifiedTime, &ts, sizeof(ts));
+	}
+
+	/**
+	 * @brief Set modification time for file or directory
+     * @param path Full path to file or directory
+     * @retval int error code
+     */
+	template <typename T> int settime(const T& path, time_t mtime)
+	{
+		TimeStamp ts;
+		ts = mtime;
+		return setattrtag(path, AttributeTag::ModifiedTime, &ts, sizeof(ts));
+	}
+
+	/**
+	 * @brief Set file compression information
+	 * @param file
+     * @param compression
+     * @retval int error code
+     */
+	int setcompression(FileHandle file, const Compression& compression)
+	{
+		return setfattrtag(file, AttributeTag::Compression, &compression, sizeof(compression));
+	}
+
+	template <typename T> int setcompression(const T& path, const Compression& compression)
+	{
+		return setattrtag(path, AttributeTag::Compression, &compression, sizeof(compression));
+	}
+
 	/** @brief  Get size of file
 	 *  @param  file File handle
 	 *  @retval uint32_t Size of file in bytes, 0 on error

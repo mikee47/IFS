@@ -33,6 +33,7 @@
 #include "Windows/xattr.h"
 #else
 #include <sys/xattr.h>
+#include <utime.h>
 #endif
 
 // We need name and path limits which work on all Host OS/s
@@ -137,6 +138,30 @@ int getUserAttributes(const char* path, Stat& stat)
 
 	hostFileSystem.close(f);
 	return res;
+}
+
+int settime(FileHandle file, TimeStamp mtime)
+{
+#ifdef __WIN32
+	_utimbuf times{mtime, mtime};
+	int res = _futime(file, &times);
+#else
+	struct timespec times[]{mtime, mtime};
+	int res = ::futimens(file, times);
+#endif
+	return (res >= 0) ? res : syserr();
+}
+
+int settime(const char* path, TimeStamp mtime)
+{
+#ifdef __WIN32
+	_utimbuf times{mtime, mtime};
+	int res = _utime(path, &times);
+#else
+	struct utimbuf times[]{mtime, mtime};
+	int res = ::utime(path, times);
+#endif
+	return (res >= 0) ? res : syserr();
 }
 
 } // namespace
@@ -278,51 +303,116 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	return res;
 }
 
-int FileSystem::setacl(FileHandle file, const ACL& acl)
+int FileSystem::setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
+	auto attrSize = getAttributeSize(tag);
+	if(attrSize == 0) {
+		return Error::BadParam;
+	}
+	if(size != attrSize) {
+		return Error::BadParam;
+	}
+	if(tag == AttributeTag::ModifiedTime) {
+		TimeStamp mtime;
+		memcpy(&mtime, data, size);
+		return settime(file, mtime);
+	}
+
 	ExtendedAttributes ea{};
-	getExtendedAttributes(file, ea);
-	ea.acl = acl;
+	int err = getExtendedAttributes(file, ea);
+	if(err < 0) {
+		return err;
+	}
+
+	switch(tag) {
+	case AttributeTag::Acl:
+		memcpy(&ea.acl, data, attrSize);
+		break;
+	case AttributeTag::Compression:
+		memcpy(&ea.compression, data, attrSize);
+		break;
+	case AttributeTag::FileAttributes: {
+		FileAttributes attr;
+		memcpy(&attr, data, attrSize);
+		constexpr FileAttributes mask{FileAttribute::ReadOnly + FileAttribute::Archive};
+		ea.attr -= mask;
+		ea.attr += attr & mask;
+		break;
+	}
+	case AttributeTag::ModifiedTime:
+	case AttributeTag::User:
+		break;
+	}
 	return setExtendedAttributes(file, ea);
 }
 
-int FileSystem::setattr(const char* path, FileAttributes attr)
+int FileSystem::getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
+	auto attrSize = getAttributeSize(tag);
+	if(attrSize == 0) {
+		return Error::BadParam;
+	}
+	if(size >= attrSize) {
+		Stat stat;
+		int err = fstat(file, &stat);
+		if(err < 0) {
+			return err;
+		}
+		switch(tag) {
+		case AttributeTag::ModifiedTime:
+			memcpy(buffer, &stat.mtime, attrSize);
+			break;
+		case AttributeTag::Acl:
+			memcpy(buffer, &stat.acl, attrSize);
+			break;
+		case AttributeTag::Compression:
+			memcpy(buffer, &stat.compression, attrSize);
+			break;
+		case AttributeTag::FileAttributes:
+			memcpy(buffer, &stat.attr, attrSize);
+			break;
+		case AttributeTag::User:
+			break;
+		}
+	}
+	return attrSize;
+}
+
+int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data, size_t size)
+{
+	if(tag == AttributeTag::ModifiedTime) {
+		TimeStamp mtime;
+		if(size < sizeof(mtime)) {
+			return Error::BadParam;
+		}
+		memcpy(&mtime, data, size);
+		return settime(path, mtime);
+	}
+
 	int file = ::open(path, O_RDWR);
 	if(file < 0) {
 		return syserr();
 	}
 
-	ExtendedAttributes ea{};
-	getExtendedAttributes(file, ea);
+	int res = setfattrtag(file, tag, data, size);
 
-	constexpr FileAttributes mask{FileAttribute::ReadOnly + FileAttribute::Archive};
-	ea.attr -= mask;
-	ea.attr += attr & mask;
-	int res = setExtendedAttributes(file, ea);
 	::close(file);
 
 	return res;
 }
 
-int FileSystem::settime(FileHandle file, time_t mtime)
+int FileSystem::getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
-#ifdef __WIN32
-	_utimbuf times{mtime, mtime};
-	int res = _futime(file, &times);
-#else
-	struct timespec times[]{mtime, mtime};
-	int res = ::futimens(file, times);
-#endif
-	return (res >= 0) ? res : syserr();
-}
+	int file = ::open(path, O_RDONLY);
+	if(file < 0) {
+		return syserr();
+	}
 
-int FileSystem::setcompression(FileHandle file, const IFS::Compression& compression)
-{
-	ExtendedAttributes ea{};
-	getExtendedAttributes(file, ea);
-	ea.compression = compression;
-	return setExtendedAttributes(file, ea);
+	int res = getfattrtag(file, tag, buffer, size);
+
+	::close(file);
+
+	return res;
 }
 
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
@@ -387,6 +477,24 @@ int32_t FileSystem::tell(FileHandle file)
 int FileSystem::ftruncate(FileHandle file, size_t new_size)
 {
 	int res = ::ftruncate(file, new_size);
+	return (res >= 0) ? res : syserr();
+}
+
+int FileSystem::flush(FileHandle file)
+{
+	int res = ::fsync(file);
+	return (res >= 0) ? res : syserr();
+}
+
+int FileSystem::rename(const char* oldpath, const char* newpath)
+{
+	int res = ::rename(oldpath, newpath);
+	return (res >= 0) ? res : syserr();
+}
+
+int FileSystem::remove(const char* path)
+{
+	int res = ::remove(path);
 	return (res >= 0) ? res : syserr();
 }
 

@@ -59,10 +59,10 @@ public:
 	int mkdir(const char* path) override;
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
-	int setacl(FileHandle file, const ACL& acl) override;
-	int setattr(const char* path, FileAttributes attr) override;
-	int settime(FileHandle file, time_t mtime) override;
-	int setcompression(FileHandle file, const Compression& compression) override;
+	int setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size) override;
+	int getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
+	int setattrtag(const char* path, AttributeTag tag, const void* data, size_t size) override;
+	int getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
 	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
 	int close(FileHandle file) override;
@@ -72,21 +72,12 @@ public:
 	int eof(FileHandle file) override;
 	int32_t tell(FileHandle file) override;
 	int ftruncate(FileHandle file, size_t new_size) override;
-	int flush(FileHandle file) override
-	{
-		return Error::ReadOnly;
-	}
-	int rename(const char* oldpath, const char* newpath) override
-	{
-		return Error::ReadOnly;
-	}
-	int remove(const char* path) override
-	{
-		return Error::ReadOnly;
-	}
+	int flush(FileHandle file) override;
+	int rename(const char* oldpath, const char* newpath) override;
+	int remove(const char* path) override;
 	int fremove(FileHandle file) override
 	{
-		return Error::ReadOnly;
+		return Error::NotImplemented;
 	}
 	int format() override
 	{

@@ -79,10 +79,10 @@ public:
 	int mkdir(const char* path) override;
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
-	int setacl(FileHandle file, const ACL& acl) override;
-	int setattr(const char* path, FileAttributes attr) override;
-	int settime(FileHandle file, time_t mtime) override;
-	int setcompression(FileHandle file, const Compression& compression) override;
+	int setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size) override;
+	int getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
+	int setattrtag(const char* path, AttributeTag tag, const void* data, size_t size) override;
+	int getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
 	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
 	int close(FileHandle file) override;
@@ -120,7 +120,10 @@ private:
 
 	void touch(FileHandle file)
 	{
-		settime(file, fsGetTimeUTC());
+		auto smb = getMetaBuffer(file);
+		if(smb != nullptr) {
+			smb->setFileTime(fsGetTimeUTC());
+		}
 	}
 
 	static constexpr size_t CACHE_PAGES{8};
