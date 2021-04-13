@@ -970,7 +970,7 @@ int FileSystem::readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t
 	}
 }
 
-int FileSystem::getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
 	Stat s{};
 	int res = fstat(file, &s);
@@ -981,7 +981,7 @@ int FileSystem::getfattrtag(FileHandle file, AttributeTag tag, void* buffer, siz
 	return readAttribute(s, tag, buffer, size);
 }
 
-int FileSystem::getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
 	Stat s{};
 	int res = stat(path, &s);

@@ -54,17 +54,18 @@ using FileID = uint32_t;
 /**
  * @brief Identifies a specific attribute
  */
-enum class AttributeTag {
+enum class AttributeTag : uint16_t {
 #define XX(tag, size) tag,
 	IFS_ATTRIBUTE_TAG_MAP(XX)
 #undef XX
-		User = 16, ///< First user attribute
+		UserStart = 16, ///< First user attribute
+	UserEnd = 255,
 };
 
 inline AttributeTag getUserAttributeTag(uint8_t value)
 {
-	value += uint8_t(AttributeTag::User);
-	return AttributeTag(value);
+	unsigned tagValue = value + unsigned(AttributeTag::UserStart);
+	return AttributeTag(tagValue);
 }
 
 inline size_t getAttributeSize(AttributeTag tag)

@@ -72,27 +72,38 @@ struct ExtendedAttributes {
 	IFS::Compression compression;
 };
 
-int setExtendedAttributes(FileHandle file, const ExtendedAttributes& ea)
+int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 {
-	ExtendedAttributes buf{ea};
-	buf.size = sizeof(ea);
 #if defined(__MACOS)
-	int res = fsetxattr(file, extendedAttributeName, &buf, sizeof(buf), 0, 0);
+	int res = ::fsetxattr(file, name, value, size, 0, 0);
 #else
-	int res = fsetxattr(file, extendedAttributeName, &buf, sizeof(buf), 0);
+	int res = ::fsetxattr(file, name, value, size, 0);
 #endif
 	return (res == 0) ? FS_OK : syserr();
 }
 
-int getExtendedAttributes(FileHandle file, ExtendedAttributes& ea)
+int setExtendedAttributes(FileHandle file, const ExtendedAttributes& ea)
+{
+	ExtendedAttributes buf{ea};
+	buf.size = sizeof(ea);
+	return setXAttr(file, extendedAttributeName, &buf, sizeof(buf));
+}
+
+int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 {
 #if defined(__MACOS)
-	auto len = fgetxattr(file, extendedAttributeName, &ea, sizeof(ea), 0, 0);
+	auto len = ::fgetxattr(file, name, value, size, 0, 0);
 #else
-	auto len = fgetxattr(file, extendedAttributeName, &ea, sizeof(ea));
+	auto len = ::fgetxattr(file, name, value, size);
 #endif
+	return (len >= 0) ? len : syserr();
+}
+
+int getExtendedAttributes(FileHandle file, ExtendedAttributes& ea)
+{
+	auto len = getXAttr(file, extendedAttributeName, &ea, sizeof(ea));
 	if(len < 0) {
-		return syserr();
+		return len;
 	}
 	if(len != sizeof(ea) || ea.size != sizeof(ea)) {
 		return Error::ReadFailure;
@@ -303,8 +314,14 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	return res;
 }
 
-int FileSystem::setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
+	if(tag >= AttributeTag::UserStart) {
+		char name[16];
+		m_snprintf(name, sizeof(name), "__user_%02x", tag);
+		return setXAttr(file, name, data, size);
+	}
+
 	auto attrSize = getAttributeSize(tag);
 	if(attrSize == 0) {
 		return Error::BadParam;
@@ -327,58 +344,60 @@ int FileSystem::setfattrtag(FileHandle file, AttributeTag tag, const void* data,
 	switch(tag) {
 	case AttributeTag::Acl:
 		memcpy(&ea.acl, data, attrSize);
-		break;
+		return setExtendedAttributes(file, ea);
 	case AttributeTag::Compression:
 		memcpy(&ea.compression, data, attrSize);
-		break;
+		return setExtendedAttributes(file, ea);
 	case AttributeTag::FileAttributes: {
 		FileAttributes attr;
 		memcpy(&attr, data, attrSize);
 		constexpr FileAttributes mask{FileAttribute::ReadOnly + FileAttribute::Archive};
 		ea.attr -= mask;
 		ea.attr += attr & mask;
-		break;
+		return setExtendedAttributes(file, ea);
 	}
-	case AttributeTag::ModifiedTime:
-	case AttributeTag::User:
-		break;
-	}
-	return setExtendedAttributes(file, ea);
-}
-
-int FileSystem::getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size)
-{
-	auto attrSize = getAttributeSize(tag);
-	if(attrSize == 0) {
+	default:
 		return Error::BadParam;
 	}
-	if(size >= attrSize) {
-		Stat stat;
+}
+
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+{
+	if(tag >= AttributeTag::UserStart) {
+		char name[16];
+		m_snprintf(name, sizeof(name), "__user_%02x", tag);
+		return getXAttr(file, name, buffer, size);
+	}
+
+	Stat stat{};
+
+	auto copy = [&](const void* value, size_t len) {
 		int err = fstat(file, &stat);
 		if(err < 0) {
 			return err;
 		}
-		switch(tag) {
-		case AttributeTag::ModifiedTime:
-			memcpy(buffer, &stat.mtime, attrSize);
-			break;
-		case AttributeTag::Acl:
-			memcpy(buffer, &stat.acl, attrSize);
-			break;
-		case AttributeTag::Compression:
-			memcpy(buffer, &stat.compression, attrSize);
-			break;
-		case AttributeTag::FileAttributes:
-			memcpy(buffer, &stat.attr, attrSize);
-			break;
-		case AttributeTag::User:
-			break;
+		if(size < len) {
+			size = len;
 		}
+		memcpy(buffer, value, size);
+		return int(len);
+	};
+
+	switch(tag) {
+	case AttributeTag::ModifiedTime:
+		return copy(&stat.mtime, sizeof(stat.mtime));
+	case AttributeTag::Acl:
+		return copy(&stat.acl, sizeof(stat.acl));
+	case AttributeTag::Compression:
+		return copy(&stat.compression, sizeof(stat.compression));
+	case AttributeTag::FileAttributes:
+		return copy(&stat.attr, sizeof(stat.attr));
+	default:
+		return Error::BadParam;
 	}
-	return attrSize;
 }
 
-int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data, size_t size)
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
 {
 	if(tag == AttributeTag::ModifiedTime) {
 		TimeStamp mtime;
@@ -394,21 +413,21 @@ int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data,
 		return syserr();
 	}
 
-	int res = setfattrtag(file, tag, data, size);
+	int res = fsetxattr(file, tag, data, size);
 
 	::close(file);
 
 	return res;
 }
 
-int FileSystem::getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
 	int file = ::open(path, O_RDONLY);
 	if(file < 0) {
 		return syserr();
 	}
 
-	int res = getfattrtag(file, tag, buffer, size);
+	int res = fgetxattr(file, tag, buffer, size);
 
 	::close(file);
 

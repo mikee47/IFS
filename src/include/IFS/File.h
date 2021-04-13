@@ -276,6 +276,45 @@ public:
 		return check(fs->setcompression(handle, compression));
 	}
 
+	bool setAttribute(uint8_t tagValue, const void* data, size_t size)
+	{
+		auto tag = getUserAttributeTag(tagValue);
+		if(tag > AttributeTag::UserEnd) {
+			return Error::BadParam;
+		}
+		GET_FS_BOOL();
+		return check(fs->fsetxattr(handle, tag, data, size));
+	}
+
+	bool setAttribute(uint8_t tagValue, const String& data)
+	{
+		return setAttribute(tagValue, data.c_str(), data.length());
+	}
+
+	int getAttribute(uint8_t tagValue, void* buffer, size_t size)
+	{
+		auto tag = getUserAttributeTag(tagValue);
+		if(tag > AttributeTag::UserEnd) {
+			return Error::BadParam;
+		}
+		GET_FS();
+		int res = fs->fgetxattr(handle, tag, buffer, size);
+		check(res);
+		return res;
+	}
+
+	String getAttribute(uint8_t tagValue)
+	{
+		int len = getAttribute(tagValue, nullptr, 0);
+		if(!check(len)) {
+			return nullptr;
+		}
+		String s;
+		s.setLength(len);
+		len = getAttribute(tagValue, s.begin(), s.length());
+		return check(len) ? s : nullptr;
+	}
+
 	/**
 	 * @brief remove (delete) an open file (and close it)
      * @retval bool true on success

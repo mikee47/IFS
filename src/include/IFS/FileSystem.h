@@ -158,26 +158,26 @@ public:
 		return remove(path.c_str());
 	}
 
-	using IFileSystem::setattrtag;
-	int setattrtag(const String& path, AttributeTag tag, const void* data, size_t size)
+	using IFileSystem::setxattr;
+	int setxattr(const String& path, AttributeTag tag, const void* data, size_t size)
 	{
-		return setattrtag(path.c_str(), tag, data, size);
+		return setxattr(path.c_str(), tag, data, size);
 	}
 
-	using IFileSystem::getattrtag;
-	int getattrtag(const String& path, AttributeTag tag, void* buffer, size_t size)
+	using IFileSystem::getxattr;
+	int getxattr(const String& path, AttributeTag tag, void* buffer, size_t size)
 	{
-		return getattrtag(path.c_str(), tag, buffer, size);
+		return getxattr(path.c_str(), tag, buffer, size);
 	}
 
-	int removefattrtag(FileHandle file, AttributeTag tag)
+	int fremovexattr(FileHandle file, AttributeTag tag)
 	{
-		return setfattrtag(file, tag, nullptr, 0);
+		return fsetxattr(file, tag, nullptr, 0);
 	}
 
-	template <typename T> int removeattrtag(const T& path, AttributeTag tag)
+	template <typename T> int removexattr(const T& path, AttributeTag tag)
 	{
-		return setattrtag(path, tag, nullptr, 0);
+		return setxattr(path, tag, nullptr, 0);
 	}
 
 	/**
@@ -188,12 +188,12 @@ public:
      */
 	int setacl(FileHandle file, const ACL& acl)
 	{
-		return setfattrtag(file, AttributeTag::Acl, &acl, sizeof(acl));
+		return fsetxattr(file, AttributeTag::Acl, &acl, sizeof(acl));
 	}
 
 	int setacl(const char* path, const ACL& acl)
 	{
-		return setattrtag(path, AttributeTag::Acl, &acl, sizeof(acl));
+		return setxattr(path, AttributeTag::Acl, &acl, sizeof(acl));
 	}
 
 	/**
@@ -204,7 +204,7 @@ public:
      */
 	template <typename T> int setattr(const T& path, FileAttributes attr)
 	{
-		return setattrtag(path, AttributeTag::FileAttributes, &attr, sizeof(attr));
+		return setxattr(path, AttributeTag::FileAttributes, &attr, sizeof(attr));
 	}
 
 	/**
@@ -217,7 +217,7 @@ public:
 	{
 		TimeStamp ts;
 		ts = mtime;
-		return setfattrtag(file, AttributeTag::ModifiedTime, &ts, sizeof(ts));
+		return fsetxattr(file, AttributeTag::ModifiedTime, &ts, sizeof(ts));
 	}
 
 	/**
@@ -229,7 +229,7 @@ public:
 	{
 		TimeStamp ts;
 		ts = mtime;
-		return setattrtag(path, AttributeTag::ModifiedTime, &ts, sizeof(ts));
+		return setxattr(path, AttributeTag::ModifiedTime, &ts, sizeof(ts));
 	}
 
 	/**
@@ -240,12 +240,12 @@ public:
      */
 	int setcompression(FileHandle file, const Compression& compression)
 	{
-		return setfattrtag(file, AttributeTag::Compression, &compression, sizeof(compression));
+		return fsetxattr(file, AttributeTag::Compression, &compression, sizeof(compression));
 	}
 
 	template <typename T> int setcompression(const T& path, const Compression& compression)
 	{
-		return setattrtag(path, AttributeTag::Compression, &compression, sizeof(compression));
+		return setxattr(path, AttributeTag::Compression, &compression, sizeof(compression));
 	}
 
 	/** @brief  Get size of file

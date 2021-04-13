@@ -356,7 +356,7 @@ public:
 	virtual int flush(FileHandle file) = 0;
 
 	/**
-	 * @brief Set an attribute on an open file
+	 * @brief Set an extended attribute on an open file
      * @param file handle to open file
 	 * @param tag The attribute to write
 	 * @param data Content of the attribute. Pass nullptr to remove the attribute (if possible).
@@ -364,27 +364,27 @@ public:
      * @retval int error code
 	 * @note Attributes may not be written to disk until flush() or close() are called
      */
-	virtual int setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size) = 0;
+	virtual int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) = 0;
 
 	/**
-	 * @brief Get an attribute from an open file
+	 * @brief Get an extended attribute from an open file
      * @param file handle to open file
 	 * @param tag The attribute to read
 	 * @param buffer Buffer to receive attribute content
 	 * @param size Size of the buffer
      * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
-	virtual int getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size) = 0;
+	virtual int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) = 0;
 
 	/**
-	 * @brief Set an attribute for a file given its path
+	 * @brief Set an extended attribute for a file given its path
      * @param path Full path to file (or directory)
 	 * @param tag The attribute to write
 	 * @param data Content of the attribute. Pass nullptr to remove the attribute (if possible).
 	 * @param size Size of the attribute in bytes
      * @retval int error code
      */
-	virtual int setattrtag(const char* path, AttributeTag tag, const void* data, size_t size) = 0;
+	virtual int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) = 0;
 
 	/**
 	 * @brief Get an attribute from a file given its path
@@ -394,7 +394,7 @@ public:
 	 * @param size Size of the buffer
      * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
-	virtual int getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size) = 0;
+	virtual int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) = 0;
 
 	/**
 	 * @brief rename a file

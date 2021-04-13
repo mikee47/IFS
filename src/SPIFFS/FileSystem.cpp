@@ -522,25 +522,25 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	return FS_OK;
 }
 
-int FileSystem::setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
 	auto smb = getMetaBuffer(file);
 	if(smb == nullptr) {
 		return Error::InvalidHandle;
 	}
-	return smb->setattrtag(tag, data, size);
+	return smb->setxattr(tag, data, size);
 }
 
-int FileSystem::getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
 	auto smb = getMetaBuffer(file);
 	if(smb == nullptr) {
 		return Error::InvalidHandle;
 	}
-	return smb->getattrtag(tag, buffer, size);
+	return smb->getxattr(tag, buffer, size);
 }
 
-int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data, size_t size)
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
 {
 #ifdef SPIFFS_STORE_META
 	FS_CHECK_PATH(path);
@@ -549,7 +549,7 @@ int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data,
 	if(err == 0) {
 		SpiffsMetaBuffer smb;
 		smb.assign(ss.meta);
-		smb.setattrtag(tag, data, size);
+		smb.setxattr(tag, data, size);
 		if(smb.flags[SpiffsMetaBuffer::Flag::dirty]) {
 			err = SPIFFS_update_meta(handle(), path, &smb);
 		}
@@ -560,7 +560,7 @@ int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data,
 #endif
 }
 
-int FileSystem::getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
 #ifdef SPIFFS_STORE_META
 	FS_CHECK_PATH(path);
@@ -571,7 +571,7 @@ int FileSystem::getattrtag(const char* path, AttributeTag tag, void* buffer, siz
 	}
 	SpiffsMetaBuffer smb;
 	smb.assign(ss.meta);
-	return smb.getattrtag(tag, buffer, size);
+	return smb.getxattr(tag, buffer, size);
 #else
 	return Error::NotSupported;
 #endif

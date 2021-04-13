@@ -139,7 +139,7 @@ struct SpiffsMetaBuffer {
 		}
 	}
 
-	int getattrtag(AttributeTag tag, void* buffer, size_t size)
+	int getxattr(AttributeTag tag, void* buffer, size_t size)
 	{
 		auto attrSize = getAttributeSize(tag);
 		if(attrSize == 0) {
@@ -153,20 +153,23 @@ struct SpiffsMetaBuffer {
 			case AttributeTag::Acl:
 				memcpy(buffer, &meta.acl, attrSize);
 				break;
-			case AttributeTag::Compression:
-				memcpy(buffer, &meta.compression, attrSize);
+			case AttributeTag::Compression: {
+				Compression c{meta.compression.type, meta.compression.originalSize};
+				memcpy(buffer, &c, attrSize);
 				break;
+			}
 			case AttributeTag::FileAttributes:
 				memcpy(buffer, &meta.attr, attrSize);
 				break;
-			case AttributeTag::User:
+			case AttributeTag::UserStart:
+			case AttributeTag::UserEnd:
 				break;
 			}
 		}
 		return attrSize;
 	}
 
-	int setattrtag(AttributeTag tag, const void* data, size_t size)
+	int setxattr(AttributeTag tag, const void* data, size_t size)
 	{
 		auto attrSize = getAttributeSize(tag);
 		if(attrSize == 0) {
@@ -182,13 +185,18 @@ struct SpiffsMetaBuffer {
 		case AttributeTag::Acl:
 			memcpy(&meta.acl, data, attrSize);
 			break;
-		case AttributeTag::Compression:
-			memcpy(&meta.compression, data, attrSize);
+		case AttributeTag::Compression: {
+			Compression c;
+			memcpy(&c, data, attrSize);
+			meta.compression.type = c.type;
+			meta.compression.originalSize = c.originalSize;
 			break;
+		}
 		case AttributeTag::FileAttributes:
 			memcpy(&meta.attr, data, attrSize);
 			break;
-		case AttributeTag::User:
+		case AttributeTag::UserStart:
+		case AttributeTag::UserEnd:
 			break;
 		}
 		return FS_OK;

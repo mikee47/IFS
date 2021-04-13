@@ -356,8 +356,8 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 	// Copy metadata
 	if(fwfs.fstat(fwfile, &stat) >= 0) {
-		ffs.setfattrtag(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
-		ffs.setfattrtag(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
+		ffs.fsetxattr(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
+		ffs.fsetxattr(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
 	}
 
 	// If not truncating then copy content into FFS file
@@ -474,29 +474,29 @@ int FileSystem::fcontrol(FileHandle file, ControlCode code, void* buffer, size_t
 	return fs->fcontrol(file, code, buffer, bufSize);
 }
 
-int FileSystem::setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
 	GET_FS(file)
-	return fs->setfattrtag(file, tag, data, size);
+	return fs->fsetxattr(file, tag, data, size);
 }
 
-int FileSystem::getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
 	GET_FS(file)
-	return fs->getfattrtag(file, tag, buffer, size);
+	return fs->fgetxattr(file, tag, buffer, size);
 }
 
-int FileSystem::setattrtag(const char* path, AttributeTag tag, const void* data, size_t size)
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
 {
-	int res = ffs.setattrtag(path, tag, data, size);
+	int res = ffs.setxattr(path, tag, data, size);
 	return (res == Error::NotFound) ? Error::ReadOnly : res;
 }
 
-int FileSystem::getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
-	int res = ffs.getattrtag(path, tag, buffer, size);
+	int res = ffs.getxattr(path, tag, buffer, size);
 	if(res < 0) {
-		res = fwfs.getattrtag(path, tag, buffer, size);
+		res = fwfs.getxattr(path, tag, buffer, size);
 	}
 	return res;
 }

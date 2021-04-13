@@ -72,19 +72,19 @@ public:
 	}
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
-	int setfattrtag(FileHandle file, AttributeTag tag, const void* data, size_t size) override
+	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int getfattrtag(FileHandle file, AttributeTag tag, void* buffer, size_t size) override
+	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int setattrtag(const char* path, AttributeTag tag, const void* data, size_t size) override
+	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int getattrtag(const char* path, AttributeTag tag, void* buffer, size_t size) override
+	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override
 	{
 		return Error::NotSupported;
 	}
