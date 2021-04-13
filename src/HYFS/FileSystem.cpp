@@ -97,11 +97,12 @@ namespace IFS
 {
 // opendir() uses this structure to track file listing
 struct FileDir {
+	CString path;
 	// Directory objects for both filing systems
-	DirHandle ffs;
-	DirHandle fw;
+	DirHandle ffs{nullptr};
+	DirHandle fw{nullptr};
 	// The directory object being enumerated
-	IFileSystem* fs;
+	IFileSystem* fs{nullptr};
 };
 
 namespace HYFS
@@ -193,23 +194,21 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 		return Error::NoMem;
 	}
 
-	// Open directories on both filing systems
+	// Open valid directory on FFS if exists, otherwise on FWFS
 	int res = ffs.opendir(path, d->ffs);
-	if(res >= 0) {
+	if(res < 0) {
 		res = fwfs.opendir(path, d->fw);
 		if(res < 0) {
-			ffs.closedir(d->ffs);
+			delete d;
+			return res;
 		}
-	}
-
-	if(res < 0) {
-		delete d;
+		d->fs = &fwfs;
 	} else {
 		d->fs = &ffs;
-		dir = d;
 	}
 
-	return res;
+	dir = d;
+	return FS_OK;
 }
 
 int FileSystem::readdir(DirHandle dir, Stat& stat)
@@ -238,6 +237,15 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 		}
 
 		// End of FFS files
+		if(dir->fw == nullptr) {
+			res = fwfs.opendir(dir->path.c_str(), dir->fw);
+			if(res == Error::NotFound) {
+				return Error::NoMoreFiles;
+			}
+			if(res < 0) {
+				return res;
+			}
+		}
 		dir->fs = &fwfs;
 	} else if(dir->fs != &fwfs) {
 		return Error::BadParam;
@@ -259,12 +267,20 @@ int FileSystem::rewinddir(DirHandle dir)
 		return Error::BadParam;
 	}
 
-	if(dir->fs == &ffs) {
-		return ffs.rewinddir(dir->ffs);
+	if(dir->fw != nullptr) {
+		dir->fs = &fwfs;
+		int res = fwfs.rewinddir(dir->fw);
+		if(res < 0) {
+			return res;
+		}
 	}
 
-	if(dir->fs == &fwfs) {
-		return fwfs.rewinddir(dir->fw);
+	if(dir->ffs != nullptr) {
+		dir->fs = &ffs;
+		int res = ffs.rewinddir(dir->ffs);
+		if(res < 0) {
+			return res;
+		}
 	}
 
 	return Error::BadParam;
@@ -389,6 +405,20 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	fwfs.close(fwfile);
 
 	return ffsfile;
+}
+
+FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
+{
+	if(dir->fs == &ffs) {
+		return ffs.openat(dir->ffs, name, flags);
+	}
+	if(flags[OpenFlag::Write]) {
+		String path = dir->path.c_str();
+		path += '/';
+		path += name;
+		return ffs.open(path.c_str(), flags);
+	}
+	return fwfs.openat(dir->fw, name, flags);
 }
 
 int FileSystem::close(FileHandle file)
