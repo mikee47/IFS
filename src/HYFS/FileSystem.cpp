@@ -311,10 +311,9 @@ int FileSystem::mkdir(const char* path)
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	// If file exists on FFS then open it and return
-	Stat stat;
-	int res = ffs.stat(path, &stat);
+	int res = ffs.stat(path, nullptr);
 	if(res >= 0) {
-		return ffs.fopen(stat, flags);
+		return ffs.open(path, flags);
 	}
 
 	// OK, so no FFS file exists. Get the FW file.
@@ -327,6 +326,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
+		Stat stat;
 		int err = fwfs.fstat(fwfile, &stat);
 		if(err >= 0 && stat.attr[FileAttribute::ReadOnly]) {
 			err = Error::ReadOnly;
@@ -355,6 +355,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 	// Copy metadata
+	Stat stat;
 	if(fwfs.fstat(fwfile, &stat) >= 0) {
 		ffs.fsetxattr(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
 		ffs.fsetxattr(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
@@ -388,33 +389,6 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	fwfs.close(fwfile);
 
 	return ffsfile;
-}
-
-/*
- * Problem: stat refers to a file in a sub-directory, and readdir() by design
- * only returns the file name, omitting the path. So we need to do a lower-level
- * SPIFS stat to get the real file path.
- */
-FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
-{
-	if(stat.fs == nullptr) {
-		return Error::BadParam;
-	}
-
-	if(stat.fs == &ffs) {
-		return ffs.fopen(stat, flags);
-	}
-
-	// If we're only reading the file then return FW file directly
-	if(flags == OpenFlag::Read) {
-		return fwfs.fopen(stat, flags);
-	}
-
-	// Otherwise it'll involve some work...
-	char buf[SPIFFS_OBJ_NAME_LEN];
-	NameBuffer name(buf, sizeof(buf));
-	int res = fwfs.getFilePath(stat.id, name);
-	return res < 0 ? res : open(name.buffer, flags);
 }
 
 int FileSystem::close(FileHandle file)

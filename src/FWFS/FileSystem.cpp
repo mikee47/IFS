@@ -665,20 +665,36 @@ int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 	return res;
 }
 
-FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
+FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
 {
 	CHECK_MOUNTED();
-	if(stat.fs != this) {
-		return Error::BadParam;
+
+	auto file = reinterpret_cast<int>(dir);
+	GET_FD();
+
+	int res;
+	FWObjDesc odDir;
+	if(fd.odFile.obj.isMountPoint()) {
+		res = resolveMountPoint(fd.odFile, odDir);
+		if(res < 0) {
+			return res;
+		}
+	} else {
+		odDir = fd.odFile;
+		odDir.ref.refCount = 0;
 	}
 
-	FWObjDesc od(stat.id);
-	int res = openObject(od);
+	FWObjDesc od;
+	res = findChildObject(odDir, od, name, strlen(name));
 	if(res >= 0) {
 		res = allocateFileDescriptor(od);
 		if(res < 0) {
 			closeObject(od);
 		}
+	}
+
+	if(fd.odFile.obj.isMountPoint()) {
+		closeObject(odDir);
 	}
 
 	return res;

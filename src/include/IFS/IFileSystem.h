@@ -264,7 +264,7 @@ public:
 	}
 
 	/**
-	 * @brief open a file by name/path
+	 * @brief open a file by path
      * @param path full path to file
      * @param flags opens for opening file
      * @retval FileHandle file handle or error code
@@ -272,12 +272,12 @@ public:
 	virtual FileHandle open(const char* path, OpenFlags flags) = 0;
 
 	/**
-	 * @brief open a file from it's stat structure
-     * @param stat obtained from readdir()
+	 * @brief open a file by name only, given the parent directory handle
+     * @param dir obtained from opendir()
      * @param flags opens for opening file
      * @retval FileHandle file handle or error code
      */
-	virtual FileHandle fopen(const Stat& stat, OpenFlags flags) = 0;
+	virtual FileHandle openat(DirHandle dir, const char* name, OpenFlags flags) = 0;
 
 	/**
 	 * @brief close an open file

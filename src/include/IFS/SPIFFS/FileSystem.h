@@ -84,7 +84,7 @@ public:
 	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override;
 	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
-	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
+	FileHandle openat(DirHandle dir, const char* name, OpenFlags flags) override;
 	int close(FileHandle file) override;
 	int read(FileHandle file, void* data, size_t size) override;
 	int write(FileHandle file, const void* data, size_t size) override;

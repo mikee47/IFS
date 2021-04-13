@@ -89,7 +89,7 @@ public:
 		return Error::NotSupported;
 	}
 	FileHandle open(const char* path, OpenFlags flags) override;
-	FileHandle fopen(const Stat& stat, OpenFlags flags) override
+	FileHandle openat(DirHandle dir, const char* name, OpenFlags flags) override
 	{
 		return Error::NotSupported;
 	}

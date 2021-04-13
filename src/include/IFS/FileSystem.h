@@ -78,9 +78,6 @@ public:
 	}
 
 	using IFileSystem::stat;
-	/**
-	 * @brief get file information
-     */
 	int stat(const String& path, Stat* s)
 	{
 		return stat(path.c_str(), s);
@@ -91,31 +88,24 @@ public:
 	}
 
 	using IFileSystem::fstat;
-	/**
-	 * @brief get file information
-     */
 	int fstat(FileHandle file, Stat& stat)
 	{
 		return fstat(file, &stat);
 	}
 
 	using IFileSystem::open;
-	/**
-	 * @brief open a file by name/path
-     * @param path full path to file
-     * @param flags opens for opening file
-     * @retval FileHandle file handle or error code
-     * @{
-     */
 	FileHandle open(const String& path, OpenFlags flags)
 	{
 		return open(path.c_str(), flags);
 	}
 
+	using IFileSystem::openat;
+	FileHandle openat(DirHandle dir, const String& path, OpenFlags flags)
+	{
+		return openat(dir, path.c_str(), flags);
+	}
+
 	using IFileSystem::ftruncate;
-	/**
-	 * @brief Truncate an open file at the current cursor position
-	 */
 	int ftruncate(FileHandle file)
 	{
 		int pos = tell(file);

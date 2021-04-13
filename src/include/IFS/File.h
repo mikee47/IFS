@@ -98,11 +98,11 @@ public:
      * @param flags opens for opening file
      * @retval bool true on success
      */
-	bool open(const String& path, OpenFlags flags = OpenFlag::Read)
+	template <typename T> bool open(const T& path, OpenFlags flags = OpenFlag::Read)
 	{
 		GET_FS_BOOL();
 		fs->close(handle);
-		handle = fs->open(path.c_str(), flags);
+		handle = fs->open(path, flags);
 		return check(handle);
 	}
 
@@ -112,11 +112,11 @@ public:
      * @param flags opens for opening file
      * @retval bool true on success
      */
-	bool open(const Stat& stat, OpenFlags flags = OpenFlag::Read)
+	template <typename T> bool open(DirHandle dir, const T& name, OpenFlags flags)
 	{
 		GET_FS_BOOL();
 		fs->close(handle);
-		handle = fs->fopen(stat, flags);
+		handle = fs->openat(dir, name, flags);
 		return check(handle);
 	}
 
