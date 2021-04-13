@@ -99,10 +99,10 @@ namespace IFS
 struct FileDir {
 	CString path;
 	// Directory objects for both filing systems
-	DirHandle ffs{nullptr};
-	DirHandle fw{nullptr};
+	DirHandle ffs;
+	DirHandle fw;
 	// The directory object being enumerated
-	IFileSystem* fs{nullptr};
+	IFileSystem* fs;
 };
 
 namespace HYFS
@@ -189,7 +189,7 @@ bool FileSystem::isFWFileHidden(const Stat& fwstat)
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
-	auto d = new FileDir;
+	auto d = new FileDir{};
 	if(d == nullptr) {
 		return Error::NoMem;
 	}
@@ -207,6 +207,7 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 		d->fs = &ffs;
 	}
 
+	d->path = path;
 	dir = d;
 	return FS_OK;
 }
@@ -275,15 +276,12 @@ int FileSystem::rewinddir(DirHandle dir)
 		}
 	}
 
-	if(dir->ffs != nullptr) {
-		dir->fs = &ffs;
-		int res = ffs.rewinddir(dir->ffs);
-		if(res < 0) {
-			return res;
-		}
+	if(dir->ffs == nullptr) {
+		return FS_OK;
 	}
 
-	return Error::BadParam;
+	dir->fs = &ffs;
+	return ffs.rewinddir(dir->ffs);
 }
 
 int FileSystem::closedir(DirHandle dir)

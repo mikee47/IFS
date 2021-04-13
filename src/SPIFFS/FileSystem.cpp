@@ -541,7 +541,7 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 		}
 	}
 
-	auto d = new FileDir;
+	auto d = new FileDir{};
 	if(d == nullptr) {
 		return Error::NoMem;
 	}

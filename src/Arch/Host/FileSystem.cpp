@@ -48,7 +48,7 @@
 namespace IFS
 {
 struct FileDir {
-	String path;
+	CString path;
 	DIR* d;
 };
 
@@ -201,7 +201,7 @@ String FileSystem::getErrorString(int err)
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
-	auto d = new FileDir;
+	auto d = new FileDir{};
 
 	// Interpret empty path as current directory
 	if(path == nullptr || path[0] == '\0') {
@@ -243,7 +243,9 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 			continue;
 		}
 
-		String path = dir->path + '/' + e->d_name;
+		String path = dir->path.c_str();
+		path += '/';
+		path += e->d_name;
 		int res = this->stat(path.c_str(), &stat);
 		return res;
 	}

@@ -384,7 +384,11 @@ public:
 			filename += name;
 
 			IFS::Stat stat;
-			fs->stat(filename, &stat);
+			int err = fs->stat(filename, &stat);
+			if (err < 0) {
+				debug_e("> %s: %d", filename.c_str(), err);
+				continue;
+			}
 			stat.name.buffer = filename.begin();
 			printFileInfo(stat);
 
