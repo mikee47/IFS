@@ -180,20 +180,16 @@ struct SpiffsMetaBuffer {
 		}
 		switch(tag) {
 		case AttributeTag::ModifiedTime:
-			memcpy(&meta.mtime, data, attrSize);
+			setFileTime(*reinterpret_cast<const TimeStamp*>(data));
 			break;
 		case AttributeTag::Acl:
-			memcpy(&meta.acl, data, attrSize);
+			setAcl(*reinterpret_cast<const ACL*>(data));
 			break;
-		case AttributeTag::Compression: {
-			Compression c;
-			memcpy(&c, data, attrSize);
-			meta.compression.type = c.type;
-			meta.compression.originalSize = c.originalSize;
+		case AttributeTag::Compression:
+			setCompression(*reinterpret_cast<const Compression*>(data));
 			break;
-		}
 		case AttributeTag::FileAttributes:
-			memcpy(&meta.attr, data, attrSize);
+			setattr(*reinterpret_cast<const FileAttributes*>(data));
 			break;
 		case AttributeTag::UserStart:
 		case AttributeTag::UserEnd:
