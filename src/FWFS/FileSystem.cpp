@@ -546,36 +546,6 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	return res;
 }
 
-/*
- * TODO: To implement this we could do with storing the directory offset in `stat`.
- */
-int FileSystem::fopendir(const Stat* stat, DirHandle& dir)
-{
-	return Error::NotImplemented;
-	/*
-
-	CHECK_MOUNTED();
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
-
-	FWObjDesc od;
-	int res = findObject
-	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		FileHandle handle = allocateFileDescriptor(od);
-		if(handle < 0) {
-			res = handle;
-			closeObject(od);
-		} else {
-			*dir = reinterpret_cast<DirHandle>(handle);
-		}
-	}
-
-	return res;
-*/
-}
-
 /* Reading a directory simply gets details about any child named objects.
  * The XXXdir() methods will work on any named objects, including files, although
  * these don't normally contain named children.
@@ -691,25 +661,6 @@ int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 	debug_d(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
 			timer.elapsed());
 #endif
-
-	return res;
-}
-
-FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
-{
-	CHECK_MOUNTED();
-	if(stat.fs != this) {
-		return Error::BadParam;
-	}
-
-	FWObjDesc od(stat.id);
-	int res = openObject(od);
-	if(res >= 0) {
-		res = allocateFileDescriptor(od);
-		if(res < 0) {
-			closeObject(od);
-		}
-	}
 
 	return res;
 }

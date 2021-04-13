@@ -333,11 +333,6 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	return (res >= 0) ? res : syserr();
 }
 
-FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
-{
-	return Error::NotImplemented;
-}
-
 int FileSystem::close(FileHandle file)
 {
 	int res = ::close(file);

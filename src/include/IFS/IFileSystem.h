@@ -196,17 +196,6 @@ public:
 	virtual int opendir(const char* path, DirHandle& dir) = 0;
 
 	/**
-	 * @brief open a directory for reading
-     * @param stat identifies directory to open. nullptr is interpreted as root directory
-     * @param dir returns a pointer to the directory object
-     * @retval int error code
-     */
-	virtual int fopendir(const Stat* stat, DirHandle& dir)
-	{
-		return opendir(stat == nullptr ? nullptr : stat->name.buffer, dir);
-	}
-
-	/**
 	 * @brief read a directory entry
      * @param dir
      * @param stat
@@ -275,20 +264,12 @@ public:
 	}
 
 	/**
-	 * @brief open a file by name/path
+	 * @brief open a file by path
      * @param path full path to file
      * @param flags opens for opening file
      * @retval FileHandle file handle or error code
      */
 	virtual FileHandle open(const char* path, OpenFlags flags) = 0;
-
-	/**
-	 * @brief open a file from it's stat structure
-     * @param stat obtained from readdir()
-     * @param flags opens for opening file
-     * @retval FileHandle file handle or error code
-     */
-	virtual FileHandle fopen(const Stat& stat, OpenFlags flags) = 0;
 
 	/**
 	 * @brief close an open file

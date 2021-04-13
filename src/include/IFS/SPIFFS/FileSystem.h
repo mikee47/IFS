@@ -84,7 +84,6 @@ public:
 	int settime(FileHandle file, time_t mtime) override;
 	int setcompression(FileHandle file, const Compression& compression) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
-	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
 	int close(FileHandle file) override;
 	int read(FileHandle file, void* data, size_t size) override;
 	int write(FileHandle file, const void* data, size_t size) override;

@@ -221,68 +221,6 @@ String FileSystem::getErrorString(int err)
 	}
 }
 
-static spiffs_file SPIFFS_open_by_id(spiffs* fs, spiffs_obj_id obj_id, spiffs_flags flags, spiffs_mode mode)
-{
-	spiffs_fd* fd;
-	s32_t res = spiffs_fd_find_new(fs, &fd, 0);
-	SPIFFS_CHECK_RES(res);
-
-	res = spiffs_object_open_by_id(fs, obj_id, fd, flags, mode);
-	if(res < SPIFFS_OK) {
-		spiffs_fd_return(fs, fd->file_nbr);
-	}
-
-	SPIFFS_CHECK_RES(res);
-
-#if !SPIFFS_READ_ONLY
-	if(flags & SPIFFS_O_TRUNC) {
-		res = spiffs_object_truncate(fd, 0, 0);
-		if(res < SPIFFS_OK) {
-			spiffs_fd_return(fs, fd->file_nbr);
-		}
-
-		SPIFFS_CHECK_RES(res);
-	}
-#endif
-
-	fd->fdoffset = 0;
-
-	return SPIFFS_FH_OFFS(fs, fd->file_nbr);
-}
-
-FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
-{
-	/*
-	 * If file is marked read-only, fail write requests.
-	 * Note that we trust the Stat information provided. This provides
-	 * a mechanism for an application to circumvent this flag if it becomes
-	 * necessary to change  a file.
-	 */
-	if(stat.attr[FileAttribute::ReadOnly]) {
-		return Error::ReadOnly;
-	}
-
-	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags, sflags).any()) {
-		return FileHandle(Error::NotSupported);
-	}
-
-	auto file = SPIFFS_open_by_id(handle(), stat.id, sflags, 0);
-	if(file < 0) {
-		int err = Error::fromSystem(file);
-		debug_ifserr(err, "fopen('%s')", stat.name.buffer);
-		return err;
-	}
-
-	initMetaBuffer(file);
-	// File affected without write so update timestamp
-	if(flags[OpenFlag::Truncate]) {
-		touch(file);
-	}
-
-	return file;
-}
-
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	FS_CHECK_PATH(path);
@@ -310,7 +248,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	auto smb = initMetaBuffer(file);
 	// If file is marked read-only, fail write requests
 	if(smb != nullptr) {
-		if(smb->meta.attr[FileAttribute::ReadOnly] && (flags[OpenFlag::Write])) {
+		if(flags[OpenFlag::Write] && smb->meta.attr[FileAttribute::ReadOnly]) {
 			SPIFFS_close(handle(), file);
 			return Error::ReadOnly;
 		}

@@ -113,7 +113,6 @@ public:
 	int mount() override;
 	int getinfo(Info& info) override;
 	int opendir(const char* path, DirHandle& dir) override;
-	int fopendir(const Stat* stat, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
@@ -141,7 +140,6 @@ public:
 		return Error::ReadOnly;
 	}
 	FileHandle open(const char* path, OpenFlags flags) override;
-	FileHandle fopen(const Stat& stat, OpenFlags flags) override;
 	int close(FileHandle file) override;
 	int read(FileHandle file, void* data, size_t size) override;
 	int write(FileHandle file, const void* data, size_t size) override

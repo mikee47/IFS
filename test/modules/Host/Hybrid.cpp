@@ -150,7 +150,7 @@ public:
 
 		IFS::File srcFile(src);
 		IFS::File dstFile(dst);
-		if(srcFile.open(stat) && dstFile.open(stat.name.buffer, IFS::File::CreateNewAlways | IFS::File::WriteOnly)) {
+		if(srcFile.open(stat.name) && dstFile.open(stat.name, IFS::File::CreateNewAlways | IFS::File::WriteOnly)) {
 			srcFile.readContent([&dstFile](const char* buffer, size_t size) { return dstFile.write(buffer, size); });
 		}
 
