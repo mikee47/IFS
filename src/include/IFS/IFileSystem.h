@@ -196,17 +196,6 @@ public:
 	virtual int opendir(const char* path, DirHandle& dir) = 0;
 
 	/**
-	 * @brief open a directory for reading
-     * @param stat identifies directory to open. nullptr is interpreted as root directory
-     * @param dir returns a pointer to the directory object
-     * @retval int error code
-     */
-	virtual int fopendir(const Stat* stat, DirHandle& dir)
-	{
-		return opendir(stat == nullptr ? nullptr : stat->name.buffer, dir);
-	}
-
-	/**
 	 * @brief read a directory entry
      * @param dir
      * @param stat

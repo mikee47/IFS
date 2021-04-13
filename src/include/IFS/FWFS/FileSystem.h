@@ -113,7 +113,6 @@ public:
 	int mount() override;
 	int getinfo(Info& info) override;
 	int opendir(const char* path, DirHandle& dir) override;
-	int fopendir(const Stat* stat, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
