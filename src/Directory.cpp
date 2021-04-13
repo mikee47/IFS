@@ -21,17 +21,11 @@
 
 #include "include/IFS/Directory.h"
 
-#define GET_FS()                                                                                                       \
-	auto fs = getFileSystem();                                                                                         \
-	if(fs == nullptr) {                                                                                                \
-		return false;                                                                                                  \
-	}
-
 namespace IFS
 {
 bool Directory::open(const String& dirName)
 {
-	GET_FS()
+	GET_FS(false)
 
 	DirHandle dir;
 	int err = fs->opendir(dirName, dir);
@@ -60,7 +54,7 @@ void Directory::close()
 
 bool Directory::rewind()
 {
-	GET_FS()
+	GET_FS(false)
 
 	int err = fs->rewinddir(dir);
 	return err == FS_OK;
@@ -91,7 +85,7 @@ String Directory::getParent() const
 
 bool Directory::next()
 {
-	GET_FS()
+	GET_FS(false)
 
 	int err = fs->readdir(dir, dirStat);
 	if(check(err)) {

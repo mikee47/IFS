@@ -24,6 +24,12 @@
 
 namespace IFS
 {
+#define GET_FS(failure)                                                                                                \
+	auto fs = getFileSystem();                                                                                         \
+	if(fs == nullptr) {                                                                                                \
+		return failure;                                                                                                \
+	}
+
 class FsBase
 {
 public:
