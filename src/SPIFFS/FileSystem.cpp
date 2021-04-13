@@ -740,7 +740,7 @@ int FileSystem::getFilePath(FileID fileid, NameBuffer& buffer)
 		err = _spiffs_rd(fs, SPIFFS_OP_T_OBJ_LU2 | SPIFFS_OP_C_READ, 0, SPIFFS_PAGE_TO_PADDR(fs, pix),
 						 sizeof(objix_hdr), reinterpret_cast<u8_t*>(&objix_hdr));
 		if(err == SPIFFS_OK) {
-			err = buffer.copy(reinterpret_cast<const char*>(objix_hdr.name));
+			return buffer.copy(reinterpret_cast<const char*>(objix_hdr.name));
 		}
 	}
 
