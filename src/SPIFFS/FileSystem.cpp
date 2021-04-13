@@ -258,7 +258,7 @@ FileHandle FileSystem::fopen(const Stat& stat, OpenFlags flags)
 	 * a mechanism for an application to circumvent this flag if it becomes
 	 * necessary to change  a file.
 	 */
-	if(stat.attr[FileAttribute::ReadOnly]) {
+	if(flags[OpenFlag::Write] && stat.attr[FileAttribute::ReadOnly]) {
 		return Error::ReadOnly;
 	}
 
@@ -310,7 +310,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	auto smb = initMetaBuffer(file);
 	// If file is marked read-only, fail write requests
 	if(smb != nullptr) {
-		if(smb->meta.attr[FileAttribute::ReadOnly] && (flags[OpenFlag::Write])) {
+		if(flags[OpenFlag::Write] && smb->meta.attr[FileAttribute::ReadOnly]) {
 			SPIFFS_close(handle(), file);
 			return Error::ReadOnly;
 		}
