@@ -1,6 +1,6 @@
 #include <FsTest.h>
 
-String getErrorString(IFileSystem* fs, int err)
+String getErrorString(FileSystem* fs, int err)
 {
 	if(fs == nullptr) {
 		return IFS::Error::toString(err);
@@ -22,10 +22,10 @@ String toString(Flag f)
 	}
 }
 
-void printFsInfo(IFileSystem* fs)
+void printFsInfo(FileSystem* fs)
 {
 	char namebuf[256];
-	IFileSystem::Info info(namebuf, sizeof(namebuf));
+	FileSystem::Info info(namebuf, sizeof(namebuf));
 	int res = fs->getinfo(info);
 	if(res < 0) {
 		debug_e("fileSystemGetInfo(): %s", fs->getErrorString(res).c_str());
@@ -49,7 +49,7 @@ void printFsInfo(IFileSystem* fs)
 
 void printFileInfo(const IFS::Stat& stat)
 {
-	IFileSystem::Info info;
+	FileSystem::Info info;
 	stat.fs->getinfo(info);
 	debug_i("%-50s %8u %s #0x%08x %s %s [%s] {%s, %u}", stat.name.buffer, stat.size, toString(info.type).c_str(),
 			stat.id, timeToStr(stat.mtime, " ").c_str(), toString(stat.acl).c_str(), toString(stat.attr).c_str(),
@@ -69,7 +69,7 @@ String timeToStr(time_t t, const char* dtsep)
 	return buffer;
 }
 
-int listdir(IFS::IFileSystem* fs, const String& path, Flags flags)
+int listdir(IFS::FileSystem* fs, const String& path, Flags flags)
 {
 	debug_i("$ ls %s", path.c_str());
 

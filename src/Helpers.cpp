@@ -35,12 +35,13 @@ time_t fsGetTimeUTC()
 	return SystemClock.now(eTZ_UTC);
 }
 
-IFileSystem* createSpiffsFilesystem(Storage::Partition partition)
+FileSystem* createSpiffsFilesystem(Storage::Partition partition)
 {
-	return new SPIFFS::FileSystem(partition);
+	auto fs = new SPIFFS::FileSystem(partition);
+	return FileSystem::cast(fs);
 }
 
-IFileSystem* createFirmwareFilesystem(Storage::Partition partition)
+FileSystem* createFirmwareFilesystem(Storage::Partition partition)
 {
 	auto store = new FWFS::ObjectStore(partition);
 	if(store == nullptr) {
@@ -52,10 +53,10 @@ IFileSystem* createFirmwareFilesystem(Storage::Partition partition)
 		delete store;
 	}
 
-	return fs;
+	return FileSystem::cast(fs);
 }
 
-IFileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition)
+FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition)
 {
 	auto store = new FWFS::ObjectStore(fwfsPartition);
 	auto fs = new HYFS::FileSystem(store, spiffsPartition);
@@ -64,7 +65,7 @@ IFileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::P
 		delete store;
 	}
 
-	return fs;
+	return FileSystem::cast(fs);
 }
 
 } // namespace IFS

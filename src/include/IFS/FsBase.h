@@ -33,7 +33,7 @@ namespace IFS
 class FsBase
 {
 public:
-	FsBase(IFileSystem* filesys) : fileSystem(filesys)
+	FsBase(IFileSystem* filesys) : fileSystem(FileSystem::cast(filesys))
 	{
 	}
 
@@ -60,7 +60,7 @@ public:
 		if(fileSystem == nullptr) {
 			lastError = Error::NoFileSystem;
 		}
-		return static_cast<FileSystem*>(fileSystem);
+		return fileSystem;
 	}
 
 protected:
@@ -82,7 +82,7 @@ protected:
 	mutable int lastError{FS_OK};
 
 private:
-	IFileSystem* fileSystem;
+	FileSystem* fileSystem;
 };
 
 } // namespace IFS

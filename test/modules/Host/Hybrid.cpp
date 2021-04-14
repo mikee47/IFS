@@ -200,7 +200,7 @@ public:
 
 		if(info.freeSpace < info.volumeSize) {
 			// Filesystem is populated
-			return FileSystem::cast(ffs);
+			return ffs;
 		}
 
 		debug_i("SPIFFS is empty, copy some stuff from FWFS");
@@ -219,19 +219,19 @@ public:
 			} else {
 				IFS::NameStat stat;
 				while((err = fwfs->readdir(dir, stat)) >= 0) {
-					copyfile(FileSystem::cast(ffs), FileSystem::cast(fwfs), stat);
+					copyfile(ffs, fwfs, stat);
 				}
 				fwfs->closedir(dir);
 			}
 		}
 		delete fwfs;
 
-		return FileSystem::cast(ffs);
+		return ffs;
 	}
 
 	FileSystem* initFWFS(Storage::Partition part, Flags flags)
 	{
-		IFileSystem* fs;
+		FileSystem* fs;
 		if(flags[Flag::hybrid]) {
 			auto spiffsPart = createSpiffsPartition(SPIFFS_IMGFILE, FFS_FLASH_SIZE);
 			if(!spiffsPart) {
@@ -253,7 +253,7 @@ public:
 			return nullptr;
 		}
 
-		return FileSystem::cast(fs);
+		return fs;
 	}
 
 	FileSystem* initFWFSOnFile(FileSystem& fileSys, const String& imgfile, Flags flags)

@@ -17,7 +17,6 @@
 		debug_e(func ": %s", ##__VA_ARGS__, file.getLastErrorString().c_str());                                        \
 	} while(0)
 
-using IFileSystem = IFS::IFileSystem;
 using FileSystem = IFS::FileSystem;
 
 #define FLAG_MAP(XX)                                                                                                   \
@@ -34,18 +33,18 @@ enum class Flag {
 
 using Flags = BitSet<uint32_t, Flag, 3>;
 
-String getErrorString(IFileSystem* fs, int err);
+String getErrorString(FileSystem* fs, int err);
 
 String toString(Flag f);
 
-void printFsInfo(IFileSystem* fs);
+void printFsInfo(FileSystem* fs);
 
 void printFileInfo(const IFS::Stat& stat);
 
 // Displays as local time
 String timeToStr(time_t t, const char* dtsep);
 
-int listdir(IFileSystem* fs, const String& path, Flags flags = 0);
+int listdir(FileSystem* fs, const String& path, Flags flags = 0);
 
 void listPartitions();
 void listDevices();
