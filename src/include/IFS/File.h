@@ -95,20 +95,6 @@ public:
 	}
 
 	/**
-	 * @brief open a file from it's stat structure
-     * @param stat obtained from readdir()
-     * @param flags opens for opening file
-     * @retval bool true on success
-     */
-	template <typename T> bool open(DirHandle dir, const T& name, OpenFlags flags)
-	{
-		GET_FS(false);
-		fs->close(handle);
-		handle = fs->openat(dir, name, flags);
-		return check(handle);
-	}
-
-	/**
 	 * @brief close an open file
      * @retval bool true on success
      */

@@ -449,18 +449,6 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	return (res >= 0) ? res : syserr();
 }
 
-FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
-{
-	GET_FILEDIR()
-
-	int fd = dirfd(d->d);
-	if(fd < 0) {
-		return syserr();
-	}
-	int res = ::openat(fd, name, mapFlags(flags), 0644);
-	return (res >= 0) ? res : syserr();
-}
-
 int FileSystem::close(FileHandle file)
 {
 	int res = ::close(file);

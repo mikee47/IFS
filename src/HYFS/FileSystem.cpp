@@ -401,22 +401,6 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	return ffsfile;
 }
 
-FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
-{
-	GET_FILEDIR()
-
-	if(d->fs == &ffs) {
-		return ffs.openat(d->ffs, name, flags);
-	}
-	if(flags[OpenFlag::Write]) {
-		String path = d->path.c_str();
-		path += '/';
-		path += name;
-		return ffs.open(path.c_str(), flags);
-	}
-	return fwfs.openat(d->fw, name, flags);
-}
-
 int FileSystem::close(FileHandle file)
 {
 	GET_FS(file)

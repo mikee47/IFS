@@ -272,14 +272,6 @@ public:
 	virtual FileHandle open(const char* path, OpenFlags flags) = 0;
 
 	/**
-	 * @brief open a file by name only, given the parent directory handle
-     * @param dir obtained from opendir()
-     * @param flags opens for opening file
-     * @retval FileHandle file handle or error code
-     */
-	virtual FileHandle openat(DirHandle dir, const char* name, OpenFlags flags) = 0;
-
-	/**
 	 * @brief close an open file
      * @param file handle to open file
      * @retval int error code

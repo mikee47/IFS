@@ -272,23 +272,6 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	return file;
 }
 
-FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
-{
-	GET_FILEDIR()
-
-	if(name == nullptr || strchr(name, '/') != nullptr) {
-		return Error::BadParam;
-	}
-
-	String path;
-	path.reserve(SPIFFS_OBJ_NAME_LEN);
-	path.setString(d->path, d->pathlen);
-	path += '/';
-	path += name;
-
-	return open(path.c_str(), flags);
-}
-
 int FileSystem::close(FileHandle file)
 {
 	if(file < 0) {

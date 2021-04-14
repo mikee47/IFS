@@ -99,12 +99,6 @@ public:
 		return open(path.c_str(), flags);
 	}
 
-	using IFileSystem::openat;
-	FileHandle openat(DirHandle dir, const String& path, OpenFlags flags)
-	{
-		return openat(dir, path.c_str(), flags);
-	}
-
 	using IFileSystem::ftruncate;
 	int ftruncate(FileHandle file)
 	{

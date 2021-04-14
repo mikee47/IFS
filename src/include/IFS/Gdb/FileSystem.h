@@ -89,10 +89,6 @@ public:
 		return Error::NotSupported;
 	}
 	FileHandle open(const char* path, OpenFlags flags) override;
-	FileHandle openat(DirHandle dir, const char* name, OpenFlags flags) override
-	{
-		return Error::NotSupported;
-	}
 	int close(FileHandle file) override;
 	int read(FileHandle file, void* data, size_t size) override;
 	int write(FileHandle file, const void* data, size_t size) override;
