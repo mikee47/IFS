@@ -140,6 +140,11 @@ public:
 		{
 		}
 
+		uint32_t used() const
+		{
+			return volumeSize - freeSpace;
+		}
+
 		Info& operator=(const Info& rhs)
 		{
 			type = rhs.type;
@@ -155,6 +160,27 @@ public:
 		void clear()
 		{
 			*this = Info{};
+		}
+	};
+
+	/**
+	 * @brief Filesystems may optionally provide performance statistics
+	 */
+	struct PerfStat {
+		uint32_t readCount{0};
+		uint32_t writeCount{0};
+		uint32_t eraseCount{0};
+
+		String toString() const
+		{
+			String s;
+			s += F("Read: ");
+			s += readCount;
+			s += F(", Write: ");
+			s += writeCount;
+			s += F(", Erase: ");
+			s += eraseCount;
+			return s;
 		}
 	};
 
@@ -177,6 +203,16 @@ public:
      * @retval int error code
      */
 	virtual int getinfo(Info& info) = 0;
+
+	/**
+	 * @brief Get performance statistics
+     * @param info structure to read information into
+     * @retval int error code
+     */
+	virtual int getPerfStat(PerfStat& perfStat)
+	{
+		return Error::NotImplemented;
+	}
 
 	/**
 	 * @brief get the text for a returned error code
