@@ -32,6 +32,7 @@
 #include <Storage/Partition.h>
 #include "Error.h"
 #include "Control.h"
+#include "Profiler.h"
 #include <Data/Stream/SeekOrigin.h>
 
 /**
@@ -140,6 +141,11 @@ public:
 		{
 		}
 
+		uint32_t used() const
+		{
+			return volumeSize - freeSpace;
+		}
+
 		Info& operator=(const Info& rhs)
 		{
 			type = rhs.type;
@@ -177,6 +183,16 @@ public:
      * @retval int error code
      */
 	virtual int getinfo(Info& info) = 0;
+
+	/**
+	 * @brief Set profiler instance to enable debugging and performance assessment
+	 * @param profiler
+	 * @retval int error code - profiling may not be supported on all filesystems
+     */
+	virtual int setProfiler(IProfiler* profiler)
+	{
+		return Error::NotImplemented;
+	}
 
 	/**
 	 * @brief get the text for a returned error code
