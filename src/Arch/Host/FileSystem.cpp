@@ -23,6 +23,7 @@
 
 #include <IFS/Host/FileSystem.h>
 #include <IFS/Host/Util.h>
+#include <IFS/Util.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
@@ -47,15 +48,15 @@
 
 namespace IFS
 {
+class FileSystem;
+
+namespace Host
+{
 struct FileDir {
 	CString path;
 	DIR* d;
 };
 
-class FileSystem;
-
-namespace Host
-{
 namespace
 {
 FileSystem hostFileSystem;
@@ -216,25 +217,24 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	}
 
 	d->path = path;
-	dir = d;
+	dir = DirHandle(d);
 	return FS_OK;
 }
 
 int FileSystem::rewinddir(DirHandle dir)
 {
-	if(dir->d == nullptr) {
-		return Error::InvalidHandle;
-	}
-
-	::rewinddir(dir->d);
+	GET_FILEDIR()
+	::rewinddir(d->d);
 	return FS_OK;
 }
 
 int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
+	GET_FILEDIR()
+
 	while(true) {
 		errno = 0;
-		dirent* e = ::readdir(dir->d);
+		dirent* e = ::readdir(d->d);
 		if(e == nullptr) {
 			return syserr() ?: Error::NoMoreFiles;
 		}
@@ -243,7 +243,7 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 			continue;
 		}
 
-		String path = dir->path.c_str();
+		String path = d->path.c_str();
 		path += '/';
 		path += e->d_name;
 		int res = this->stat(path.c_str(), &stat);
@@ -253,8 +253,14 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 int FileSystem::closedir(DirHandle dir)
 {
-	int res = ::closedir(dir->d);
-	return (res >= 0) ? res : syserr();
+	GET_FILEDIR()
+
+	int res = ::closedir(d->d);
+	if(res < 0) {
+		res = syserr();
+	}
+	delete d;
+	return res;
 }
 
 int FileSystem::mkdir(const char* path)
@@ -445,7 +451,9 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
 {
-	int fd = dirfd(dir->d);
+	GET_FILEDIR()
+
+	int fd = dirfd(d->d);
 	if(fd < 0) {
 		return syserr();
 	}

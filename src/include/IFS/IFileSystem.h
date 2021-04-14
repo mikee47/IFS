@@ -63,7 +63,7 @@ class IFileSystem;
 /*
  * Opaque structure for directory reading
  */
-using DirHandle = struct FileDir*;
+using DirHandle = struct ImplFileDir*;
 
 /**
  * @brief Get current timestamp in UTC

@@ -81,6 +81,7 @@
  */
 
 #include "../include/IFS/HYFS/FileSystem.h"
+#include "../include/IFS/Util.h"
 
 #define GET_FS(handle)                                                                                                 \
 	if(handle < 0) {                                                                                                   \
@@ -95,6 +96,8 @@
 
 namespace IFS
 {
+namespace HYFS
+{
 // opendir() uses this structure to track file listing
 struct FileDir {
 	CString path;
@@ -105,8 +108,6 @@ struct FileDir {
 	IFileSystem* fs;
 };
 
-namespace HYFS
-{
 int FileSystem::mount()
 {
 	// Mount both filesystems so they take ownership of the media objects
@@ -208,39 +209,37 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	}
 
 	d->path = path;
-	dir = d;
+	dir = DirHandle(d);
 	return FS_OK;
 }
 
 int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
 	int res;
 
 	// FFS ?
-	if(dir->fs == &ffs) {
+	if(d->fs == &ffs) {
 		// Use a temporary stat in case it's not provided
 		NameStat s;
-		res = ffs.readdir(dir->ffs, s);
+		res = ffs.readdir(d->ffs, s);
 		if(res >= 0) {
 			stat = s;
 			char* path = s.name.buffer;
-			auto pathlen = dir->path.length();
+			auto pathlen = d->path.length();
 			if(pathlen != 0) {
 				memmove(path + pathlen + 1, path, s.name.length);
 				path[pathlen] = '/';
 			}
-			memcpy(path, dir->path.c_str(), pathlen);
+			memcpy(path, d->path.c_str(), pathlen);
 			hideFWFile(path, true);
 			return res;
 		}
 
 		// End of FFS files
-		if(dir->fw == nullptr) {
-			res = fwfs.opendir(dir->path.c_str(), dir->fw);
+		if(d->fw == nullptr) {
+			res = fwfs.opendir(d->path.c_str(), d->fw);
 			if(res == Error::NotFound) {
 				return Error::NoMoreFiles;
 			}
@@ -248,13 +247,13 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 				return res;
 			}
 		}
-		dir->fs = &fwfs;
-	} else if(dir->fs != &fwfs) {
+		d->fs = &fwfs;
+	} else if(d->fs != &fwfs) {
 		return Error::BadParam;
 	}
 
 	do {
-		res = fwfs.readdir(dir->fw, stat);
+		res = fwfs.readdir(d->fw, stat);
 		if(res < 0) {
 			break;
 		}
@@ -265,35 +264,31 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 int FileSystem::rewinddir(DirHandle dir)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
-	if(dir->fw != nullptr) {
-		dir->fs = &fwfs;
-		int res = fwfs.rewinddir(dir->fw);
+	if(d->fw != nullptr) {
+		d->fs = &fwfs;
+		int res = fwfs.rewinddir(d->fw);
 		if(res < 0) {
 			return res;
 		}
 	}
 
-	if(dir->ffs == nullptr) {
+	if(d->ffs == nullptr) {
 		return FS_OK;
 	}
 
-	dir->fs = &ffs;
-	return ffs.rewinddir(dir->ffs);
+	d->fs = &ffs;
+	return ffs.rewinddir(d->ffs);
 }
 
 int FileSystem::closedir(DirHandle dir)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
-	fwfs.closedir(dir->fw);
-	ffs.closedir(dir->ffs);
-	delete dir;
+	fwfs.closedir(d->fw);
+	ffs.closedir(d->ffs);
+	delete d;
 
 	return FS_OK;
 }
@@ -408,16 +403,18 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 FileHandle FileSystem::openat(DirHandle dir, const char* name, OpenFlags flags)
 {
-	if(dir->fs == &ffs) {
-		return ffs.openat(dir->ffs, name, flags);
+	GET_FILEDIR()
+
+	if(d->fs == &ffs) {
+		return ffs.openat(d->ffs, name, flags);
 	}
 	if(flags[OpenFlag::Write]) {
-		String path = dir->path.c_str();
+		String path = d->path.c_str();
 		path += '/';
 		path += name;
 		return ffs.open(path.c_str(), flags);
 	}
-	return fwfs.openat(dir->fw, name, flags);
+	return fwfs.openat(d->fw, name, flags);
 }
 
 int FileSystem::close(FileHandle file)
