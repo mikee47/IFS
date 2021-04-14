@@ -114,6 +114,11 @@ public:
 
 	bool next();
 
+	DirHandle handle() const
+	{
+		return dir;
+	}
+
 private:
 	String name;
 	DirHandle dir{};

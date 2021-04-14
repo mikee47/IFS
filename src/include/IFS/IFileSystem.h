@@ -231,6 +231,14 @@ public:
 	virtual int mkdir(const char* path) = 0;
 
 	/**
+	 * @brief Create a directory from an existing directory handle plus name
+	 * @param dir Handle to parent directory
+	 * @param name Name of directory to create
+	 * @retval int error code
+	 */
+	virtual int mkdirat(DirHandle dir, const char* name) = 0;
+
+	/**
 	 * @brief get file information
      * @param path name or path of file
      * @param s structure to return information in, may be null to do a simple file existence check

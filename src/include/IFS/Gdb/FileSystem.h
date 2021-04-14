@@ -70,6 +70,10 @@ public:
 	{
 		return Error::NotSupported;
 	}
+	int mkdirat(DirHandle dir, const char* name) override
+	{
+		return Error::NotSupported;
+	}
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
 	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override

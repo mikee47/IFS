@@ -100,13 +100,21 @@ public:
      * @param flags opens for opening file
      * @retval bool true on success
      */
-	template <typename T> bool open(DirHandle dir, const T& name, OpenFlags flags)
+	template <typename T> bool open(DirHandle dir, const T& name, OpenFlags flags = OpenFlag::Read)
 	{
 		GET_FS(false);
 		fs->close(handle);
 		handle = fs->openat(dir, name, flags);
 		return check(handle);
 	}
+
+	// template <typename T> bool open(Directory& dir, const T& name, OpenFlags flags)
+	// {
+	// 	if(dir.getFileSystem() != fileSystem) {
+	// 		return Error::BadParam;
+	// 	}
+	// 	return open(dir.handle(), name, flags);
+	// }
 
 	/**
 	 * @brief close an open file

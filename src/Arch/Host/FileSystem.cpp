@@ -273,6 +273,23 @@ int FileSystem::mkdir(const char* path)
 	return (res >= 0) ? res : syserr();
 }
 
+int FileSystem::mkdirat(DirHandle dir, const char* name)
+{
+	GET_FILEDIR()
+
+	int fd = dirfd(d->d);
+	if(fd < 0) {
+		return syserr();
+	}
+
+#ifdef __WIN32
+	int res = ::mkdirat(fd, name);
+#else
+	int res = ::mkdirat(fd, name, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+#endif
+	return (res >= 0) ? res : syserr();
+}
+
 void FileSystem::fillStat(const struct stat& s, Stat& stat)
 {
 	stat = Stat{};

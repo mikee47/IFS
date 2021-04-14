@@ -299,6 +299,12 @@ int FileSystem::mkdir(const char* path)
 	return Error::NotImplemented;
 }
 
+int FileSystem::mkdirat(DirHandle dir, const char* name)
+{
+	// TODO
+	return Error::NotImplemented;
+}
+
 /*
  * For writing we need to do some work.
  *

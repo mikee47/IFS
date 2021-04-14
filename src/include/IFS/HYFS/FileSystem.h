@@ -70,6 +70,7 @@ public:
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
 	int mkdir(const char* path) override;
+	int mkdirat(DirHandle dir, const char* name) override;
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;

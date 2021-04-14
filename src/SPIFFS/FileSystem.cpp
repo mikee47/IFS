@@ -685,6 +685,12 @@ int FileSystem::mkdir(const char* path)
 	return Error::NotImplemented;
 }
 
+int FileSystem::mkdirat(DirHandle dir, const char* name)
+{
+	// TODO
+	return Error::NotImplemented;
+}
+
 int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	FS_CHECK_PATH(oldpath);

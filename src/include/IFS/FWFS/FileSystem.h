@@ -120,6 +120,10 @@ public:
 	{
 		return Error::ReadOnly;
 	}
+	int mkdirat(DirHandle dir, const char* name) override
+	{
+		return Error::ReadOnly;
+	}
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
