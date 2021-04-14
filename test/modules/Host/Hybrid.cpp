@@ -81,27 +81,30 @@ public:
 
 	Storage::Partition createSpiffsPartition(const String& imgfile, size_t size)
 	{
-		Storage::Partition part;
+		auto part = Storage::findPartition(F("spiffs"));
+		if(part) {
+			return part;
+		}
 
 		auto& hostfs = IFS::Host::getFileSystem();
 		auto file = hostfs.open(imgfile, File::Create | File::ReadWrite);
-		debug_ifs(&hostfs, file, "open('%s'", imgfile.c_str());
+		debug_ifs(&hostfs, file, "open('%s')", imgfile.c_str());
 
 		if(file < 0) {
 			TEST_ASSERT(false);
-		} else {
-			size_t curSize = hostfs.getSize(file);
-			if(curSize < FFS_FLASH_SIZE) {
-				hostfs.ftruncate(file, FFS_FLASH_SIZE);
-			}
-			auto dev = new Storage::FileDevice(imgfile, hostfs, file);
-			Storage::registerDevice(dev);
-			if(curSize < FFS_FLASH_SIZE) {
-				dev->erase_range(curSize, FFS_FLASH_SIZE - curSize);
-			}
-			part = dev->createPartition("spiffs", Storage::Partition::SubType::Data::spiffs, 0, FFS_FLASH_SIZE);
+			return part;
 		}
 
+		size_t curSize = hostfs.getSize(file);
+		if(curSize < FFS_FLASH_SIZE) {
+			hostfs.ftruncate(file, FFS_FLASH_SIZE);
+		}
+		auto dev = new Storage::FileDevice(imgfile, hostfs, file);
+		Storage::registerDevice(dev);
+		if(curSize < FFS_FLASH_SIZE) {
+			dev->erase_range(curSize, FFS_FLASH_SIZE - curSize);
+		}
+		part = dev->createPartition("spiffs", Storage::Partition::SubType::Data::spiffs, 0, FFS_FLASH_SIZE);
 		return part;
 	}
 
@@ -385,7 +388,7 @@ public:
 
 			IFS::Stat stat;
 			int err = fs->stat(filename, &stat);
-			if (err < 0) {
+			if(err < 0) {
 				debug_e("> %s: %d", filename.c_str(), err);
 				continue;
 			}
