@@ -236,12 +236,12 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	 * (truncate) during the open phase until this has been checked.
 	 */
 
-	spiffs_flags sflags;
-	if(mapFileOpenFlags(flags - OpenFlag::Truncate, sflags).any()) {
+	spiffs_flags oflags;
+	if(mapFileOpenFlags(flags - OpenFlag::Truncate, oflags).any()) {
 		return FileHandle(Error::NotSupported);
 	}
 
-	auto file = SPIFFS_open(handle(), path, sflags, 0);
+	auto file = SPIFFS_open(handle(), path, oflags, 0);
 	if(file < 0) {
 		int err = Error::fromSystem(file);
 		debug_ifserr(err, "open('%s')", path);

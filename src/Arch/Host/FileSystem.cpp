@@ -265,10 +265,10 @@ int FileSystem::closedir(DirHandle dir)
 
 int FileSystem::mkdir(const char* path)
 {
-#ifdef __linux__
-	int res = ::mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-#else
+#ifdef __WIN32
 	int res = ::mkdir(path);
+#else
+	int res = ::mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
 	return (res >= 0) ? res : syserr();
 }
