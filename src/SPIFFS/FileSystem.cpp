@@ -739,24 +739,5 @@ int FileSystem::fremove(FileHandle file)
 	return Error::fromSystem(err);
 }
 
-int FileSystem::getFilePath(FileID fileid, NameBuffer& buffer)
-{
-	auto fs = handle();
-	spiffs_block_ix block_ix;
-	int lu_entry;
-	int err = spiffs_obj_lu_find_id(fs, 0, 0, fileid | SPIFFS_OBJ_ID_IX_FLAG, &block_ix, &lu_entry);
-	if(err == SPIFFS_OK) {
-		spiffs_page_object_ix_header objix_hdr;
-		spiffs_page_ix pix = SPIFFS_OBJ_LOOKUP_ENTRY_TO_PIX(fs, block_ix, lu_entry);
-		err = _spiffs_rd(fs, SPIFFS_OP_T_OBJ_LU2 | SPIFFS_OP_C_READ, 0, SPIFFS_PAGE_TO_PADDR(fs, pix),
-						 sizeof(objix_hdr), reinterpret_cast<u8_t*>(&objix_hdr));
-		if(err == SPIFFS_OK) {
-			return buffer.copy(reinterpret_cast<const char*>(objix_hdr.name));
-		}
-	}
-
-	return Error::fromSystem(err);
-}
-
 } // namespace SPIFFS
 } // namespace IFS

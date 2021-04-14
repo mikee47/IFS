@@ -99,13 +99,6 @@ public:
 	int format() override;
 	int check() override;
 
-	/** @brief get the full path of a file from its ID
-	 *  @param fileid
-	 *  @param buffer
-	 *  @retval int error code
-	 */
-	int getFilePath(FileID fileid, NameBuffer& buffer);
-
 private:
 	spiffs* handle()
 	{

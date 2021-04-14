@@ -223,17 +223,18 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 	// FFS ?
 	if(dir->fs == &ffs) {
 		// Use a temporary stat in case it's not provided
-		res = ffs.readdir(dir->ffs, stat);
+		NameStat s;
+		res = ffs.readdir(dir->ffs, s);
 		if(res >= 0) {
-			char buf[SPIFFS_OBJ_NAME_LEN];
-			NameBuffer name(buf, sizeof(buf));
-			int err = ffs.getFilePath(stat.id, name);
-			if(err < 0) {
-				debug_e("getFilePath(%u) error %d", stat.id, err);
-			} else {
-				debug_d("getFilePath(%u) - '%s'", stat.id, buf);
-				hideFWFile(name.buffer, true);
+			stat = s;
+			char* path = s.name.buffer;
+			auto pathlen = dir->path.length();
+			if(pathlen != 0) {
+				memmove(path + pathlen + 1, path, s.name.length);
+				path[pathlen] = '/';
 			}
+			memcpy(path, dir->path.c_str(), pathlen);
+			hideFWFile(path, true);
 			return res;
 		}
 
