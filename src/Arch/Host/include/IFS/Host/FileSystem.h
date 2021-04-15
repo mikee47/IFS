@@ -72,21 +72,12 @@ public:
 	int eof(FileHandle file) override;
 	int32_t tell(FileHandle file) override;
 	int ftruncate(FileHandle file, size_t new_size) override;
-	int flush(FileHandle file) override
-	{
-		return Error::ReadOnly;
-	}
-	int rename(const char* oldpath, const char* newpath) override
-	{
-		return Error::ReadOnly;
-	}
-	int remove(const char* path) override
-	{
-		return Error::ReadOnly;
-	}
+	int flush(FileHandle file) override;
+	int rename(const char* oldpath, const char* newpath) override;
+	int remove(const char* path) override;
 	int fremove(FileHandle file) override
 	{
-		return Error::ReadOnly;
+		return Error::NotImplemented;
 	}
 	int format() override
 	{
