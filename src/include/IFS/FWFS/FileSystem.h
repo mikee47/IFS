@@ -90,16 +90,10 @@ public:
 	{
 	}
 
-	/** @brief Set volume for mountpoint
-	 *  @param index Volume index
-	 *  @param fileSystem The filesystem to root at this mountpoint
-	 *  @retval int error code
-	 */
-	int setVolume(uint8_t index, IFileSystem* fileSystem);
-
 	// IFileSystem methods
 	int mount() override;
 	int getinfo(Info& info) override;
+	int setVolume(uint8_t index, IFileSystem* fileSystem) override;
 	int opendir(const char* path, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;

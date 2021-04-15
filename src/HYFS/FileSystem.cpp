@@ -155,6 +155,11 @@ String FileSystem::getErrorString(int err)
 	}
 }
 
+int FileSystem::setVolume(uint8_t index, IFileSystem* fileSystem)
+{
+	return fwfs->setVolume(index, fileSystem);
+}
+
 int FileSystem::hideFWFile(const char* path, bool hide)
 {
 	int res = FS_OK;

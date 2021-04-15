@@ -204,6 +204,17 @@ public:
 	}
 
 	/**
+	 * @brief Set volume for mountpoint
+	 * @param index Volume index
+	 * @param fileSystem The filesystem to root at this mountpoint
+	 * @retval int error code
+	 */
+	virtual int setVolume(uint8_t index, IFileSystem* fileSystem)
+	{
+		return Error::NotSupported;
+	}
+
+	/**
 	 * @brief open a directory for reading
      * @param path path to directory. nullptr is interpreted as root directory
      * @param dir returns a pointer to the directory object
