@@ -32,6 +32,7 @@
 #ifdef __WIN32
 #include <sys/utime.h>
 #include "Windows/xattr.h"
+#include "Windows/fsync.h"
 #else
 #include <sys/xattr.h>
 #include <utime.h>
