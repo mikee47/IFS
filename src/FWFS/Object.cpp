@@ -20,7 +20,7 @@
  ****/
 
 #include <IFS/FWFS/Object.h>
-#include <FlashString/Vector.hpp>
+#include <FlashString/Map.hpp>
 
 namespace IFS
 {
@@ -36,15 +36,16 @@ namespace
 FWFS_OBJTYPE_MAP(XX)
 #undef XX
 
-#define XX(value, tag, text) &str_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FWFS_OBJTYPE_MAP(XX))
+using Type = IFS::FWFS::Object::Type;
+#define XX(value, tag, text) {Type::tag, &str_##tag},
+DEFINE_FSTR_MAP_LOCAL(typeStrings, Type, FSTR::String, FWFS_OBJTYPE_MAP(XX))
 #undef XX
 
 } // namespace
 
-String toString(IFS::FWFS::Object::Type obt)
+String toString(Type obt)
 {
-	String s = typeStrings[unsigned(obt)];
+	String s = typeStrings[obt].content();
 	if(!s) {
 		// Custom object type?
 		s = '#';
