@@ -23,7 +23,7 @@
 #pragma once
 
 #include "../FileSystem.h"
-#include "../ObjectStore.h"
+#include "Object.h"
 #ifdef FWFS_OBJECT_CACHE
 #include "ObjRefCache.h"
 #endif

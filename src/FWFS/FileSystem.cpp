@@ -19,9 +19,9 @@
  *
  ****/
 
-#include "../include/IFS/FWFS/FileSystem.h"
-#include "../include/IFS/Object.h"
-#include "../include/IFS/Util.h"
+#include <IFS/FWFS/FileSystem.h>
+#include <IFS/FWFS/Object.h>
+#include <IFS/Util.h>
 
 namespace IFS
 {

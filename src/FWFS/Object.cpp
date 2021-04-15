@@ -19,13 +19,16 @@
  *
  ****/
 
-#include "include/IFS/Object.h"
+#include <IFS/FWFS/Object.h>
 #include <FlashString/Vector.hpp>
 
 namespace IFS
 {
+namespace FWFS
+{
 constexpr uint8_t Object::FWOBT_REF;
 }
+} // namespace IFS
 
 namespace
 {
@@ -39,7 +42,7 @@ DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FWFS_OBJTYPE_MAP(XX))
 
 } // namespace
 
-String toString(IFS::Object::Type obt)
+String toString(IFS::FWFS::Object::Type obt)
 {
 	String s = typeStrings[unsigned(obt)];
 	if(!s) {

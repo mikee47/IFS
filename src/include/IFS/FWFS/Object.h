@@ -72,12 +72,14 @@
 
 #pragma once
 
-#include "TimeStamp.h"
-#include "FileAttributes.h"
-#include "Compression.h"
-#include "UserRole.h"
+#include "../TimeStamp.h"
+#include "../FileAttributes.h"
+#include "../Compression.h"
+#include "../UserRole.h"
 
 namespace IFS
+{
+namespace FWFS
 {
 /*
  * Helper template function to get the next object pointer at (current + offset)
@@ -393,9 +395,65 @@ static_assert(sizeof(Object) == 8, "Object alignment wrong!");
 
 #pragma pack()
 
+/**
+ * @brief gives the identity and location of an FWFS object
+ */
+struct ObjRef {
+	uint32_t offset{0}; ///< Offset from start of image
+	Object::ID id{0};
+	uint8_t readCount{0}; ///< For profiling
+
+	ObjRef(Object::ID objID = 0) : id(objID)
+	{
+	}
+};
+
+/**
+ * @brief FWFS Object Descriptor
+ */
+struct FWObjDesc {
+	Object obj; ///< The object structure
+	ObjRef ref; ///< location
+
+	FWObjDesc()
+	{
+	}
+
+	FWObjDesc(const ObjRef& objRef) : ref(objRef)
+	{
+	}
+
+	FWObjDesc(uint32_t objId) : ref(objId)
+	{
+	}
+
+	uint32_t nextOffset() const
+	{
+		return ref.offset + obj.sizeAligned();
+	}
+
+	// Move to next object location
+	void next()
+	{
+		ref.offset = nextOffset();
+		++ref.id;
+	}
+
+	uint32_t contentOffset() const
+	{
+		return ref.offset + obj.contentOffset();
+	}
+
+	uint32_t childTableOffset() const
+	{
+		return ref.offset + obj.childTableOffset();
+	}
+};
+
+} // namespace FWFS
 } // namespace IFS
 
 /**
  * @brief Get descriptive String for an object type
  */
-String toString(IFS::Object::Type obt);
+String toString(IFS::FWFS::Object::Type obt);
