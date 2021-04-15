@@ -71,9 +71,10 @@ void FileSystem::printObject(const FWObjDesc& od)
 	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());
 }
 
-/** @brief initialise Stat structure and copy information from directory entry
- *  @param stat
- *  @param entry
+/**
+ * @brief initialise Stat structure and copy information from directory entry
+ * @param stat
+ * @param entry
  */
 int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 {
@@ -104,41 +105,38 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 			} else {
 				stat.size += child.obj.contentSize();
 			}
-		} else {
-			switch(child.obj.type()) {
-			case Object::Type::ObjAttr: {
-				Object::Attributes attr = child.obj.data8.objectAttributes.attr;
-				if(attr[Object::Attribute::ReadOnly]) {
-					stat.attr |= FileAttribute::ReadOnly;
-				}
-				if(attr[Object::Attribute::Archive]) {
-					stat.attr |= FileAttribute::Archive;
-				}
-				break;
-			}
-
-			case Object::Type::ObjectStore:
-				stat.attr |= FileAttribute::MountPoint + FileAttribute::Directory;
-				break;
-
-			case Object::Type::Compression:
-				stat.attr |= FileAttribute::Compressed;
-				stat.compression.type = child.obj.data8.compression.type;
-				stat.compression.originalSize = child.obj.data8.compression.originalSize;
-				break;
-
-			case Object::Type::ReadACE:
-				stat.acl.readAccess = child.obj.data8.ace.role;
-				break;
-
-			case Object::Type::WriteACE:
-				stat.acl.writeAccess = child.obj.data8.ace.role;
-				break;
-
-			default:; // Not interested
-			}
+			child.next();
+			continue;
 		}
 
+		switch(child.obj.type()) {
+		case Object::Type::ObjAttr: {
+			Object::Attributes attr = child.obj.data8.objectAttributes.attr;
+			if(attr[Object::Attribute::ReadOnly]) {
+				stat.attr |= FileAttribute::ReadOnly;
+			}
+			if(attr[Object::Attribute::Archive]) {
+				stat.attr |= FileAttribute::Archive;
+			}
+			break;
+		}
+
+		case Object::Type::Compression:
+			stat.attr |= FileAttribute::Compressed;
+			stat.compression.type = child.obj.data8.compression.type;
+			stat.compression.originalSize = child.obj.data8.compression.originalSize;
+			break;
+
+		case Object::Type::ReadACE:
+			stat.acl.readAccess = child.obj.data8.ace.role;
+			break;
+
+		case Object::Type::WriteACE:
+			stat.acl.writeAccess = child.obj.data8.ace.role;
+			break;
+
+		default:; // Not interested
+		}
 		child.next();
 	}
 
@@ -550,6 +548,9 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 			res = openChildObject(odDir, od, child);
 			if(res >= 0) {
 				res = fillStat(stat, child);
+			}
+			if(od.obj.isMountPoint()) {
+				stat.attr += FileAttribute::MountPoint + FileAttribute::Directory;
 			}
 			od.next();
 			break;
