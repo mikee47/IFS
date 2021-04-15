@@ -40,4 +40,13 @@ namespace IFS
 		}                                                                                                              \
 	}
 
+/*
+ * Methods with a DirHandle parameter use this to check and cast to locally defined FileDir*
+ */
+#define GET_FILEDIR()                                                                                                  \
+	if(dir == nullptr) {                                                                                               \
+		return Error::InvalidHandle;                                                                                   \
+	}                                                                                                                  \
+	auto d = reinterpret_cast<FileDir*>(dir);
+
 } // namespace IFS

@@ -25,9 +25,8 @@
 
 namespace IFS
 {
-/** @brief SPIFFS directory object
- *
- */
+namespace SPIFFS
+{
 struct FileDir {
 	char path[SPIFFS_OBJ_NAME_LEN]; ///< Filter for readdir()
 	unsigned pathlen;
@@ -35,8 +34,12 @@ struct FileDir {
 	spiffs_DIR d;
 };
 
-namespace SPIFFS
-{
+#define GET_FILEDIR()                                                                                                  \
+	if(dir == nullptr) {                                                                                               \
+		return Error::InvalidHandle;                                                                                   \
+	}                                                                                                                  \
+	auto d = reinterpret_cast<FileDir*>(dir);
+
 constexpr uint32_t logicalBlockSize{4096 * 2};
 
 namespace
@@ -530,7 +533,7 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 		}
 	}
 
-	auto d = new FileDir;
+	auto d = new FileDir{};
 	if(d == nullptr) {
 		return Error::NoMem;
 	}
@@ -549,22 +552,19 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	d->path[pathlen] = '\0';
 	d->pathlen = pathlen;
 
-	dir = d;
+	dir = DirHandle(d);
 	return FS_OK;
 }
 
 int FileSystem::rewinddir(DirHandle dir)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
-	SPIFFS_closedir(&dir->d);
-	dir->directories.setLength(0);
-	if(SPIFFS_opendir(handle(), nullptr, &dir->d) == nullptr) {
+	GET_FILEDIR()
+
+	SPIFFS_closedir(&d->d);
+	d->directories.setLength(0);
+	if(SPIFFS_opendir(handle(), nullptr, &d->d) == nullptr) {
 		int err = SPIFFS_errno(handle());
-		err = Error::fromSystem(err);
-		debug_ifserr(err, "opendir");
-		return err;
+		return Error::fromSystem(err);
 	}
 
 	return FS_OK;
@@ -572,13 +572,11 @@ int FileSystem::rewinddir(DirHandle dir)
 
 int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
 	spiffs_dirent e;
 	for(;;) {
-		if(SPIFFS_readdir(&dir->d, &e) == nullptr) {
+		if(SPIFFS_readdir(&d->d, &e) == nullptr) {
 			int err = SPIFFS_errno(handle());
 			if(err == SPIFFS_VIS_END) {
 				return Error::NoMoreFiles;
@@ -595,23 +593,23 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 		// For sub-directories, match the parsing path
 		auto len = strlen(name);
-		if(dir->pathlen != 0) {
-			if(len <= dir->pathlen) {
-				//				debug_i("Ignoring '%s' - too short for '%s'", name, dir->path);
+		if(d->pathlen != 0) {
+			if(len <= d->pathlen) {
+				//				debug_i("Ignoring '%s' - too short for '%s'", name, d->path);
 				continue;
 			}
 
-			if(name[dir->pathlen] != '/') {
-				//				debug_i("Ignoring '%s' - no '/' in expected position to match '%s'", name, dir->path);
+			if(name[d->pathlen] != '/') {
+				//				debug_i("Ignoring '%s' - no '/' in expected position to match '%s'", name, d->path);
 				continue;
 			}
 
-			if(memcmp(dir->path, name, dir->pathlen) != 0) {
-				//				debug_i("Ignoring '%s' - doesn't match '%s'", name, dir->path);
+			if(memcmp(d->path, name, d->pathlen) != 0) {
+				//				debug_i("Ignoring '%s' - doesn't match '%s'", name, d->path);
 				continue;
 			}
 
-			name += dir->pathlen + 1;
+			name += d->pathlen + 1;
 		}
 
 		// This is a child directory
@@ -622,8 +620,8 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 			// Emit directory names only once
 			auto dirEmitted = [&]() {
 				unsigned i = 0;
-				while(i < dir->directories.length()) {
-					auto p = &dir->directories[i];
+				while(i < d->directories.length()) {
+					auto p = &d->directories[i];
 					auto len = strlen(p);
 					if(strcmp(p, name) == 0) {
 						return true;
@@ -635,7 +633,7 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 			if(dirEmitted()) {
 				continue;
 			}
-			dir->directories.concat(name, len);
+			d->directories.concat(name, len);
 		}
 
 		stat = Stat{};
@@ -661,12 +659,10 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 int FileSystem::closedir(DirHandle dir)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
-	int err = SPIFFS_closedir(&dir->d);
-	delete dir;
+	int err = SPIFFS_closedir(&d->d);
+	delete d;
 	return Error::fromSystem(err);
 }
 
