@@ -91,11 +91,11 @@ public:
 	}
 
 	/** @brief Set volume for mountpoint
-	 *  @param num Number of mountpoint
+	 *  @param index Volume index
 	 *  @param fileSystem The filesystem to root at this mountpoint
 	 *  @retval int error code
 	 */
-	int setVolume(uint8_t num, IFileSystem* fileSystem);
+	int setVolume(uint8_t index, IFileSystem* fileSystem);
 
 	// IFileSystem methods
 	int mount() override;
@@ -334,8 +334,8 @@ private:
 
 	int findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId);
 	int findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen);
-	int findObjectByPath(const char* path, FWObjDesc& od);
-	int resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved);
+	int findObjectByPath(const char*& path, FWObjDesc& od);
+	int resolveMountPoint(const FWObjDesc& odMountPoint, IFileSystem*& fileSystem);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
 	FileHandle allocateFileDescriptor(FWObjDesc& odFile);
@@ -345,7 +345,7 @@ private:
 	void printObject(const FWObjDesc& od);
 
 private:
-	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
+	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index
 	ACL rootACL;
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 	enum class Flag {

@@ -30,7 +30,7 @@ class FwObt(IntEnum):
     Compression = 4,
     ReadACE = 5,  # minimum UserRole for read access
     WriteACE = 6,  # minimum UserRole for write access
-    ObjectStore = 7, # Identifier for object store
+    VolumeIndex = 7, # Volume index number
     Md5Hash = 8, # MD5 Hash Value
     # 2-byte sized
     Data16 = 32,
@@ -257,10 +257,10 @@ class AceObject(Object8):
         return self.__role.name
 
 
-class ObjectStoreObject(Object8):
+class VolumeIndexObject(Object8):
     """Identifies an object store for a mount point"""
     def __init__(self, parent, store):
-        super().__init__(parent, FwObt.ObjectStore)
+        super().__init__(parent, FwObt.VolumeIndex)
         if isNumberType(store):
             self.__store = store
         else:
@@ -429,7 +429,7 @@ class NamedObject(Object16):
 
     def appendMountPoint(self, target, store):
         mp = MountPoint(self, target)
-        ObjectStoreObject(mp, store)
+        VolumeIndexObject(mp, store)
 
     def findInheritableObject(self, obt):
         obj = self.findObject(obt)

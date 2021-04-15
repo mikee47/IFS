@@ -229,13 +229,13 @@ int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 	return newOffset;
 }
 
-int FileSystem::setVolume(uint8_t num, IFileSystem* fileSystem)
+int FileSystem::setVolume(uint8_t index, IFileSystem* fileSystem)
 {
-	if(num >= FWFS_MAX_VOLUMES || fileSystem == this) {
-		return Error::BadVolume;
+	if(index >= FWFS_MAX_VOLUMES || fileSystem == this) {
+		return Error::BadVolumeIndex;
 	}
 
-	volumes[num].fileSystem.reset(fileSystem);
+	volumes[index].fileSystem.reset(fileSystem);
 	return FS_OK;
 }
 
@@ -378,26 +378,28 @@ int FileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child,
 	return res == Error::EndOfObjects ? Error::NotFound : res;
 }
 
-// int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved)
-// {
-// 	assert(odMountPoint.obj.isMountPoint());
+int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, IFileSystem*& fileSystem)
+{
+	assert(odMountPoint.obj.isMountPoint());
 
-// 	FWObjDesc odStore;
-// 	int res = findChildObjectHeader(odMountPoint, odStore, Object::Type::ObjectStore);
-// 	if(res < 0) {
-// 		debug_e("Mount point missing object store");
-// 		return res;
-// 	}
+	FWObjDesc odVolumeIndex;
+	int res = findChildObjectHeader(odMountPoint, odVolumeIndex, Object::Type::VolumeIndex);
+	if(res < 0) {
+		debug_e("Mount point missing volume index");
+		return res;
+	}
 
-// 	auto storenum = odStore.obj.data8.objectStore.storenum;
-// 	auto& vol = volumes[storenum];
-// 	if(vol.fileSystem == nullptr) {
-// 		return Error::NotMounted;
-// 	}
+	auto index = odVolumeIndex.obj.data8.volumeIndex.index;
+	if(index >= FWFS_MAX_VOLUMES) {
+		return Error::BadVolumeIndex;
+	}
+	fileSystem = volumes[index].fileSystem.get();
+	if(fileSystem == nullptr) {
+		return Error::NotMounted;
+	}
 
-// 	// Locate the root directory
-// 	return openRootObject(vol, odResolved);
-// }
+	return FS_OK;
+}
 
 /** @brief find object by name
  *  @param parent container object
@@ -512,16 +514,23 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		FileHandle handle = allocateFileDescriptor(od);
-		if(handle < 0) {
-			res = handle;
-		} else {
-			dir = reinterpret_cast<DirHandle>(handle);
-		}
+	if(res < 0) {
+		return res;
 	}
 
-	return res;
+	if(od.obj.isMountPoint()) {
+		IFileSystem* fs;
+		res = resolveMountPoint(od, fs);
+		return (res < 0) ? res : fs->opendir(path, dir);
+	}
+
+	FileHandle handle = allocateFileDescriptor(od);
+	if(handle < 0) {
+		return handle;
+	}
+
+	dir = reinterpret_cast<DirHandle>(handle);
+	return FS_OK;
 }
 
 /* Reading a directory simply gets details about any child named objects.
@@ -583,14 +592,14 @@ int FileSystem::closedir(DirHandle dir)
 }
 
 /** @brief find object by path
- *  @param path full path for object
+ *  @param path full path for object, OUT: If a link is encountered the path tail will be returned.
  *  @param od descriptor for located object
  *  @retval error code
  *  @note specifying an empty string or nullptr for path will fetch the root directory object
  *  Called by open, opendir and stat methods.
  *  @todo track ACEs during path traversal and store resultant ACL in file descriptor.
  */
-int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
+int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 {
 #ifdef DEBUG_FWFS
 	ElapseTimer timer;
@@ -622,7 +631,9 @@ int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
 		}
 
 		tail += namelen + 1;
-	} while(sep);
+	} while(sep != nullptr && !od.obj.isMountPoint());
+
+	path = tail;
 
 #ifdef DEBUG_FWFS
 	debug_d(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
@@ -640,11 +651,17 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		res = allocateFileDescriptor(od);
+	if(res < 0) {
+		return res;
 	}
 
-	return res;
+	if(od.obj.isMountPoint()) {
+		IFileSystem* fs;
+		res = resolveMountPoint(od, fs);
+		return (res < 0) ? res : fs->open(path, flags);
+	}
+
+	return allocateFileDescriptor(od);
 }
 
 int FileSystem::close(FileHandle file)
@@ -663,11 +680,21 @@ int FileSystem::stat(const char* path, Stat* stat)
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		if(stat) {
-			res = fillStat(*stat, od);
-		}
+
+	if(res < 0) {
+		return res;
 	}
+
+	if(od.obj.isMountPoint()) {
+		IFileSystem* fs;
+		res = resolveMountPoint(od, fs);
+		return (res < 0) ? res : fs->stat(path, stat);
+	}
+
+	if(stat) {
+		res = fillStat(*stat, od);
+	}
+
 	return res;
 }
 

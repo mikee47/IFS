@@ -121,7 +121,7 @@ template <typename T> static T at_offset(void* current, int offset)
 	XX(4, Compression, "Compression descriptor")                                                                       \
 	XX(5, ReadACE, "minimum UserRole for read access")                                                                 \
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
-	XX(7, ObjectStore, "Identifier for object store")                                                                  \
+	XX(7, VolumeIndex, "Volume index number")                                                                          \
 	XX(8, Md5Hash, "MD5 Hash Value")                                                                                   \
 	XX(32, Data16, "Data, max 64K - 1")                                                                                \
 	XX(33, Volume, "Volume, top-level container object")                                                               \
@@ -245,10 +245,10 @@ struct Object {
 					UserRole role;
 				} ace;
 
-				// Identifies an object store, contained in a mount point
+				// Identifies a volume index, contained in a mount point
 				struct {
-					uint8_t storenum;
-				} objectStore;
+					uint8_t index;
+				} volumeIndex;
 
 				// END - immediately followed by end marker
 				struct {
