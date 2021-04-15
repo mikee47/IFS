@@ -287,7 +287,9 @@ public:
 	int readContent(size_t size, ReadContentCallback callback)
 	{
 		GET_FS(lastError);
-		return fs->readContent(handle, size, callback);
+		int res = fs->readContent(handle, size, callback);
+		check(res);
+		return res;
 	}
 
 	/**
@@ -298,7 +300,9 @@ public:
 	int readContent(ReadContentCallback callback)
 	{
 		GET_FS(lastError);
-		return fs->readContent(handle, callback);
+		int res = fs->readContent(handle, callback);
+		check(res);
+		return res;
 	}
 
 	/**
