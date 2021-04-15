@@ -172,17 +172,18 @@ int FileSystem::readContent(const String& filename, ReadContentCallback callback
 
 int FileSystem::makedirs(const char* path)
 {
-	auto pos = path;
-	while(auto sep = strchr(pos, '/')) {
-		String seg(pos, sep - pos);
-		int err = mkdir(seg.c_str());
+	String s(path);
+	int i = 0;
+	while((i = s.indexOf('/', i)) > 0) {
+		s[i] = '\0';
+		int err = mkdir(s.c_str());
 		if(err < 0) {
 			return err;
 		}
-		pos = sep + 1;
+		s[i++] = '/';
 	}
 
-	return FS_OK;
+	return mkdir(path);
 }
 
 } // namespace IFS
