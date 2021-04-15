@@ -644,16 +644,23 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 	}
 
 	// Empty paths indicate root directory
-	FS_CHECK_PATH(path);
-	if(path == nullptr) {
+	const char* tail = path;
+	FS_CHECK_PATH(tail);
+	if(tail == nullptr) {
 		return FS_OK;
 	}
 
-	const char* tail = path;
 	const char* sep;
 	do {
 		sep = strchr(tail, '/');
-		size_t namelen = (sep != nullptr) ? sep - tail : strlen(tail);
+		size_t namelen;
+		if(sep == nullptr) {
+			namelen = strlen(tail);
+		} else {
+			namelen = sep - tail;
+			++path;
+		}
+		path += namelen;
 
 		FWObjDesc parent = od;
 		res = findChildObject(parent, od, tail, namelen);
@@ -662,10 +669,8 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 			break;
 		}
 
-		tail += namelen + 1;
+		tail = path;
 	} while(sep != nullptr && !od.obj.isMountPoint());
-
-	path = tail;
 
 #ifdef DEBUG_FWFS
 	debug_d(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
