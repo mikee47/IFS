@@ -310,16 +310,49 @@ private:
 		return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
 	}
 
-	/** @brief Find an unused descriptor
-	 *  @retval int index of descriptor, or error code
+	/**
+	 * @brief Find an unused descriptor
+	 * @retval int index of descriptor, or error code
 	 */
 	int findUnusedDescriptor();
 
 	int findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId);
 	int findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen);
+
+	/**
+	 * @brief Parse a file path to locate the corresponding object
+	 * @param path Path to parse. If a mountpoint is located this returns remainder of path
+	 * @param od Located object
+	 * 
+	 * Parsing stops if a mountpoint is found.
+	 */
 	int findObjectByPath(const char*& path, FWObjDesc& od);
+
+	/**
+	 * @brief Resolve a mountpoint object to mounted filesystem
+	 * @param odMountPoint The mountpoint object to resolve
+	 * @param fileSystem OUT: the corresponding mounted filesystem
+	 * @retval int error code
+	 */
 	int resolveMountPoint(const FWObjDesc& odMountPoint, IFileSystem*& fileSystem);
+
+	/*
+	 * @brief Resolve path to mounted volume.
+	 * @param path Path to parse, consumes path to mount point
+	 * @param fileSystem Located filesystem
+	 * @retval int error code
+	 * 
+	 * Used for methods which require write access are read-only unless path corresponds to mounted volume.
+	 * If path is within this volume then Error::ReadOnly is returned.
+	 */
 	int findLinkedObject(const char*& path, IFileSystem*& fileSystem);
+
+	/**
+	 * @brief Get total size for all contained data objects
+	 * @param od A named object
+	 * @param dataSize The total size in bytes
+	 * @retval int error code
+	 */
 	int getObjectDataSize(FWObjDesc& od, size_t& dataSize);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
@@ -337,8 +370,8 @@ private:
 	};
 
 	Storage::Partition partition;
-	ObjRef volume;
-	ObjRef lastFound;
+	ObjRef volume;	///< Reference to main volume object
+	ObjRef lastFound; ///< Speeds up consective searches
 #ifdef FWFS_OBJECT_CACHE
 	ObjRefCache cache;
 #endif
