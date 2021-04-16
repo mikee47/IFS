@@ -24,7 +24,8 @@
 
 #include "../FileSystem.h"
 #include "Object.h"
-#ifdef FWFS_OBJECT_CACHE
+
+#if FWFS_CACHE_SPACING
 #include "ObjRefCache.h"
 #endif
 
@@ -32,9 +33,6 @@ namespace IFS
 {
 namespace FWFS
 {
-// First object located immediately after start marker in image
-constexpr size_t FWFS_BASE_OFFSET{sizeof(uint32_t)};
-
 // File handles start at this value
 #ifndef FWFS_HANDLE_MIN
 #define FWFS_HANDLE_MIN 100
@@ -90,7 +88,7 @@ struct FWFileDesc {
 };
 
 /**
- * @brief FWFS Volume definition - identifies filesystem and volume object after mounting
+ * @brief FWFS Volume definition for mount points
  */
 struct FWVolume {
 	std::unique_ptr<IFileSystem> fileSystem;
@@ -166,73 +164,13 @@ private:
 	{
 		//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
 		++od.ref.readCount;
+
 		// First object ID is 1
 		if(od.ref.offset == 0) {
 			od.ref.id = 1;
+			od.ref.offset = FWFS_BASE_OFFSET;
 		}
-		if(!partition.read(FWFS_BASE_OFFSET + od.ref.offset, od.obj)) {
-			return Error::ReadFailure;
-		}
-
-		/*
-			During volume mount, readObjectHeader() is called repeatedly to iterate base objects.
-			We had this check for consecutive IDs but it doesn't apply to SPIFFS which allocates
-			its own IDs. Also, readObjectHeader might be used on child objects in which case the ID
-			isn't applicable. So just leave this code here until I decide what to do with it.
-
-			ID lastObjectID{0};
-			...
-			// This check is only applicable to FWRO
-			if(od.ref.id < lastObjectID) {
-				debug_e("FWFS object ID mismatch at 0x%08X: found %u, last ID was %u", od.ref.offset, od.ref.id, lastObjectID);
-				res = Error::BadFileSystem;
-				break;
-			}
-			lastObjectID = od.ref.id;
-		*/
-
-#ifdef FWFS_OBJECT_CACHE
-		if(isMounted()) {
-			cache.improve(od.ref, objIndex);
-		} else {
-			cache.add(od.ref);
-		}
-#endif
-
-		return FS_OK;
-	}
-
-	/**
-	 * @brief find an object and return a descriptor for it
-	 * @param od IN/OUT: resolved object
-	 * @retval int error code
-	 * @note od.ref must be initialised
-	 */
-	int openObject(FWObjDesc& od)
-	{
-		// The object we're looking for
-		Object::ID objId = od.ref.id;
-
-		// Start search with first child
-		od.ref.offset = 0;
-		od.ref.id = 1; // We don't use id #0
-
-		if(objId > lastFound.id && lastFound.id > od.ref.id) {
-			od.ref = lastFound;
-		}
-
-		int res;
-		while((res = readObjectHeader(od)) >= 0 && od.ref.id != objId) {
-			od.next();
-		}
-
-		if(res >= 0) {
-			lastFound = od.ref;
-		} else if(res == Error::NoMoreFiles) {
-			res = Error::NotFound;
-		}
-
-		return res;
+		return partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
 	}
 
 	/**
@@ -250,12 +188,35 @@ private:
 			return FS_OK;
 		}
 
-		od.ref = ObjRef(child.obj.data8.ref.id);
+		// The object we're looking for
+		Object::ID objId = child.obj.data8.ref.id;
 
-		int res = openObject(od);
-		if(res < 0) {
-			return res;
+		if(objId > lastFound.id) {
+			od.ref = lastFound;
+		} else {
+			od.ref.offset = FWFS_BASE_OFFSET;
+			od.ref.id = 1; // We don't use id #0
 		}
+
+#if FWFS_CACHE_SPACING
+		cache.improve(od.ref, objId);
+#endif
+
+		for(;;) {
+			int res = readObjectHeader(od);
+			if(res < 0) {
+				return (res == Error::NoMoreFiles) ? Error::NotFound : res;
+			}
+			if(od.ref.id > objId) {
+				return Error::NotFound;
+			}
+			if(od.ref.id == objId) {
+				break;
+			}
+			od.next();
+		}
+
+		lastFound = od.ref;
 
 		if(od.obj.type() != child.obj.type()) {
 			// Reference must point to object of same type
@@ -277,8 +238,6 @@ private:
 	 * @retval error code
 	 * @note references are not pursued; the caller must handle that
 	 * child.ref refers to position relative to parent
-	 * Implementations must set child.storenum = parent.storenum; other values
-	 * will be meaningless as object stores are unaware of other stores.
 	 */
 	int readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
 	{
@@ -306,7 +265,7 @@ private:
 	 */
 	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 	{
-		offset += FWFS_BASE_OFFSET + od.contentOffset();
+		offset += od.contentOffset();
 		return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
 	}
 
@@ -372,7 +331,7 @@ private:
 	Storage::Partition partition;
 	ObjRef volume;	///< Reference to main volume object
 	ObjRef lastFound; ///< Speeds up consective searches
-#ifdef FWFS_OBJECT_CACHE
+#if FWFS_CACHE_SPACING
 	ObjRefCache cache;
 #endif
 	BitSet<uint8_t, Flag> flags;

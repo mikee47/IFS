@@ -97,11 +97,14 @@ template <typename T> static T at_offset(void* current, int offset)
 	return reinterpret_cast<T>(p);
 }
 
+// First object located immediately after start marker in image
+constexpr size_t FWFS_BASE_OFFSET{sizeof(uint32_t)};
+
 // Images start with a single word to identify this as a Firmware Filesystem image
-#define FWFILESYS_START_MARKER 0x53465746 // "FWFS"
+constexpr uint32_t FWFILESYS_START_MARKER{0x53465746}; // "FWFS"
 
 // Image end marker (reverse of magic)
-#define FWFILESYS_END_MARKER 0x46574653 // "SFWF"
+constexpr uint32_t FWFILESYS_END_MARKER{0x46574653}; // "SFWF"
 
 // Everything in this header must be portable (at least, with other little-endian systems) so byte-align and pack it
 #pragma pack(1)

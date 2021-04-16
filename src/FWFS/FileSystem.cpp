@@ -23,6 +23,10 @@
 #include <IFS/FWFS/Object.h>
 #include <IFS/Util.h>
 
+#ifdef DEBUG_FWFS
+#include <Platform/Timers.h>
+#endif
+
 namespace IFS
 {
 namespace FWFS
@@ -48,6 +52,7 @@ namespace FWFS
 
 void FileSystem::printObject(const FWObjDesc& od)
 {
+#if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
 	if(od.obj.isNamed()) {
 		name[0] = ' ';
@@ -65,10 +70,9 @@ void FileSystem::printObject(const FWObjDesc& od)
 	} else {
 		name[0] = '\0';
 	}
-	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.typeData, od.obj.size(),
+	debug_d("@0x%08X #%u: type = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.typeData, od.obj.size(),
 			toString(od.obj.type()).c_str(), name);
-	//	if (od.obj.size() <= 4)
-	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());
+#endif
 }
 
 /**
@@ -283,7 +287,7 @@ int FileSystem::mount()
 	int res;
 	while((res = readObjectHeader(od)) >= 0) {
 		++objectCount;
-		//		printObject(od);
+		printObject(od);
 
 		if(od.obj.type() == Object::Type::Volume) {
 			volume = od.ref;
@@ -309,16 +313,22 @@ int FileSystem::mount()
 	}
 
 	// Having scanned all the objects, check the end marker
-	auto offset = FWFS_BASE_OFFSET + od.nextOffset();
-	if(partition.read(offset, marker)) {
-		if(marker != FWFILESYS_END_MARKER) {
-			debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
-			return Error::BadFileSystem;
-		}
+	auto offset = od.nextOffset();
+	if(!partition.read(offset, marker) || marker != FWFILESYS_END_MARKER) {
+		debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
+		return Error::BadFileSystem;
 	}
 
-#ifdef FWFS_OBJECT_CACHE
-	cache.initialise(od.obj.id + 1);
+#if FWFS_CACHE_SPACING
+	cache.initialise(od.ref.id + 1);
+	od = FWObjDesc{};
+	while((res = readObjectHeader(od)) >= 0) {
+		cache.update(od.ref);
+		od.next();
+		if(od.obj.type() == Object::Type::End) {
+			break;
+		}
+	}
 #endif
 
 	FWObjDesc odRoot;
@@ -509,6 +519,8 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 {
 	CHECK_MOUNTED();
 
+	FS_CHECK_PATH(path)
+
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
 	if(res < 0) {
@@ -634,7 +646,7 @@ int FileSystem::mkdir(const char* path)
 int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 {
 #ifdef DEBUG_FWFS
-	ElapseTimer timer;
+	CpuCycleTimer timer;
 #endif
 
 	// Start with the root directory object
@@ -673,8 +685,8 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 	} while(sep != nullptr && !od.obj.isMountPoint());
 
 #ifdef DEBUG_FWFS
-	debug_d(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
-			timer.elapsed());
+	debug_i("findObjectByPath('%s'), res = %d, od.seekCount = %u, ticks = %u", path, res, od.ref.readCount,
+			timer.elapsedTicks());
 #endif
 
 	return res;
@@ -707,6 +719,8 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	CHECK_MOUNTED();
 
 	debug_d("open('%s', 0x%02X)", path, flags);
+
+	FS_CHECK_PATH(path)
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
