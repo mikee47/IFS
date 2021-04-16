@@ -101,7 +101,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 		if(child.obj.isData()) {
 			if(child.obj.isRef()) {
 				FWObjDesc od;
-				res = openChildObject(entry, child, od);
+				res = getChildObject(entry, child, od);
 				if(res < 0) {
 					return res;
 				}
@@ -186,7 +186,7 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 	while((res = readChildObjectHeader(fd.odFile, child)) >= 0) {
 		if(child.obj.isData()) {
 			FWObjDesc odData;
-			res = openChildObject(fd.odFile, child, odData);
+			res = getChildObject(fd.odFile, child, odData);
 			if(res < 0) {
 				return res;
 			}
@@ -353,7 +353,7 @@ int FileSystem::openRootObject(FWObjDesc& odRoot)
 		FWObjDesc child;
 		res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
 		if(res >= 0) {
-			res = openChildObject(odVolume, child, odRoot);
+			res = getChildObject(odVolume, child, odRoot);
 		}
 	}
 
@@ -390,6 +390,92 @@ int FileSystem::getinfo(Info& info)
 	}
 
 	return res;
+}
+
+int FileSystem::readObjectHeader(FWObjDesc& od)
+{
+	//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
+	++od.ref.readCount;
+
+	// First object ID is 1
+	if(od.ref.offset == 0) {
+		od.ref.id = 1;
+		od.ref.offset = FWFS_BASE_OFFSET;
+	}
+	return partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
+}
+
+int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
+{
+	if(!child.obj.isRef()) {
+		od = child;
+		od.ref.offset += parent.childTableOffset();
+		return FS_OK;
+	}
+
+	// The object we're looking for
+	Object::ID objId = child.obj.data8.ref.id;
+
+	if(objId > lastFound.id) {
+		od.ref = lastFound;
+	} else {
+		od.ref.offset = FWFS_BASE_OFFSET;
+		od.ref.id = 1; // We don't use id #0
+	}
+
+#if FWFS_CACHE_SPACING
+	cache.improve(od.ref, objId);
+#endif
+
+	for(;;) {
+		int res = readObjectHeader(od);
+		if(res < 0) {
+			return (res == Error::NoMoreFiles) ? Error::NotFound : res;
+		}
+		if(od.ref.id > objId) {
+			return Error::NotFound;
+		}
+		if(od.ref.id == objId) {
+			break;
+		}
+		od.next();
+	}
+
+	lastFound = od.ref;
+
+	if(od.obj.type() != child.obj.type()) {
+		// Reference must point to object of same type
+		return Error::BadObject;
+	}
+
+	if(od.obj.isRef()) {
+		// Reference must point to an actual object, not another reference
+		return Error::BadObject;
+	}
+
+	return FS_OK;
+}
+
+int FileSystem::readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
+{
+	assert(parent.obj.isNamed());
+
+	if(child.ref.offset >= parent.obj.childTableSize()) {
+		return Error::EndOfObjects;
+	}
+
+	// Get the absolute offset for the child object
+	uint32_t tableOffset = parent.childTableOffset();
+	child.ref.offset += tableOffset;
+	int res = readObjectHeader(child);
+	child.ref.offset -= tableOffset;
+	return res;
+}
+
+int FileSystem::readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
+{
+	offset += od.contentOffset();
+	return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
 }
 
 int FileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId)
@@ -465,7 +551,7 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 	FWObjDesc od;
 	while((res = readChildObjectHeader(parent, od)) >= 0) {
 		if(od.obj.isNamed()) {
-			res = openChildObject(parent, od, child);
+			res = getChildObject(parent, od, child);
 			if(res < 0) {
 				break;
 			}
@@ -575,7 +661,7 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 	while((res = readChildObjectHeader(odDir, od)) >= 0) {
 		if(od.obj.isNamed()) {
 			FWObjDesc child;
-			res = openChildObject(odDir, od, child);
+			res = getChildObject(odDir, od, child);
 			if(res >= 0) {
 				res = fillStat(stat, child);
 			}
@@ -700,7 +786,7 @@ int FileSystem::getObjectDataSize(FWObjDesc& od, size_t& dataSize)
 	while((res = readChildObjectHeader(od, child)) >= 0) {
 		if(child.obj.isData()) {
 			FWObjDesc odData;
-			res = openChildObject(od, child, odData);
+			res = getChildObject(od, child, odData);
 			if(res < 0) {
 				return res;
 			}
@@ -864,7 +950,7 @@ int FileSystem::getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize)
 		return Error::BadObject;
 	}
 	FWObjDesc od;
-	openChildObject(fd.odFile, child, od);
+	getChildObject(fd.odFile, child, od);
 	readObjectContent(od, 0, md5HashSize, buffer);
 
 	return md5HashSize;

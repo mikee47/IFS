@@ -160,76 +160,16 @@ private:
 	 * @retval error code
 	 * @note this method deals with top-level objects only
 	 */
-	int readObjectHeader(FWObjDesc& od)
-	{
-		//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
-		++od.ref.readCount;
-
-		// First object ID is 1
-		if(od.ref.offset == 0) {
-			od.ref.id = 1;
-			od.ref.offset = FWFS_BASE_OFFSET;
-		}
-		return partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
-	}
+	int readObjectHeader(FWObjDesc& od);
 
 	/**
-	 * @brief open a descriptor for a child object
+	 * @brief Get a descriptor for a child object
 	 * @param parent
 	 * @param child reference to child, relative to parent
 	 * @param od OUT: resolved object
 	 * @retval int error code
 	 */
-	int openChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
-	{
-		if(!child.obj.isRef()) {
-			od = child;
-			od.ref.offset += parent.childTableOffset();
-			return FS_OK;
-		}
-
-		// The object we're looking for
-		Object::ID objId = child.obj.data8.ref.id;
-
-		if(objId > lastFound.id) {
-			od.ref = lastFound;
-		} else {
-			od.ref.offset = FWFS_BASE_OFFSET;
-			od.ref.id = 1; // We don't use id #0
-		}
-
-#if FWFS_CACHE_SPACING
-		cache.improve(od.ref, objId);
-#endif
-
-		for(;;) {
-			int res = readObjectHeader(od);
-			if(res < 0) {
-				return (res == Error::NoMoreFiles) ? Error::NotFound : res;
-			}
-			if(od.ref.id > objId) {
-				return Error::NotFound;
-			}
-			if(od.ref.id == objId) {
-				break;
-			}
-			od.next();
-		}
-
-		lastFound = od.ref;
-
-		if(od.obj.type() != child.obj.type()) {
-			// Reference must point to object of same type
-			return Error::BadObject;
-		}
-
-		if(od.obj.isRef()) {
-			// Reference must point to an actual object, not another reference
-			return Error::BadObject;
-		}
-
-		return FS_OK;
-	}
+	int getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od);
 
 	/**
 	 * @brief fetch child object header
@@ -239,21 +179,7 @@ private:
 	 * @note references are not pursued; the caller must handle that
 	 * child.ref refers to position relative to parent
 	 */
-	int readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
-	{
-		assert(parent.obj.isNamed());
-
-		if(child.ref.offset >= parent.obj.childTableSize()) {
-			return Error::EndOfObjects;
-		}
-
-		// Get the absolute offset for the child object
-		uint32_t tableOffset = parent.childTableOffset();
-		child.ref.offset += tableOffset;
-		int res = readObjectHeader(child);
-		child.ref.offset -= tableOffset;
-		return res;
-	}
+	int readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child);
 
 	/**
 	 * @brief read object content
@@ -263,11 +189,7 @@ private:
 	 * @retval number of bytes read, or error code
 	 * @note must fail if cannot read all requested bytes
 	 */
-	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
-	{
-		offset += od.contentOffset();
-		return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
-	}
+	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer);
 
 	/**
 	 * @brief Find an unused descriptor
