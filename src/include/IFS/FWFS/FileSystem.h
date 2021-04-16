@@ -54,23 +54,39 @@ constexpr size_t FWFS_BASE_OFFSET{sizeof(uint32_t)};
 #define FWFS_HANDLE_MAX (FWFS_HANDLE_MIN + FWFS_MAX_FDS - 1)
 
 /**
- * @brief file descriptor attributes
- * @note these are bit values, combine using _BV()
- */
-enum class FWFileDescAttr {
-	allocated, ///< Descriptor in use
-};
-
-using FWFileDescAttributes = BitSet<uint8_t, FWFileDescAttr, 1>;
-
-/**
  * @brief FWFS File Descriptor
  */
 struct FWFileDesc {
-	FWObjDesc odFile;	 ///< File object
-	uint32_t dataSize{0}; ///< Total size of data
-	uint32_t cursor{0};   ///< Current read/write offset within file data
-	FWFileDescAttributes attr;
+	FWObjDesc odFile; ///< File object
+	union {
+		struct {
+			uint32_t dataSize; ///< Total size of data
+			uint32_t cursor;   ///< Current read/write offset within file data
+		};
+		// For MountPoint
+		struct {
+			IFileSystem* fileSystem;
+			union {
+				FileHandle file;
+				DirHandle dir;
+			};
+		};
+	};
+
+	bool isAllocated() const
+	{
+		return odFile.obj.typeData != 0;
+	}
+
+	bool isMountPoint() const
+	{
+		return odFile.obj.isMountPoint();
+	}
+
+	void reset()
+	{
+		*this = FWFileDesc{};
+	}
 };
 
 /**
@@ -98,53 +114,26 @@ public:
 	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
-	int mkdir(const char* path) override
-	{
-		return Error::ReadOnly;
-	}
+	int mkdir(const char* path) override;
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
-	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override;
 	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
-	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override;
 	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
 	int close(FileHandle file) override;
 	int read(FileHandle file, void* data, size_t size) override;
-	int write(FileHandle file, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int write(FileHandle file, const void* data, size_t size) override;
 	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
 	int eof(FileHandle file) override;
 	int32_t tell(FileHandle file) override;
-	int ftruncate(FileHandle file, size_t new_size) override
-	{
-		return Error::ReadOnly;
-	}
-	int flush(FileHandle file) override
-	{
-		return Error::ReadOnly;
-	}
-	int rename(const char* oldpath, const char* newpath) override
-	{
-		return Error::ReadOnly;
-	}
-	int remove(const char* path) override
-	{
-		return Error::ReadOnly;
-	}
-	int fremove(FileHandle file) override
-	{
-		return Error::ReadOnly;
-	}
+	int ftruncate(FileHandle file, size_t new_size) override;
+	int flush(FileHandle file) override;
+	int rename(const char* oldpath, const char* newpath) override;
+	int remove(const char* path) override;
+	int fremove(FileHandle file) override;
 	int format() override
 	{
 		return Error::ReadOnly;
@@ -157,9 +146,9 @@ public:
 		return Error::NotImplemented;
 	}
 
-	int getMd5Hash(FileHandle file, void* buffer, size_t bufSize);
-
 private:
+	int getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize);
+
 	bool isMounted()
 	{
 		return flags[Flag::mounted];
@@ -330,9 +319,10 @@ private:
 	int findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen);
 	int findObjectByPath(const char*& path, FWObjDesc& od);
 	int resolveMountPoint(const FWObjDesc& odMountPoint, IFileSystem*& fileSystem);
+	int findLinkedObject(const char*& path, IFileSystem*& fileSystem);
+	int getObjectDataSize(FWObjDesc& od, size_t& dataSize);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
-	FileHandle allocateFileDescriptor(FWObjDesc& odFile);
 	int fillStat(Stat& stat, const FWObjDesc& entry);
 	int readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size);
 

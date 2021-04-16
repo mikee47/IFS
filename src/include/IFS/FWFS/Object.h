@@ -412,8 +412,8 @@ struct ObjRef {
  * @brief FWFS Object Descriptor
  */
 struct FWObjDesc {
-	Object obj; ///< The object structure
-	ObjRef ref; ///< location
+	Object obj{}; ///< The object structure
+	ObjRef ref;   ///< location
 
 	FWObjDesc()
 	{
