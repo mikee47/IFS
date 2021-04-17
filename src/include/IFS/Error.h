@@ -59,7 +59,6 @@ namespace Error
 	XX(BadObject, "Malformed filesystem object")                                                                       \
 	XX(BadFileSystem, "File system corruption detected")                                                               \
 	XX(BadParam, "Invalid parameter(s)")                                                                               \
-	XX(BadExtent, "Invalid media extent")                                                                              \
 	XX(NotImplemented, "File system or method not yet implemented")                                                    \
 	XX(NotSupported, "Parameter value not supported")                                                                  \
 	XX(NoMem, "Memory allocation failed")                                                                              \
