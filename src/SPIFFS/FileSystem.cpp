@@ -508,14 +508,19 @@ int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, s
 	FS_CHECK_PATH(path);
 	spiffs_stat ss;
 	int err = SPIFFS_stat(handle(), path ?: "", &ss);
-	if(err == 0) {
-		SpiffsMetaBuffer smb;
-		smb.assign(ss.meta);
-		smb.setxattr(tag, data, size);
-		if(smb.flags[SpiffsMetaBuffer::Flag::dirty]) {
-			err = SPIFFS_update_meta(handle(), path, &smb);
-		}
+	if(err < 0) {
+		return Error::fromSystem(err);
 	}
+	SpiffsMetaBuffer smb;
+	smb.assign(ss.meta);
+	err = smb.setxattr(tag, data, size);
+	if(err < 0) {
+		return err;
+	}
+	if(!smb.flags[SpiffsMetaBuffer::Flag::dirty]) {
+		return FS_OK;
+	}
+	err = SPIFFS_update_meta(handle(), path, &smb);
 	return Error::fromSystem(err);
 #else
 	return Error::NotSupported;

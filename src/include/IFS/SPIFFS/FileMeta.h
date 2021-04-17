@@ -128,6 +128,10 @@ struct SpiffsMetaBuffer {
 
 	int getxattr(AttributeTag tag, void* buffer, size_t size)
 	{
+		if(tag >= AttributeTag::User) {
+			return getUserAttribute(unsigned(tag) - unsigned(AttributeTag::User), buffer, size);
+		}
+
 		auto attrSize = getAttributeSize(tag);
 		if(attrSize == 0) {
 			return Error::BadParam;
@@ -143,21 +147,117 @@ struct SpiffsMetaBuffer {
 
 	int setxattr(AttributeTag tag, const void* data, size_t size)
 	{
-		auto attrSize = getAttributeSize(tag);
-		if(attrSize == 0) {
-			return Error::BadParam;
+		if(tag >= AttributeTag::User) {
+			return setUserAttribute(unsigned(tag) - unsigned(AttributeTag::User), data, size);
 		}
-		if(size != attrSize) {
+
+		// Cannot delete standard attributes
+		if(data == nullptr) {
+			return Error::NotSupported;
+		}
+		if(size != getAttributeSize(tag)) {
 			return Error::BadParam;
 		}
 		auto value = meta.getAttributePtr(tag);
-		if(value != nullptr) {
-			memcpy(value, data, attrSize);
-			if(tag == AttributeTag::Compression) {
-				meta.attr[FileAttribute::Compressed] = (meta.compression.type != Compression::Type::None);
-			}
+		if(value == nullptr) {
+			return Error::BadParam;
 		}
+		if(memcmp(value, data, size) == 0) {
+			// No change
+			return FS_OK;
+		}
+		memcpy(value, data, size);
+		if(tag == AttributeTag::Compression) {
+			meta.attr[FileAttribute::Compressed] = (meta.compression.type != Compression::Type::None);
+		}
+		flags += Flag::dirty;
 		return FS_OK;
+	}
+
+	/*
+	 * User tags are laid out in spare space as follows:
+	 *
+	 * 	uint8_t tag;
+	 *  uint8_t len;
+	 *  uint8_t data[];
+	 *
+	 *   Unused space is set to 0xFF.
+	 */
+	int getUserAttribute(unsigned userTag, void* buffer, size_t size)
+	{
+		if(userTag > 255) {
+			return Error::BadParam;
+		}
+
+		for(unsigned i = 0; i < SPIFFS_USER_METALEN;) {
+			uint8_t tagIndex = user[i++];
+			uint8_t tagSize = user[i++];
+			if(tagIndex != userTag) {
+				i += tagSize;
+				continue;
+			}
+			if(size > tagSize) {
+				size = tagSize;
+			}
+			if(buffer != nullptr) {
+				memcpy(buffer, &user[i], std::min(size_t(tagSize), size));
+			}
+			return tagSize;
+		}
+
+		return Error::NotFound;
+	}
+
+	int setUserAttribute(unsigned userTag, const void* data, size_t size)
+	{
+		if(userTag > 255) {
+			return Error::BadParam;
+		}
+
+		bool deleteFlag = (data == nullptr);
+
+		for(unsigned i = 0; i < SPIFFS_USER_METALEN;) {
+			uint8_t tagIndex = user[i++];
+			uint8_t tagSize = user[i++];
+			if(tagIndex == userTag) {
+				// Found the tag - compare with new data
+				if(!deleteFlag && tagSize == size && memcmp(data, &user[i], tagSize) == 0) {
+					// No change
+					return FS_OK;
+				}
+				// Remove the tag
+				i -= 2;
+				tagSize += 2;
+				// Shift items above down
+				memmove(&user[i], &user[i + tagSize], SPIFFS_USER_METALEN - i - tagSize);
+				// Clear unused space to 0xFF
+				memset(&user[SPIFFS_USER_METALEN - tagSize], 0xff, tagSize);
+				flags += Flag::dirty;
+
+				if(deleteFlag) {
+					return FS_OK;
+				}
+				continue;
+			}
+
+			// End of list?
+			if(tagIndex == 0xff && tagSize == 0xff) {
+				// Room for new tag?
+				if(i + size > SPIFFS_USER_METALEN) {
+					break;
+				}
+				user[i - 2] = userTag;
+				user[i - 1] = size;
+				memcpy(&user[i], data, size);
+				flags += Flag::dirty;
+				return size;
+			}
+
+			i += tagSize;
+		}
+
+		// No room for attribute
+		return Error::BufferTooSmall;
 	}
 };
 
