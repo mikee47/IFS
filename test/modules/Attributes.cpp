@@ -21,6 +21,7 @@ public:
 	void execute() override
 	{
 		attributeTest();
+		userAttributeTest();
 #ifdef ARCH_HOST
 		hostAttributeTest();
 #endif
@@ -30,8 +31,6 @@ public:
 	{
 		DEFINE_FSTR_LOCAL(filename, "test.txt");
 		DEFINE_FSTR_LOCAL(content, "This is some test content");
-
-		spiffs_mount();
 
 		auto fs = getFileSystem();
 		listdir(fs, nullptr);
@@ -106,6 +105,55 @@ public:
 			res = fileDelete(filename);
 			debug_ifs(fs, res, "fileDelete(filename)");
 			REQUIRE(res == FS_OK);
+		}
+	}
+
+	void userAttributeTest()
+	{
+		DEFINE_FSTR_LOCAL(filename, "usertest.txt")
+		DEFINE_FSTR_LOCAL(coolDonkeys, "cool donkeys")
+
+		auto fs = getFileSystem();
+		fs->setContent(filename, "empty");
+		int err = fs->setUserAttribute(filename, 0, coolDonkeys);
+		REQUIRE_EQ(err, FS_OK);
+		String s = fs->getUserAttribute(filename, 0);
+		REQUIRE_EQ(s, coolDonkeys);
+
+		TEST_CASE("Set user attributes")
+		{
+			File f;
+			REQUIRE(f.open(filename, File::Create | File::ReadWrite));
+
+			if(!f.setUserAttribute(0, "hello")) {
+				debug_e("setUserAttribute(): %s", f.getLastErrorString().c_str());
+				TEST_ASSERT(false);
+			}
+			REQUIRE(f.getUserAttribute(0) == "hello");
+
+			if(!f.setUserAttribute(0xAA, "goodbye")) {
+				debug_e("setUserAttribute(): %s", f.getLastErrorString().c_str());
+				TEST_ASSERT(false);
+			}
+			REQUIRE(f.getUserAttribute(0xAA) == "goodbye");
+
+			if(!f.setUserAttribute(0, "car")) {
+				debug_e("setUserAttribute(): %s", f.getLastErrorString().c_str());
+				TEST_ASSERT(false);
+			}
+			REQUIRE(f.getUserAttribute(0) == "car");
+
+			if(!f.setUserAttribute(0xAA, "")) {
+				debug_e("setUserAttribute(): %s", f.getLastErrorString().c_str());
+				TEST_ASSERT(false);
+			}
+			REQUIRE(f.getUserAttribute(0xAA) == "");
+
+			if(!f.removeUserAttribute(0)) {
+				debug_e("removeUserAttribute(): %s", f.getLastErrorString().c_str());
+				TEST_ASSERT(false);
+			}
+			REQUIRE(!f.getUserAttribute(0));
 		}
 	}
 

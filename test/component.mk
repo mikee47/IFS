@@ -3,6 +3,9 @@ HWCONFIG := fstest
 # Empty SPIFFS partition please
 SPIFF_FILES :=
 
+# Add 16 bytes user attribute space
+SPIFFS_OBJ_META_LEN := 32
+
 COMPONENT_INCDIRS := include
 COMPONENT_SRCDIRS := app modules
 
