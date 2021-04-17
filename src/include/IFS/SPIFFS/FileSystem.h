@@ -71,6 +71,7 @@ public:
 
 	int mount() override;
 	int getinfo(Info& info) override;
+	int setProfiler(IProfiler* profiler) override;
 	String getErrorString(int err) override;
 	int opendir(const char* path, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;
@@ -125,6 +126,10 @@ private:
 		}
 	}
 
+	static s32_t f_read(struct spiffs_t* spiffs, u32_t addr, u32_t size, u8_t* dst);
+	static s32_t f_write(struct spiffs_t* spiffs, u32_t addr, u32_t size, u8_t* src);
+	static s32_t f_erase(struct spiffs_t* spiffs, u32_t addr, u32_t size);
+
 	static constexpr size_t CACHE_PAGES{8};
 	static constexpr size_t LOG_PAGE_SIZE{256};
 	static constexpr size_t MIN_BLOCKSIZE{256};
@@ -132,6 +137,7 @@ private:
 	static constexpr size_t CACHE_SIZE{sizeof(spiffs_cache) + CACHE_PAGES * CACHE_PAGE_SIZE};
 
 	Storage::Partition partition;
+	IProfiler* profiler{nullptr};
 	SpiffsMetaBuffer metaCache[FFS_MAX_FILEDESC];
 	spiffs fs;
 	uint16_t workBuffer[LOG_PAGE_SIZE];

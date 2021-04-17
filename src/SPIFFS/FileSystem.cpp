@@ -75,25 +75,40 @@ OpenFlags mapFileOpenFlags(OpenFlags flags, spiffs_flags& sflags)
 	return flags;
 }
 
-s32_t f_read(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* dst)
-{
-	auto part = static_cast<Storage::Partition*>(fs->user_data);
-	return part && part->read(addr, dst, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
-}
-
-s32_t f_write(struct spiffs_t* fs, u32_t addr, u32_t size, u8_t* src)
-{
-	auto part = static_cast<Storage::Partition*>(fs->user_data);
-	return part && part->write(addr, src, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
-}
-
-s32_t f_erase(struct spiffs_t* fs, u32_t addr, u32_t size)
-{
-	auto part = static_cast<Storage::Partition*>(fs->user_data);
-	return part && part->erase_range(addr, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
-}
-
 } // namespace
+
+s32_t FileSystem::f_read(struct spiffs_t* spiffs, u32_t addr, u32_t size, u8_t* dst)
+{
+	auto fs = static_cast<FileSystem*>(spiffs->user_data);
+	assert(fs != nullptr);
+	if(!fs->partition.read(addr, dst, size)) {
+		return SPIFFS_ERR_INTERNAL;
+	}
+	if(fs->profiler != nullptr) {
+		fs->profiler->write(addr, dst, size);
+	}
+	return SPIFFS_OK;
+}
+
+s32_t FileSystem::f_write(struct spiffs_t* spiffs, u32_t addr, u32_t size, u8_t* src)
+{
+	auto fs = static_cast<FileSystem*>(spiffs->user_data);
+	assert(fs != nullptr);
+	if(fs->profiler != nullptr) {
+		fs->profiler->write(addr, src, size);
+	}
+	return fs->partition.write(addr, src, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
+}
+
+s32_t FileSystem::f_erase(struct spiffs_t* spiffs, u32_t addr, u32_t size)
+{
+	auto fs = static_cast<FileSystem*>(spiffs->user_data);
+	assert(fs != nullptr);
+	if(fs->profiler != nullptr) {
+		fs->profiler->erase(addr, size);
+	}
+	return fs->partition.erase_range(addr, size) ? SPIFFS_OK : SPIFFS_ERR_INTERNAL;
+}
 
 FileSystem::~FileSystem()
 {
@@ -110,7 +125,7 @@ int FileSystem::mount()
 		return Error::BadPartition;
 	}
 
-	fs.user_data = &partition;
+	fs.user_data = this;
 	spiffs_config cfg{
 		.hal_read_f = f_read,
 		.hal_write_f = f_write,
@@ -212,6 +227,12 @@ int FileSystem::getinfo(Info& info)
 		}
 	}
 
+	return FS_OK;
+}
+
+int FileSystem::setProfiler(IProfiler* profiler)
+{
+	this->profiler = profiler;
 	return FS_OK;
 }
 
