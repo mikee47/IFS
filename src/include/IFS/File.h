@@ -23,18 +23,6 @@
 
 namespace IFS
 {
-#define GET_FS()                                                                                                       \
-	auto fs = getFileSystem();                                                                                         \
-	if(fs == nullptr) {                                                                                                \
-		return lastError;                                                                                              \
-	}
-
-#define GET_FS_BOOL()                                                                                                  \
-	auto fs = getFileSystem();                                                                                         \
-	if(fs == nullptr) {                                                                                                \
-		return false;                                                                                                  \
-	}
-
 /**
  * @brief  Wraps up all file access methods
  */
@@ -69,7 +57,7 @@ public:
      */
 	bool stat(Stat& stat)
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		return check(fs->fstat(handle, &stat));
 	}
 
@@ -86,7 +74,7 @@ public:
 	 */
 	int control(ControlCode code, void* buffer, size_t bufSize)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->fcontrol(handle, code, buffer, bufSize);
 		check(res);
 		return res;
@@ -100,7 +88,7 @@ public:
      */
 	bool open(const String& path, OpenFlags flags = OpenFlag::Read)
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		fs->close(handle);
 		handle = fs->open(path.c_str(), flags);
 		return check(handle);
@@ -129,7 +117,7 @@ public:
 		if(handle < 0) {
 			return true;
 		}
-		GET_FS_BOOL();
+		GET_FS(false);
 		int res = fs->close(handle);
 		handle = -1;
 		return check(res);
@@ -143,7 +131,7 @@ public:
      */
 	int read(void* data, size_t size)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->read(handle, data, size);
 		check(res);
 		return res;
@@ -157,7 +145,7 @@ public:
      */
 	int write(const void* data, size_t size)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->write(handle, data, size);
 		check(res);
 		return res;
@@ -177,7 +165,7 @@ public:
      */
 	int seek(int offset, SeekOrigin origin)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->lseek(handle, offset, origin);
 		check(res);
 		return res;
@@ -204,7 +192,7 @@ public:
      */
 	int32_t tell()
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->tell(handle);
 		check(res);
 		return res;
@@ -217,7 +205,7 @@ public:
 	 */
 	bool truncate(size_t new_size)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->ftruncate(handle, new_size);
 		return check(res);
 	}
@@ -228,7 +216,7 @@ public:
 	 */
 	bool truncate()
 	{
-		GET_FS();
+		GET_FS(lastError);
 		int res = fs->ftruncate(handle);
 		return check(res);
 	}
@@ -239,7 +227,7 @@ public:
      */
 	bool flush()
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		return check(fs->flush(handle));
 	}
 
@@ -250,7 +238,7 @@ public:
      */
 	bool setacl(const ACL& acl)
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		return check(fs->setacl(handle, acl));
 	}
 
@@ -261,7 +249,7 @@ public:
      */
 	bool settime(time_t mtime)
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		return check(fs->settime(handle, mtime));
 	}
 
@@ -272,7 +260,7 @@ public:
      */
 	bool setcompression(const Compression& compression)
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		return check(fs->setcompression(handle, compression));
 	}
 
@@ -282,7 +270,7 @@ public:
      */
 	bool remove()
 	{
-		GET_FS_BOOL();
+		GET_FS(false);
 		int res = fs->fremove(handle);
 		if(!check(res)) {
 			return false;
@@ -298,7 +286,7 @@ public:
 	 */
 	uint32_t getSize()
 	{
-		GET_FS();
+		GET_FS(lastError);
 		return fs->getSize(handle);
 	}
 
@@ -312,7 +300,7 @@ public:
 	 */
 	int readContent(size_t size, ReadContentCallback callback)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		return fs->readContent(handle, size, callback);
 	}
 
@@ -323,7 +311,7 @@ public:
 	 */
 	int readContent(ReadContentCallback callback)
 	{
-		GET_FS();
+		GET_FS(lastError);
 		return fs->readContent(handle, callback);
 	}
 
