@@ -1,13 +1,8 @@
-COMPONENT_DEPENDS := \
-	FlashString \
-	spiffs
-
 COMPONENT_SRCDIRS := \
 	src \
 	src/File \
 	src/FWFS \
 	src/HYFS \
-	src/SPIFFS \
 	src/Arch/$(SMING_ARCH)
 
 COMPONENT_INCDIRS := \
@@ -20,10 +15,6 @@ ifeq ($(UNAME),Windows)
 	COMPONENT_SRCDIRS += src/Arch/Host/Windows
 endif
 endif
-
-# Defined in spiffs Component
-COMPONENT_RELINK_VARS += SPIFFS_OBJ_META_LEN
-COMPONENT_CXXFLAGS += -DSPIFFS_OBJ_META_LEN=$(SPIFFS_OBJ_META_LEN)
 
 COMPONENT_DOCFILES := tools/fsbuild/README.rst
 COMPONENT_DOXYGEN_INPUT := src
