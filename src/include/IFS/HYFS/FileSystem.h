@@ -38,9 +38,7 @@
 
 #pragma once
 
-#include "../FWFS/FileSystem.h"
-#include "../SPIFFS/FileSystem.h"
-#include "../Types.h"
+#include "../IFileSystem.h"
 
 #ifndef HYFS_HIDE_FLAGS
 #define HYFS_HIDE_FLAGS 1
@@ -57,8 +55,14 @@ namespace HYFS
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem(IObjectStore* fwStore, Storage::Partition ffsPartition) : fwfs(fwStore), ffs(ffsPartition)
+	FileSystem(IFileSystem* fwfs, IFileSystem* ffs) : fwfs(fwfs), ffs(ffs)
 	{
+	}
+
+	~FileSystem()
+	{
+		delete ffs;
+		delete fwfs;
 	}
 
 	// IFileSystem methods
@@ -97,8 +101,8 @@ private:
 	bool isFWFileHidden(const Stat& fwstat);
 
 private:
-	FWFS::FileSystem fwfs;
-	SPIFFS::FileSystem ffs;
+	IFileSystem* fwfs;
+	IFileSystem* ffs;
 #if HYFS_HIDE_FLAGS == 1
 	Vector<FileID> hiddenFwFiles;
 #endif

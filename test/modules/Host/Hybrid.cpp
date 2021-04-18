@@ -10,7 +10,7 @@
 #include <FsTest.h>
 
 #include <IFS/Host/FileSystem.h>
-#include <IFS/HYFS/FileSystem.h>
+#include <IFS/Helpers.h>
 #include <Storage/FileDevice.h>
 #include <Storage/ProgMem.h>
 #include <Crypto/Md5.h>
@@ -179,7 +179,7 @@ public:
 		if(!part) {
 			return nullptr;
 		}
-		auto ffs = new IFS::SPIFFS::FileSystem(part);
+		auto ffs = IFS::createSpiffsFilesystem(part);
 
 		int err = ffs->mount();
 		debug_ifs(ffs, err, "mount('%s')", imgfile.c_str());
@@ -237,7 +237,8 @@ public:
 			if(!spiffsPart) {
 				return nullptr;
 			}
-			fs = IFS::createHybridFilesystem(part, spiffsPart);
+			auto ffs = IFS::createSpiffsFilesystem(spiffsPart);
+			fs = IFS::createHybridFilesystem(part, ffs);
 		} else {
 			fs = IFS::createFirmwareFilesystem(part);
 		}

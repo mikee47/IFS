@@ -81,6 +81,7 @@
  */
 
 #include "../include/IFS/HYFS/FileSystem.h"
+#include "../include/IFS/FWFS/FileSystem.h"
 #include "../include/IFS/Util.h"
 
 #define GET_FS(handle)                                                                                                 \
@@ -89,9 +90,9 @@
 	}                                                                                                                  \
 	IFileSystem* fs;                                                                                                   \
 	if(handle >= FWFS_HANDLE_MIN && handle < FWFS_HANDLE_MAX) {                                                        \
-		fs = &fwfs;                                                                                                    \
+		fs = fwfs;                                                                                                     \
 	} else {                                                                                                           \
-		fs = &ffs;                                                                                                     \
+		fs = ffs;                                                                                                      \
 	}
 
 namespace IFS
@@ -111,9 +112,9 @@ struct FileDir {
 int FileSystem::mount()
 {
 	// Mount both filesystems so they take ownership of the media objects
-	int res = fwfs.mount();
+	int res = fwfs->mount();
 	if(res >= 0) {
-		res = ffs.mount();
+		res = ffs->mount();
 	}
 	return res;
 }
@@ -122,12 +123,12 @@ int FileSystem::getinfo(Info& info)
 {
 	Info ffsinfo;
 	ffsinfo.name = info.name;
-	ffs.getinfo(ffsinfo);
+	ffs->getinfo(ffsinfo);
 	Info fwinfo;
 	if(info.name.length == 0) {
 		fwinfo.name = info.name;
 	}
-	fwfs.getinfo(fwinfo);
+	fwfs->getinfo(fwinfo);
 
 	info.type = Type::Hybrid;
 	info.maxNameLength = ffsinfo.maxNameLength;
@@ -148,9 +149,9 @@ int FileSystem::getinfo(Info& info)
 String FileSystem::getErrorString(int err)
 {
 	if(err < Error::SYSTEM) {
-		return ffs.getErrorString(err);
+		return ffs->getErrorString(err);
 	} else {
-		return fwfs.getErrorString(err);
+		return fwfs->getErrorString(err);
 	}
 }
 
@@ -159,7 +160,7 @@ int FileSystem::hideFWFile(const char* path, bool hide)
 	int res = FS_OK;
 #if HYFS_HIDE_FLAGS == 1
 	Stat stat;
-	res = fwfs.stat(path, &stat);
+	res = fwfs->stat(path, &stat);
 	if(res >= 0) {
 		if(hide) {
 			if(!hiddenFwFiles.contains(stat.id)) {
@@ -178,7 +179,7 @@ bool FileSystem::isFWFileHidden(const Stat& fwstat)
 #if HYFS_HIDE_FLAGS == 1
 	return hiddenFwFiles.contains(fwstat.id);
 #else
-	return ffs.stat(fwstat.name, nullptr) >= 0;
+	return ffs->stat(fwstat.name, nullptr) >= 0;
 #endif
 }
 
@@ -196,16 +197,16 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	}
 
 	// Open valid directory on FFS if exists, otherwise on FWFS
-	int res = ffs.opendir(path, d->ffs);
+	int res = ffs->opendir(path, d->ffs);
 	if(res < 0) {
-		res = fwfs.opendir(path, d->fw);
+		res = fwfs->opendir(path, d->fw);
 		if(res < 0) {
 			delete d;
 			return res;
 		}
-		d->fs = &fwfs;
+		d->fs = fwfs;
 	} else {
-		d->fs = &ffs;
+		d->fs = ffs;
 	}
 
 	d->path = path;
@@ -220,10 +221,10 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 	int res;
 
 	// FFS ?
-	if(d->fs == &ffs) {
+	if(d->fs == ffs) {
 		// Use a temporary stat in case it's not provided
 		NameStat s;
-		res = ffs.readdir(d->ffs, s);
+		res = ffs->readdir(d->ffs, s);
 		if(res >= 0) {
 			stat = s;
 			char* path = s.name.buffer;
@@ -239,7 +240,7 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 		// End of FFS files
 		if(d->fw == nullptr) {
-			res = fwfs.opendir(d->path.c_str(), d->fw);
+			res = fwfs->opendir(d->path.c_str(), d->fw);
 			if(res == Error::NotFound) {
 				return Error::NoMoreFiles;
 			}
@@ -247,13 +248,13 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 				return res;
 			}
 		}
-		d->fs = &fwfs;
-	} else if(d->fs != &fwfs) {
+		d->fs = fwfs;
+	} else if(d->fs != fwfs) {
 		return Error::BadParam;
 	}
 
 	do {
-		res = fwfs.readdir(d->fw, stat);
+		res = fwfs->readdir(d->fw, stat);
 		if(res < 0) {
 			break;
 		}
@@ -267,8 +268,8 @@ int FileSystem::rewinddir(DirHandle dir)
 	GET_FILEDIR()
 
 	if(d->fw != nullptr) {
-		d->fs = &fwfs;
-		int res = fwfs.rewinddir(d->fw);
+		d->fs = fwfs;
+		int res = fwfs->rewinddir(d->fw);
 		if(res < 0) {
 			return res;
 		}
@@ -278,16 +279,16 @@ int FileSystem::rewinddir(DirHandle dir)
 		return FS_OK;
 	}
 
-	d->fs = &ffs;
-	return ffs.rewinddir(d->ffs);
+	d->fs = ffs;
+	return ffs->rewinddir(d->ffs);
 }
 
 int FileSystem::closedir(DirHandle dir)
 {
 	GET_FILEDIR()
 
-	fwfs.closedir(d->fw);
-	ffs.closedir(d->ffs);
+	fwfs->closedir(d->fw);
+	ffs->closedir(d->ffs);
 	delete d;
 
 	return FS_OK;
@@ -321,13 +322,13 @@ int FileSystem::mkdir(const char* path)
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	// If file exists on FFS then open it and return
-	int res = ffs.stat(path, nullptr);
+	int res = ffs->stat(path, nullptr);
 	if(res >= 0) {
-		return ffs.open(path, flags);
+		return ffs->open(path, flags);
 	}
 
 	// OK, so no FFS file exists. Get the FW file.
-	FileHandle fwfile = fwfs.open(path, OpenFlag::Read);
+	FileHandle fwfile = fwfs->open(path, OpenFlag::Read);
 
 	// If we're only reading the file then return FW file directly
 	if(flags == OpenFlag::Read) {
@@ -337,12 +338,12 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
 		Stat stat;
-		int err = fwfs.fstat(fwfile, &stat);
+		int err = fwfs->fstat(fwfile, &stat);
 		if(err >= 0 && stat.attr[FileAttribute::ReadOnly]) {
 			err = Error::ReadOnly;
 		}
 		if(err < 0) {
-			fwfs.close(fwfile);
+			fwfs->close(fwfile);
 			return err;
 		}
 	}
@@ -351,7 +352,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	if(fwfile >= 0) {
 		flags |= OpenFlag::Create | OpenFlag::Read | OpenFlag::Write;
 	}
-	FileHandle ffsfile = ffs.open(path, flags);
+	FileHandle ffsfile = ffs->open(path, flags);
 
 	// If there's no FW file, nothing further to do so return FFS result (success or failure)
 	if(fwfile < 0) {
@@ -360,43 +361,43 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 	// If FFS file creation failed then fail
 	if(ffsfile < 0) {
-		fwfs.close(fwfile);
+		fwfs->close(fwfile);
 		return ffsfile;
 	}
 
 	// Copy metadata
 	Stat stat;
-	if(fwfs.fstat(fwfile, &stat) >= 0) {
-		ffs.setacl(ffsfile, stat.acl);
-		ffs.setcompression(ffsfile, stat.compression);
+	if(fwfs->fstat(fwfile, &stat) >= 0) {
+		ffs->setacl(ffsfile, stat.acl);
+		ffs->setcompression(ffsfile, stat.compression);
 	}
 
 	// If not truncating then copy content into FFS file
 	if(!flags[OpenFlag::Truncate]) {
-		ffs.lseek(ffsfile, 0, SeekOrigin::Start);
+		ffs->lseek(ffsfile, 0, SeekOrigin::Start);
 		uint8_t buffer[512];
-		while(fwfs.eof(fwfile) == 0) {
-			int len = fwfs.read(fwfile, buffer, sizeof(buffer));
+		while(fwfs->eof(fwfile) == 0) {
+			int len = fwfs->read(fwfile, buffer, sizeof(buffer));
 			//      debug_i("m_fw.read: %d", len);
 			if(len <= 0) {
 				break;
 			}
-			len = ffs.write(ffsfile, buffer, len);
+			len = ffs->write(ffsfile, buffer, len);
 			//      debug_i("m_ffs.write: %d", len);
 			if(len < 0) {
-				ffs.fremove(ffsfile);
-				ffs.close(ffsfile);
-				fwfs.close(fwfile);
+				ffs->fremove(ffsfile);
+				ffs->close(ffsfile);
+				fwfs->close(fwfile);
 				return len;
 			}
 		}
 		// Move back to beginning if we're not appending
 		if(!flags[OpenFlag::Append]) {
-			ffs.lseek(ffsfile, 0, SeekOrigin::Start);
+			ffs->lseek(ffsfile, 0, SeekOrigin::Start);
 		}
 	}
 
-	fwfs.close(fwfile);
+	fwfs->close(fwfile);
 
 	return ffsfile;
 }
@@ -414,9 +415,9 @@ int FileSystem::close(FileHandle file)
  */
 int FileSystem::remove(const char* path)
 {
-	int res = ffs.remove(path);
+	int res = ffs->remove(path);
 	if(hideFWFile(path, false) == FS_OK) {
-		if(res == SPIFFS_ERR_NOT_FOUND) {
+		if(res < 0) {
 			res = Error::ReadOnly;
 		}
 	}
@@ -429,19 +430,19 @@ int FileSystem::format()
 	hiddenFwFiles.removeAllElements();
 #endif
 
-	return ffs.format();
+	return ffs->format();
 }
 
 int FileSystem::check()
 {
-	return ffs.check();
+	return ffs->check();
 }
 
 int FileSystem::stat(const char* path, Stat* stat)
 {
-	int res = ffs.stat(path, stat);
+	int res = ffs->stat(path, stat);
 	if(res < 0) {
-		res = fwfs.stat(path, stat);
+		res = fwfs->stat(path, stat);
 	}
 	return res;
 }
@@ -466,8 +467,8 @@ int FileSystem::setacl(FileHandle file, const ACL& acl)
 
 int FileSystem::setattr(const char* path, FileAttributes attr)
 {
-	if(ffs.stat(path, nullptr) == FS_OK) {
-		return ffs.setattr(path, attr);
+	if(ffs->stat(path, nullptr) == FS_OK) {
+		return ffs->setattr(path, attr);
 	} else {
 		return Error::ReadOnly;
 	}
@@ -545,7 +546,7 @@ int FileSystem::rename(const char* oldpath, const char* newpath)
 
 	// Close the file and rename it
 	close(file);
-	return ffs.rename(oldpath, newpath);
+	return ffs->rename(oldpath, newpath);
 }
 
 /*

@@ -42,10 +42,10 @@ FileSystem* createFirmwareFilesystem(Storage::Partition partition);
 
 /**
  * @brief Create a hybrid filesystem
- * @param fwfsPartition
- * @param spiffsPartition
+ * @param fwfsPartition Base read-only filesystem partition
+ * @param flashFileSystem The filesystem to use for writing
  * @retval FileSystem* constructed filesystem object
  */
-FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition);
+FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, IFileSystem* flashFileSystem);
 
 } // namespace IFS

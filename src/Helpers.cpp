@@ -22,6 +22,7 @@
 #include "include/IFS/Helpers.h"
 #include "include/IFS/SPIFFS/FileSystem.h"
 #include "include/IFS/FWFS/ObjectStore.h"
+#include "include/IFS/FWFS/FileSystem.h"
 #include "include/IFS/HYFS/FileSystem.h"
 #include <spiffs_sming.h>
 #include <Storage.h>
@@ -56,15 +57,19 @@ FileSystem* createFirmwareFilesystem(Storage::Partition partition)
 	return FileSystem::cast(fs);
 }
 
-FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition)
+FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, IFileSystem* flashFileSystem)
 {
-	auto store = new FWFS::ObjectStore(fwfsPartition);
-	auto fs = new HYFS::FileSystem(store, spiffsPartition);
-
-	if(fs == nullptr) {
-		delete store;
+	if(flashFileSystem == nullptr) {
+		return nullptr;
 	}
 
+	auto fwfs = createFirmwareFilesystem(fwfsPartition);
+	if(fwfs == nullptr) {
+		delete flashFileSystem;
+		return nullptr;
+	}
+
+	auto fs = new HYFS::FileSystem(fwfs, flashFileSystem);
 	return FileSystem::cast(fs);
 }
 
