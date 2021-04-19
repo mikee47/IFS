@@ -45,49 +45,14 @@ using FileHandle = int16_t;
  */
 using FileID = uint32_t;
 
-#define IFS_ATTRIBUTE_TAG_MAP(XX)                                                                                      \
-	XX(ModifiedTime, sizeof(TimeStamp))                                                                                \
-	XX(FileAttributes, sizeof(FileAttributes))                                                                         \
-	XX(Acl, sizeof(ACL))                                                                                               \
-	XX(Compression, sizeof(Compression))
-
-/**
- * @brief Identifies a specific attribute
- */
-enum class AttributeTag : uint16_t {
-#define XX(tag, size) tag,
-	IFS_ATTRIBUTE_TAG_MAP(XX)
-#undef XX
-		User = 16, ///< First user attribute
-};
-
-inline AttributeTag getUserAttributeTag(uint8_t value)
-{
-	unsigned tagValue = value + unsigned(AttributeTag::User);
-	return AttributeTag(tagValue);
-}
-
-inline size_t getAttributeSize(AttributeTag tag)
-{
-	switch(tag) {
-#define XX(tag, size)                                                                                                  \
-	case AttributeTag::tag:                                                                                            \
-		return size;
-		IFS_ATTRIBUTE_TAG_MAP(XX)
-#undef XX
-	default:
-		return 0;
-	}
-}
-
 /**
  * @brief File Status structure
  */
 struct Stat {
-	IFileSystem* fs{nullptr}; ///< The filing system owning this file
-	NameBuffer name;		  ///< Name of file
-	uint32_t size{0};		  ///< Size of file in bytes
-	FileID id{0};			  ///< Internal file identifier
+	IFileSystem* fs{nullptr};				 ///< The filing system owning this file
+	NameBuffer name;						 ///< Name of file
+	uint32_t size{0};						 ///< Size of file in bytes
+	FileID id{0};							 ///< Internal file identifier
 	TimeStamp mtime{};						 ///< File modification time
 	ACL acl{UserRole::None, UserRole::None}; ///< Access Control
 	FileAttributes attr{};
