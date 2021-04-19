@@ -337,36 +337,45 @@ public:
 	virtual int flush(FileHandle file) = 0;
 
 	/**
-	 * @brief Set access control information for file
+	 * @brief Set an extended attribute on an open file
      * @param file handle to open file
-     * @param acl
+	 * @param tag The attribute to write
+	 * @param data Content of the attribute. Pass nullptr to remove the attribute (if possible).
+	 * @param size Size of the attribute in bytes
      * @retval int error code
+	 * @note Attributes may not be written to disk until flush() or close() are called
      */
-	virtual int setacl(FileHandle file, const ACL& acl) = 0;
+	virtual int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) = 0;
 
 	/**
-	 * @brief Set file attributes
-     * @param path Full path to file
-     * @param attr
-     * @retval int error code
+	 * @brief Get an extended attribute from an open file
+     * @param file handle to open file
+	 * @param tag The attribute to read
+	 * @param buffer Buffer to receive attribute content
+	 * @param size Size of the buffer
+     * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
-	virtual int setattr(const char* path, FileAttributes attr) = 0;
+	virtual int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) = 0;
 
 	/**
-	 * @brief Set modificatino tiem for file
-     * @param file handle to open file, must have write access
+	 * @brief Set an extended attribute for a file given its path
+     * @param path Full path to file (or directory)
+	 * @param tag The attribute to write
+	 * @param data Content of the attribute. Pass nullptr to remove the attribute (if possible).
+	 * @param size Size of the attribute in bytes
      * @retval int error code
-     * @note any subsequent writes to file will reset this to current time
      */
-	virtual int settime(FileHandle file, time_t mtime) = 0;
+	virtual int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) = 0;
 
 	/**
-	 * @brief Set file compression information
-	 * @param file
-     * @param compression
-     * @retval int error code
+	 * @brief Get an attribute from a file given its path
+     * @param file Full path to file (or directory)
+	 * @param tag The attribute to read
+	 * @param buffer Buffer to receive attribute content
+	 * @param size Size of the buffer
+     * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
-	virtual int setcompression(FileHandle file, const Compression& compression) = 0;
+	virtual int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) = 0;
 
 	/**
 	 * @brief rename a file

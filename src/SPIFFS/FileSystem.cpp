@@ -463,63 +463,59 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	return FS_OK;
 }
 
-int FileSystem::setacl(FileHandle file, const ACL& acl)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
 	auto smb = getMetaBuffer(file);
 	if(smb == nullptr) {
 		return Error::InvalidHandle;
 	}
-
-	smb->setAcl(acl);
-	return FS_OK;
+	return smb->setxattr(tag, data, size);
 }
 
-int FileSystem::setattr(const char* path, FileAttributes attr)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
+	auto smb = getMetaBuffer(file);
+	if(smb == nullptr) {
+		return Error::InvalidHandle;
+	}
+	return smb->getxattr(tag, buffer, size);
+}
+
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
+{
+#ifdef SPIFFS_STORE_META
 	FS_CHECK_PATH(path);
-	if(path == nullptr) {
-		return Error::BadParam;
+	spiffs_stat ss;
+	int err = SPIFFS_stat(handle(), path ?: "", &ss);
+	if(err == 0) {
+		SpiffsMetaBuffer smb;
+		smb.assign(ss.meta);
+		smb.setxattr(tag, data, size);
+		if(smb.flags[SpiffsMetaBuffer::Flag::dirty]) {
+			err = SPIFFS_update_meta(handle(), path, &smb);
+		}
 	}
-
-	auto file = SPIFFS_open(handle(), path, SPIFFS_O_RDWR, 0);
-	if(file < 0) {
-		int err = Error::fromSystem(file);
-		debug_ifserr(err, "open('%s')", path);
-		return err;
-	}
-
-	auto smb = initMetaBuffer(file);
-	if(smb == nullptr) {
-		SPIFFS_close(handle(), file);
-		return Error::InvalidHandle;
-	}
-
-	constexpr FileAttributes mask{FileAttribute::ReadOnly + FileAttribute::Archive};
-	smb->setattr(smb->meta.attr - mask + (attr & mask));
-
-	return close(file);
+	return Error::fromSystem(err);
+#else
+	return Error::NotSupported;
+#endif
 }
 
-int FileSystem::settime(FileHandle file, time_t mtime)
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
-	auto smb = getMetaBuffer(file);
-	if(smb == nullptr) {
-		return Error::InvalidHandle;
+#ifdef SPIFFS_STORE_META
+	FS_CHECK_PATH(path);
+	spiffs_stat ss;
+	int err = SPIFFS_stat(handle(), path, &ss);
+	if(err < 0) {
+		return Error::fromSystem(err);
 	}
-
-	smb->setFileTime(mtime);
-	return FS_OK;
-}
-
-int FileSystem::setcompression(FileHandle file, const Compression& compression)
-{
-	auto smb = getMetaBuffer(file);
-	if(smb == nullptr) {
-		return Error::InvalidHandle;
-	}
-
-	smb->setCompression(compression);
-	return FS_OK;
+	SpiffsMetaBuffer smb;
+	smb.assign(ss.meta);
+	return smb.getxattr(tag, buffer, size);
+#else
+	return Error::NotSupported;
+#endif
 }
 
 int FileSystem::opendir(const char* path, DirHandle& dir)

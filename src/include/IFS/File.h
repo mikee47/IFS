@@ -250,6 +250,30 @@ public:
 		return check(fs->setcompression(handle, compression));
 	}
 
+	template <typename... ParamTypes> bool setUserAttribute(uint8_t tagValue, ParamTypes... params)
+	{
+		GET_FS(false);
+		return check(fs->setAttribute(handle, getUserAttributeTag(tagValue), params...));
+	}
+
+	template <typename... ParamTypes> int getUserAttribute(uint8_t tagValue, ParamTypes... params)
+	{
+		GET_FS(lastError);
+		return check(fs->getUserAttribute(handle, tagValue, params...));
+	}
+
+	String getUserAttribute(uint8_t tagValue)
+	{
+		GET_FS(nullptr);
+		return fs->getUserAttribute(handle, tagValue);
+	}
+
+	bool removeUserAttribute(uint8_t tagValue)
+	{
+		GET_FS(false);
+		return check(fs->removeUserAttribute(handle, tagValue));
+	}
+
 	/**
 	 * @brief remove (delete) an open file (and close it)
      * @retval bool true on success

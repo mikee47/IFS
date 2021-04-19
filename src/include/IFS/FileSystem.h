@@ -142,6 +142,140 @@ public:
 		return remove(path.c_str());
 	}
 
+	int setAttribute(FileHandle file, AttributeTag tag, const void* data, size_t size)
+	{
+		return fsetxattr(file, tag, data, size);
+	}
+
+	int setAttribute(const char* file, AttributeTag tag, const void* data, size_t size)
+	{
+		return setxattr(file, tag, data, size);
+	}
+
+	int setAttribute(const String& file, AttributeTag tag, const void* data, size_t size)
+	{
+		return setxattr(file.c_str(), tag, data, size);
+	}
+
+	template <typename T> int setAttribute(const T& file, AttributeTag tag, const String& data)
+	{
+		return setAttribute(file, tag, data.c_str(), data.length());
+	}
+
+	int getAttribute(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+	{
+		return fgetxattr(file, tag, buffer, size);
+	}
+
+	int getAttribute(const char* file, AttributeTag tag, void* buffer, size_t size)
+	{
+		return getxattr(file, tag, buffer, size);
+	}
+
+	int getAttribute(const String& file, AttributeTag tag, void* buffer, size_t size)
+	{
+		return getxattr(file.c_str(), tag, buffer, size);
+	}
+
+	template <typename T> int getAttribute(const T& file, AttributeTag tag, String& value)
+	{
+		char buffer[256];
+		int len = getAttribute(file, tag, buffer, sizeof(buffer));
+		if(len != Error::BufferTooSmall) {
+			if(len >= 0) {
+				value.setString(buffer, len);
+				if(!value) {
+					return Error::NoMem;
+				}
+			}
+			return len;
+		}
+		if(!value.setLength(len)) {
+			return Error::NoMem;
+		}
+		return getAttribute(file, tag, value.begin(), value.length());
+	}
+
+	template <typename T> String getAttribute(const T& file, AttributeTag tag)
+	{
+		String value;
+		int err = getAttribute(file, tag, value);
+		return (err < 0) ? nullptr : value;
+	}
+
+	template <typename T> int removeAttribute(const T& file, AttributeTag tag)
+	{
+		return setAttribute(file, tag, nullptr, 0);
+	}
+
+	template <typename T, typename... ParamTypes>
+	int setUserAttribute(const T& file, uint8_t tagValue, ParamTypes... params)
+	{
+		return setAttribute(file, getUserAttributeTag(tagValue), params...);
+	}
+
+	template <typename T, typename... ParamTypes>
+	int getUserAttribute(const T& file, uint8_t tagValue, ParamTypes... params)
+	{
+		return getAttribute(file, getUserAttributeTag(tagValue), params...);
+	}
+
+	template <typename T> String getUserAttribute(const T& file, uint8_t tagValue)
+	{
+		return getAttribute(file, getUserAttributeTag(tagValue));
+	}
+
+	template <typename T> bool removeUserAttribute(const T& file, uint8_t tagValue)
+	{
+		return removeAttribute(file, getUserAttributeTag(tagValue));
+	}
+
+	/**
+	 * @brief Set access control information for file
+     * @param file handle or path to file
+     * @param acl
+     * @retval int error code
+     */
+	template <typename T> int setacl(const T& file, const ACL& acl)
+	{
+		return setAttribute(file, AttributeTag::Acl, &acl, sizeof(acl));
+	}
+
+	/**
+	 * @brief Set file attributes
+     * @param file handle or path to file
+     * @param attr
+     * @retval int error code
+     */
+	template <typename T> int setattr(const T& file, FileAttributes attr)
+	{
+		return setAttribute(file, AttributeTag::FileAttributes, &attr, sizeof(attr));
+	}
+
+	/**
+	 * @brief Set modification time for file
+     * @param file handle or path to file
+     * @retval int error code
+     * @note any subsequent writes to file will reset this to current time
+     */
+	template <typename T> int settime(const T& file, time_t mtime)
+	{
+		TimeStamp ts;
+		ts = mtime;
+		return setAttribute(file, AttributeTag::ModifiedTime, &ts, sizeof(ts));
+	}
+
+	/**
+	 * @brief Set file compression information
+	 * @param file
+     * @param compression
+     * @retval int error code
+     */
+	template <typename T> int setcompression(const T& file, const Compression& compression)
+	{
+		return setAttribute(file, AttributeTag::Compression, &compression, sizeof(compression));
+	}
+
 	/** @brief  Get size of file
 	 *  @param  file File handle
 	 *  @retval uint32_t Size of file in bytes, 0 on error

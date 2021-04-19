@@ -55,6 +55,22 @@ struct FileMeta {
 		acl.readAccess = UserRole::Admin;
 		acl.writeAccess = UserRole::Admin;
 	}
+
+	void* getAttributePtr(AttributeTag tag)
+	{
+		switch(tag) {
+		case AttributeTag::ModifiedTime:
+			return &mtime;
+		case AttributeTag::Acl:
+			return &acl;
+		case AttributeTag::Compression:
+			return &compression;
+		case AttributeTag::FileAttributes:
+			return &attr;
+		default:
+			return nullptr;
+		}
+	}
 };
 
 #define FILEMETA_SIZE 16
@@ -90,7 +106,7 @@ struct SpiffsMetaBuffer {
 		// If metadata uninitialised, then initialise it now
 		if(meta.magic != FileMeta::Magic) {
 			meta.init();
-			flags[Flag::dirty] = true;
+			flags += Flag::dirty;
 		}
 	}
 
@@ -102,37 +118,46 @@ struct SpiffsMetaBuffer {
 		stat.compression = meta.compression;
 	}
 
-	void setAcl(const ACL& newAcl)
-	{
-		if(meta.acl != newAcl) {
-			meta.acl = newAcl;
-			flags[Flag::dirty] = true;
-		}
-	}
-
 	void setFileTime(time_t t)
 	{
 		if(meta.mtime != t) {
 			meta.mtime = t;
-			flags[Flag::dirty] = true;
+			flags += Flag::dirty;
 		}
 	}
 
-	void setCompression(const Compression& c)
+	int getxattr(AttributeTag tag, void* buffer, size_t size)
 	{
-		if(meta.compression != c) {
-			meta.compression = c;
-			meta.attr[FileAttribute::Compressed] = (c.type != Compression::Type::None);
-			flags[Flag::dirty] = true;
+		auto attrSize = getAttributeSize(tag);
+		if(attrSize == 0) {
+			return Error::BadParam;
 		}
+		if(size >= attrSize) {
+			auto value = meta.getAttributePtr(tag);
+			if(value != nullptr) {
+				memcpy(buffer, value, attrSize);
+			}
+		}
+		return attrSize;
 	}
 
-	void setattr(FileAttributes newAttr)
+	int setxattr(AttributeTag tag, const void* data, size_t size)
 	{
-		if(meta.attr != newAttr) {
-			meta.attr = newAttr;
-			flags[Flag::dirty] = true;
+		auto attrSize = getAttributeSize(tag);
+		if(attrSize == 0) {
+			return Error::BadParam;
 		}
+		if(size != attrSize) {
+			return Error::BadParam;
+		}
+		auto value = meta.getAttributePtr(tag);
+		if(value != nullptr) {
+			memcpy(value, data, attrSize);
+			if(tag == AttributeTag::Compression) {
+				meta.attr[FileAttribute::Compressed] = (meta.compression.type != Compression::Type::None);
+			}
+		}
+		return FS_OK;
 	}
 };
 

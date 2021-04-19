@@ -72,19 +72,19 @@ public:
 	}
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
-	int setacl(FileHandle file, const ACL& acl) override
+	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int setattr(const char* filename, FileAttributes attr) override
+	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int settime(FileHandle file, time_t mtime) override
+	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int setcompression(FileHandle file, const Compression& compression) override
+	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override
 	{
 		return Error::NotSupported;
 	}

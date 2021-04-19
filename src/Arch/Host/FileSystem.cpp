@@ -35,6 +35,7 @@
 #include "Windows/fsync.h"
 #else
 #include <sys/xattr.h>
+#include <utime.h>
 #endif
 
 // We need name and path limits which work on all Host OS/s
@@ -73,27 +74,38 @@ struct ExtendedAttributes {
 	IFS::Compression compression;
 };
 
-int setExtendedAttributes(FileHandle file, const ExtendedAttributes& ea)
+int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 {
-	ExtendedAttributes buf{ea};
-	buf.size = sizeof(ea);
 #if defined(__MACOS)
-	int res = fsetxattr(file, extendedAttributeName, &buf, sizeof(buf), 0, 0);
+	int res = ::fsetxattr(file, name, value, size, 0, 0);
 #else
-	int res = fsetxattr(file, extendedAttributeName, &buf, sizeof(buf), 0);
+	int res = ::fsetxattr(file, name, value, size, 0);
 #endif
 	return (res == 0) ? FS_OK : syserr();
 }
 
-int getExtendedAttributes(FileHandle file, ExtendedAttributes& ea)
+int setExtendedAttributes(FileHandle file, const ExtendedAttributes& ea)
+{
+	ExtendedAttributes buf{ea};
+	buf.size = sizeof(ea);
+	return setXAttr(file, extendedAttributeName, &buf, sizeof(buf));
+}
+
+int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 {
 #if defined(__MACOS)
-	auto len = fgetxattr(file, extendedAttributeName, &ea, sizeof(ea), 0, 0);
+	auto len = ::fgetxattr(file, name, value, size, 0, 0);
 #else
-	auto len = fgetxattr(file, extendedAttributeName, &ea, sizeof(ea));
+	auto len = ::fgetxattr(file, name, value, size);
 #endif
+	return (len >= 0) ? len : syserr();
+}
+
+int getExtendedAttributes(FileHandle file, ExtendedAttributes& ea)
+{
+	auto len = getXAttr(file, extendedAttributeName, &ea, sizeof(ea));
 	if(len < 0) {
-		return syserr();
+		return len;
 	}
 	if(len != sizeof(ea) || ea.size != sizeof(ea)) {
 		return Error::ReadFailure;
@@ -139,6 +151,30 @@ int getUserAttributes(const char* path, Stat& stat)
 
 	hostFileSystem.close(f);
 	return res;
+}
+
+int settime(FileHandle file, TimeStamp mtime)
+{
+#ifdef __WIN32
+	_utimbuf times{mtime, mtime};
+	int res = _futime(file, &times);
+#else
+	struct timespec times[]{mtime, mtime};
+	int res = ::futimens(file, times);
+#endif
+	return (res >= 0) ? res : syserr();
+}
+
+int settime(const char* path, TimeStamp mtime)
+{
+#ifdef __WIN32
+	_utimbuf times{mtime, mtime};
+	int res = _utime(path, &times);
+#else
+	struct utimbuf times[]{mtime, mtime};
+	int res = ::utime(path, times);
+#endif
+	return (res >= 0) ? res : syserr();
 }
 
 } // namespace
@@ -287,51 +323,122 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	return res;
 }
 
-int FileSystem::setacl(FileHandle file, const ACL& acl)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
+	if(tag >= AttributeTag::User) {
+		char name[16];
+		m_snprintf(name, sizeof(name), "__user_%02x", tag);
+		return setXAttr(file, name, data, size);
+	}
+
+	auto attrSize = getAttributeSize(tag);
+	if(attrSize == 0) {
+		return Error::BadParam;
+	}
+	if(size != attrSize) {
+		return Error::BadParam;
+	}
+	if(tag == AttributeTag::ModifiedTime) {
+		TimeStamp mtime;
+		memcpy(&mtime, data, size);
+		return settime(file, mtime);
+	}
+
 	ExtendedAttributes ea{};
-	getExtendedAttributes(file, ea);
-	ea.acl = acl;
-	return setExtendedAttributes(file, ea);
+
+	auto update = [&](void* value) {
+		int err = getExtendedAttributes(file, ea);
+		if(err < 0) {
+			return err;
+		}
+		memcpy(value, data, attrSize);
+		return setExtendedAttributes(file, ea);
+	};
+
+	switch(tag) {
+	case AttributeTag::Acl:
+		return update(&ea.acl);
+	case AttributeTag::Compression:
+		return update(&ea.compression);
+	case AttributeTag::FileAttributes: {
+		return update(&ea.attr);
+	}
+	default:
+		return Error::BadParam;
+	}
 }
 
-int FileSystem::setattr(const char* path, FileAttributes attr)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
+	if(tag >= AttributeTag::User) {
+		char name[16];
+		m_snprintf(name, sizeof(name), "__user_%02x", tag);
+		return getXAttr(file, name, buffer, size);
+	}
+
+	Stat stat{};
+
+	auto copy = [&](const void* value, size_t len) {
+		int err = fstat(file, &stat);
+		if(err < 0) {
+			return err;
+		}
+		if(size < len) {
+			size = len;
+		}
+		memcpy(buffer, value, size);
+		return int(len);
+	};
+
+	switch(tag) {
+	case AttributeTag::ModifiedTime:
+		return copy(&stat.mtime, sizeof(stat.mtime));
+	case AttributeTag::Acl:
+		return copy(&stat.acl, sizeof(stat.acl));
+	case AttributeTag::Compression:
+		return copy(&stat.compression, sizeof(stat.compression));
+	case AttributeTag::FileAttributes:
+		return copy(&stat.attr, sizeof(stat.attr));
+	default:
+		return Error::BadParam;
+	}
+}
+
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
+{
+	if(tag == AttributeTag::ModifiedTime) {
+		TimeStamp mtime;
+		if(size < sizeof(mtime)) {
+			return Error::BadParam;
+		}
+		memcpy(&mtime, data, size);
+		return settime(path, mtime);
+	}
+
 	int file = ::open(path, O_RDWR);
 	if(file < 0) {
 		return syserr();
 	}
 
-	ExtendedAttributes ea{};
-	getExtendedAttributes(file, ea);
+	int res = fsetxattr(file, tag, data, size);
 
-	constexpr FileAttributes mask{FileAttribute::ReadOnly + FileAttribute::Archive};
-	ea.attr -= mask;
-	ea.attr += attr & mask;
-	int res = setExtendedAttributes(file, ea);
 	::close(file);
 
 	return res;
 }
 
-int FileSystem::settime(FileHandle file, time_t mtime)
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
-#ifdef __WIN32
-	_utimbuf times{mtime, mtime};
-	int res = _futime(file, &times);
-#else
-	struct timespec times[]{mtime, mtime};
-	int res = ::futimens(file, times);
-#endif
-	return (res >= 0) ? res : syserr();
-}
+	int file = ::open(path, O_RDONLY);
+	if(file < 0) {
+		return syserr();
+	}
 
-int FileSystem::setcompression(FileHandle file, const IFS::Compression& compression)
-{
-	ExtendedAttributes ea{};
-	getExtendedAttributes(file, ea);
-	ea.compression = compression;
-	return setExtendedAttributes(file, ea);
+	int res = fgetxattr(file, tag, buffer, size);
+
+	::close(file);
+
+	return res;
 }
 
 FileHandle FileSystem::open(const char* path, OpenFlags flags)

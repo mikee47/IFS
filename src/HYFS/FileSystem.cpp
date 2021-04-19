@@ -368,8 +368,8 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	// Copy metadata
 	Stat stat;
 	if(fwfs->fstat(fwfile, &stat) >= 0) {
-		ffs->setacl(ffsfile, stat.acl);
-		ffs->setcompression(ffsfile, stat.compression);
+		ffs->fsetxattr(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
+		ffs->fsetxattr(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
 	}
 
 	// If not truncating then copy content into FFS file
@@ -383,7 +383,6 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 				break;
 			}
 			len = ffs->write(ffsfile, buffer, len);
-			//      debug_i("m_ffs.write: %d", len);
 			if(len < 0) {
 				ffs->fremove(ffsfile);
 				ffs->close(ffsfile);
@@ -459,31 +458,31 @@ int FileSystem::fcontrol(FileHandle file, ControlCode code, void* buffer, size_t
 	return fs->fcontrol(file, code, buffer, bufSize);
 }
 
-int FileSystem::setacl(FileHandle file, const ACL& acl)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
 	GET_FS(file)
-	return fs->setacl(file, acl);
+	return fs->fsetxattr(file, tag, data, size);
 }
 
-int FileSystem::setattr(const char* path, FileAttributes attr)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
-	if(ffs->stat(path, nullptr) == FS_OK) {
-		return ffs->setattr(path, attr);
-	} else {
-		return Error::ReadOnly;
+	GET_FS(file)
+	return fs->fgetxattr(file, tag, buffer, size);
+}
+
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
+{
+	int res = ffs->setxattr(path, tag, data, size);
+	return (res == Error::NotFound) ? Error::ReadOnly : res;
+}
+
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
+{
+	int res = ffs->getxattr(path, tag, buffer, size);
+	if(res < 0) {
+		res = fwfs->getxattr(path, tag, buffer, size);
 	}
-}
-
-int FileSystem::settime(FileHandle file, time_t mtime)
-{
-	GET_FS(file)
-	return fs->settime(file, mtime);
-}
-
-int FileSystem::setcompression(FileHandle file, const Compression& compression)
-{
-	GET_FS(file)
-	return fs->setcompression(file, compression);
+	return res;
 }
 
 int FileSystem::read(FileHandle file, void* data, size_t size)

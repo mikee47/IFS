@@ -881,6 +881,68 @@ int FileSystem::getMd5Hash(FileHandle file, void* buffer, size_t bufSize)
 	return md5HashSize;
 }
 
+int FileSystem::readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size)
+{
+	switch(tag) {
+	case AttributeTag::ModifiedTime: {
+		auto res = sizeof(stat.mtime);
+		if(size >= res) {
+			memcpy(buffer, &stat.mtime, res);
+		}
+		return res;
+	}
+
+	case AttributeTag::FileAttributes: {
+		auto res = sizeof(stat.attr);
+		if(size >= res) {
+			memcpy(buffer, &stat.attr, res);
+		}
+		return res;
+	}
+
+	case AttributeTag::Acl: {
+		auto res = sizeof(stat.acl);
+		if(size >= res) {
+			memcpy(buffer, &stat.acl, res);
+		}
+		return res;
+	}
+
+	case AttributeTag::Compression: {
+		auto res = sizeof(stat.compression);
+		if(size >= res) {
+			memcpy(buffer, &stat.compression, res);
+		}
+		return res;
+	}
+
+	default:
+		return Error::NotFound;
+	}
+}
+
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+{
+	Stat s{};
+	int res = fstat(file, &s);
+	if(res < 0) {
+		return res;
+	}
+
+	return readAttribute(s, tag, buffer, size);
+}
+
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
+{
+	Stat s{};
+	int res = stat(path, &s);
+	if(res < 0) {
+		return res;
+	}
+
+	return readAttribute(s, tag, buffer, size);
+}
+
 } // namespace FWFS
 
 } // namespace IFS
