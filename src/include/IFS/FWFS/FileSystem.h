@@ -240,7 +240,7 @@ private:
 	int fillStat(Stat& stat, const FWObjDesc& entry);
 	int readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size);
 
-	void printObject(const FWObjDesc& od);
+	void printObject(const FWObjDesc& od, bool isChild);
 
 private:
 	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index

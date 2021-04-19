@@ -50,11 +50,20 @@ namespace FWFS
 		return Error::FileNotOpen;                                                                                     \
 	}
 
-void FileSystem::printObject(const FWObjDesc& od)
+/**
+ * @brief Directories are enumerated using a regular file descriptor,
+ * except they're dynamically allocated to avoid running out of handles when
+ * parsing directory trees.
+ */
+using FileDir = FWFileDesc;
+
+void FileSystem::printObject(const FWObjDesc& od, bool isChild)
 {
 #if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
-	if(od.obj.isNamed()) {
+	if(od.obj.isRef()) {
+		m_snprintf(name, sizeof(name), " REF #%u", od.obj.data8.ref.id);
+	} else if(od.obj.isNamed()) {
 		name[0] = ' ';
 		name[1] = '"';
 		unsigned maxlen = sizeof(name) - 4;
@@ -70,8 +79,20 @@ void FileSystem::printObject(const FWObjDesc& od)
 	} else {
 		name[0] = '\0';
 	}
-	debug_d("@0x%08X #%u: type = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.typeData, od.obj.size(),
-			toString(od.obj.type()).c_str(), name);
+	m_printf("%s@0x%08X #%u: %-5u bytes, type = 0x%02X %s, %s\r\n", isChild ? "    " : "", od.ref.offset, od.ref.id,
+			 od.obj.size(), od.obj.typeData, toString(od.obj.type()).c_str(), name);
+
+	if(isChild || !od.obj.isNamed()) {
+		return;
+	}
+
+	int res;
+	FWObjDesc child;
+	while((res = readChildObjectHeader(od, child)) >= 0) {
+		printObject(child, true);
+		child.next();
+	}
+
 #endif
 }
 
@@ -287,7 +308,7 @@ int FileSystem::mount()
 	int res;
 	while((res = readObjectHeader(od)) >= 0) {
 		++objectCount;
-		printObject(od);
+		printObject(od, false);
 
 		if(od.obj.type() == Object::Type::Volume) {
 			volume = od.ref;
