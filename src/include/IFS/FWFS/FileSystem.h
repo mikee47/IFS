@@ -24,11 +24,17 @@
 
 #include "../FileSystem.h"
 #include "../ObjectStore.h"
+#ifdef FWFS_OBJECT_CACHE
+#include "ObjRefCache.h"
+#endif
 
 namespace IFS
 {
 namespace FWFS
 {
+// First object located immediately after start marker in image
+constexpr size_t FWFS_BASE_OFFSET{sizeof(uint32_t)};
+
 // File handles start at this value
 #ifndef FWFS_HANDLE_MIN
 #define FWFS_HANDLE_MIN 100
@@ -68,16 +74,10 @@ struct FWFileDesc {
 };
 
 /**
- * @brief FWFS Volume definition - identifies object store and volume object after mounting
+ * @brief FWFS Volume definition - identifies filesystem and volume object after mounting
  */
 struct FWVolume {
-	IObjectStore* store{nullptr};
-	ObjRef ref; ///< Volume reference
-
-	bool isMounted()
-	{
-		return store ? store->isMounted() : false;
-	}
+	std::unique_ptr<IFileSystem> fileSystem;
 };
 
 /**
@@ -86,28 +86,16 @@ struct FWVolume {
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem()
+	FileSystem(Storage::Partition partition) : partition(partition)
 	{
 	}
 
-	FileSystem(IObjectStore* store)
-	{
-		setVolume(0, store);
-	}
-
-	~FileSystem()
-	{
-		for(auto& vol : volumes) {
-			delete vol.store;
-		}
-	}
-
-	/** @brief Set object stores
-	 *  @param num which store to set
-	 *  @param store the object store object
+	/** @brief Set volume for mountpoint
+	 *  @param num Number of mountpoint
+	 *  @param fileSystem The filesystem to root at this mountpoint
 	 *  @retval int error code
 	 */
-	int setVolume(uint8_t num, IObjectStore* store);
+	int setVolume(uint8_t num, IFileSystem* fileSystem);
 
 	// IFileSystem methods
 	int mount() override;
@@ -175,112 +163,168 @@ public:
 		return Error::NotImplemented;
 	}
 
-	/** @brief get the full path of a file from its ID
-	 *  @param fileid
-	 *  @param path
-	 *  @retval int error code
-	 */
-	int getFilePath(FileID fileid, NameBuffer& path);
-
 	int getMd5Hash(FileHandle file, void* buffer, size_t bufSize);
 
 private:
-	int seekFilePath(FWObjDesc& parent, FileID fileid, NameBuffer& path);
+	bool isMounted()
+	{
+		return flags[Flag::mounted];
+	}
 
-	/** @brief Mount the given volume, scanning its contents for verification
-	 *  @param volume IN: identifies object store, OUT: contains volume object reference
-	 *  @retval int error code
+	int openRootObject(FWObjDesc& odRoot);
+
+	/**
+	 * @brief read a root object header
+	 * @param od object descriptor, with offset and ID fields initialised
+	 * @retval error code
+	 * @note this method deals with top-level objects only
 	 */
-	int mountVolume(FWVolume& volume);
-
-	/** @brief Obtain the managing object store for an object reference
-	 *  @param ref .store field must be valid */
-	int getStore(const ObjRef& ref, IObjectStore*& store)
-	{
-		if(ref.storenum >= FWFS_MAX_VOLUMES) {
-			return Error::BadStore;
-		}
-		store = volumes[ref.storenum].store;
-		return store ? FS_OK : Error::NotMounted;
-	}
-
-	int getStore(const FWObjDesc& od, IObjectStore*& store)
-	{
-		return getStore(od.ref, store);
-	}
-
-	int openRootObject(const FWVolume& volume, FWObjDesc& odRoot);
-
-	int openObject(FWObjDesc& od)
-	{
-		assert(od.ref.refCount == 0);
-
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		if(res >= 0) {
-			res = store->open(od);
-			if(res >= 0) {
-				++od.ref.refCount;
-			}
-		}
-
-		return res;
-	}
-
-	int openChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
-	{
-		assert(od.ref.refCount == 0);
-
-		IObjectStore* store;
-		int res = getStore(parent.ref, store);
-		if(res >= 0) {
-			res = store->openChild(parent, child, od);
-			if(res >= 0) {
-				++od.ref.refCount;
-			}
-		}
-
-		return res;
-	}
-
-	int closeObject(FWObjDesc& od)
-	{
-		assert(od.ref.refCount == 1);
-
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		if(res >= 0) {
-			res = store->close(od);
-			if(res >= 0) {
-				--od.ref.refCount;
-			}
-		}
-
-		return res;
-	}
-
 	int readObjectHeader(FWObjDesc& od)
 	{
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		return res < 0 ? res : store->readHeader(od);
+		//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
+		++od.ref.readCount;
+		// First object ID is 1
+		if(od.ref.offset == 0) {
+			od.ref.id = 1;
+		}
+		if(!partition.read(FWFS_BASE_OFFSET + od.ref.offset, od.obj)) {
+			return Error::ReadFailure;
+		}
+
+		/*
+			During volume mount, readObjectHeader() is called repeatedly to iterate base objects.
+			We had this check for consecutive IDs but it doesn't apply to SPIFFS which allocates
+			its own IDs. Also, readObjectHeader might be used on child objects in which case the ID
+			isn't applicable. So just leave this code here until I decide what to do with it.
+
+			ID lastObjectID{0};
+			...
+			// This check is only applicable to FWRO
+			if(od.ref.id < lastObjectID) {
+				debug_e("FWFS object ID mismatch at 0x%08X: found %u, last ID was %u", od.ref.offset, od.ref.id, lastObjectID);
+				res = Error::BadFileSystem;
+				break;
+			}
+			lastObjectID = od.ref.id;
+		*/
+
+#ifdef FWFS_OBJECT_CACHE
+		if(isMounted()) {
+			cache.improve(od.ref, objIndex);
+		} else {
+			cache.add(od.ref);
+		}
+#endif
+
+		return FS_OK;
 	}
 
+	/**
+	 * @brief find an object and return a descriptor for it
+	 * @param od IN/OUT: resolved object
+	 * @retval int error code
+	 * @note od.ref must be initialised
+	 */
+	int openObject(FWObjDesc& od)
+	{
+		// The object we're looking for
+		Object::ID objId = od.ref.id;
+
+		// Start search with first child
+		od.ref.offset = 0;
+		od.ref.id = 1; // We don't use id #0
+
+		if(objId > lastFound.id && lastFound.id > od.ref.id) {
+			od.ref = lastFound;
+		}
+
+		int res;
+		while((res = readObjectHeader(od)) >= 0 && od.ref.id != objId) {
+			od.next();
+		}
+
+		if(res >= 0) {
+			lastFound = od.ref;
+		} else if(res == Error::NoMoreFiles) {
+			res = Error::NotFound;
+		}
+
+		return res;
+	}
+
+	/**
+	 * @brief open a descriptor for a child object
+	 * @param parent
+	 * @param child reference to child, relative to parent
+	 * @param od OUT: resolved object
+	 * @retval int error code
+	 */
+	int openChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
+	{
+		if(!child.obj.isRef()) {
+			od = child;
+			od.ref.offset += parent.childTableOffset();
+			return FS_OK;
+		}
+
+		od.ref = ObjRef(child.obj.data8.ref.id);
+
+		int res = openObject(od);
+		if(res < 0) {
+			return res;
+		}
+
+		if(od.obj.type() != child.obj.type()) {
+			// Reference must point to object of same type
+			return Error::BadObject;
+		}
+
+		if(od.obj.isRef()) {
+			// Reference must point to an actual object, not another reference
+			return Error::BadObject;
+		}
+
+		return FS_OK;
+	}
+
+	/**
+	 * @brief fetch child object header
+	 * @param parent
+	 * @param child uninitialised child, returns result
+	 * @retval error code
+	 * @note references are not pursued; the caller must handle that
+	 * child.ref refers to position relative to parent
+	 * Implementations must set child.storenum = parent.storenum; other values
+	 * will be meaningless as object stores are unaware of other stores.
+	 */
 	int readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
 	{
 		assert(parent.obj.isNamed());
-		// Child must be in same store as parent
-		child.ref.storenum = parent.ref.storenum;
-		IObjectStore* store;
-		int res = getStore(parent.ref, store);
-		return res < 0 ? res : store->readChildHeader(parent, child);
+
+		if(child.ref.offset >= parent.obj.childTableSize()) {
+			return Error::EndOfObjects;
+		}
+
+		// Get the absolute offset for the child object
+		uint32_t tableOffset = parent.childTableOffset();
+		child.ref.offset += tableOffset;
+		int res = readObjectHeader(child);
+		child.ref.offset -= tableOffset;
+		return res;
 	}
 
+	/**
+	 * @brief read object content
+	 * @param offset location to start reading, from start of object content
+	 * @param size bytes to read
+	 * @param buffer to store data
+	 * @retval number of bytes read, or error code
+	 * @note must fail if cannot read all requested bytes
+	 */
 	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
 	{
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		return res < 0 ? res : store->readContent(od, offset, size, buffer);
+		offset += FWFS_BASE_OFFSET + od.contentOffset();
+		return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
 	}
 
 	/** @brief Find an unused descriptor
@@ -304,6 +348,17 @@ private:
 	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
 	ACL rootACL;
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
+	enum class Flag {
+		mounted,
+	};
+
+	Storage::Partition partition;
+	ObjRef volume;
+	ObjRef lastFound;
+#ifdef FWFS_OBJECT_CACHE
+	ObjRefCache cache;
+#endif
+	BitSet<uint8_t, Flag> flags;
 };
 
 } // namespace FWFS

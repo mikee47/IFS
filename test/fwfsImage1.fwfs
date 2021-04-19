@@ -9,7 +9,7 @@
         "backup.fwfs.bin": "out/backup.fwfs.bin",
         "large-random.bin": "out/large-random.bin"
     },
-    // Directories to mount other object stores
+    // Directories to mount other filesystems
     "mountpoints": {
         "config": 1
     },

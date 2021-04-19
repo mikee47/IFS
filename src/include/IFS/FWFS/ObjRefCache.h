@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "ObjectStore.h"
+#include "../Object.h"
 
 namespace IFS
 {
