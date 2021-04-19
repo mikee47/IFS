@@ -94,7 +94,7 @@ public:
 	}
 
 private:
-	std::unique_ptr<uint32_t> offsets;
+	std::unique_ptr<uint32_t[]> offsets;
 	FWFS::Object::ID offsetCount{0}; ///< Number of cached offsets
 };
 
