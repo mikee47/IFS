@@ -45,10 +45,7 @@ struct FileMeta {
 	// Security
 	ACL acl;
 	// Compression
-	struct __attribute__((packed)) {
-		Compression::Type type;
-		uint32_t originalSize;
-	} compression;
+	Compression compression;
 
 	void init()
 	{
@@ -102,7 +99,7 @@ struct SpiffsMetaBuffer {
 		stat.acl = meta.acl;
 		stat.attr = meta.attr;
 		stat.mtime = meta.mtime;
-		stat.compression = Compression{meta.compression.type, meta.compression.originalSize};
+		stat.compression = meta.compression;
 	}
 
 	void setAcl(const ACL& newAcl)
@@ -123,9 +120,8 @@ struct SpiffsMetaBuffer {
 
 	void setCompression(const Compression& c)
 	{
-		if(meta.compression.type != c.type || meta.compression.originalSize != c.originalSize) {
-			meta.compression.type = c.type;
-			meta.compression.originalSize = c.originalSize;
+		if(meta.compression != c) {
+			meta.compression = c;
 			meta.attr[FileAttribute::Compressed] = (c.type != Compression::Type::None);
 			flags[Flag::dirty] = true;
 		}

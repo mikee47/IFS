@@ -35,7 +35,7 @@ namespace IFS
 /**
  * @brief A compression descriptor
  */
-struct Compression {
+struct __attribute__((packed)) Compression {
 	enum class Type : uint8_t {
 #define XX(_tag, _comment) _tag,
 		IFS_COMPRESSION_TYPE_MAP(XX)
@@ -55,6 +55,8 @@ struct Compression {
 		return !operator==(other);
 	}
 };
+
+static_assert(sizeof(Compression) == 5, "Compression wrong size");
 
 /**
  * @name Return compression corresponding to given string

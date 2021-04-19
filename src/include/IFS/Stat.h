@@ -53,10 +53,10 @@ struct Stat {
 	NameBuffer name;		  ///< Name of file
 	uint32_t size{0};		  ///< Size of file in bytes
 	FileID id{0};			  ///< Internal file identifier
-	Compression compression{};
-	FileAttributes attr{};
-	ACL acl{UserRole::None, UserRole::None}; ///< Access Control
 	TimeStamp mtime{};						 ///< File modification time
+	ACL acl{UserRole::None, UserRole::None}; ///< Access Control
+	FileAttributes attr{};
+	Compression compression{};
 
 	Stat()
 	{
