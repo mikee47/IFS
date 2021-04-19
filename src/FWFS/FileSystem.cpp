@@ -633,28 +633,22 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 		return res;
 	}
 
-	int descriptorIndex = findUnusedDescriptor();
-	if(descriptorIndex < 0) {
-		return descriptorIndex;
-	}
-
-	auto& fd = fileDescriptors[descriptorIndex];
-	fd = FWFileDesc{od};
+	auto fd = new FileDir{od};
 
 	if(od.obj.isMountPoint()) {
-		res = resolveMountPoint(od, fd.fileSystem);
+		res = resolveMountPoint(od, fd->fileSystem);
 		if(res < 0) {
-			fd.reset();
+			delete fd;
 			return res;
 		}
-		res = fd.fileSystem->opendir(path, fd.dir);
+		res = fd->fileSystem->opendir(path, fd->dir);
 		if(res < 0) {
-			fd.reset();
+			delete fd;
 			return res;
 		}
 	}
 
-	dir = reinterpret_cast<DirHandle>(FWFS_HANDLE_MIN + descriptorIndex);
+	dir = DirHandle(fd);
 	return FS_OK;
 }
 
@@ -664,8 +658,8 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
  */
 int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
-	auto file = reinterpret_cast<int>(dir);
-	GET_FD();
+	GET_FILEDIR()
+	auto& fd = *d;
 
 	if(fd.isMountPoint()) {
 		return fd.fileSystem->readdir(fd.dir, stat);
@@ -704,8 +698,8 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 int FileSystem::rewinddir(DirHandle dir)
 {
-	auto file = reinterpret_cast<int>(dir);
-	GET_FD();
+	GET_FILEDIR()
+	auto& fd = *d;
 
 	if(fd.isMountPoint()) {
 		return fd.fileSystem->rewinddir(fd.dir);
@@ -717,14 +711,14 @@ int FileSystem::rewinddir(DirHandle dir)
 
 int FileSystem::closedir(DirHandle dir)
 {
-	auto file = reinterpret_cast<int>(dir);
-	GET_FD();
+	GET_FILEDIR()
+	auto fd = d;
 
 	int res{FS_OK};
-	if(fd.isMountPoint()) {
-		res = fd.fileSystem->closedir(fd.dir);
+	if(fd->isMountPoint()) {
+		res = fd->fileSystem->closedir(fd->dir);
 	}
-	fd.reset();
+	delete fd;
 	return res;
 }
 
