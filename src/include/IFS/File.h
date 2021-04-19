@@ -274,6 +274,14 @@ public:
 		return check(fs->removeUserAttribute(handle, tagValue));
 	}
 
+	int enumAttributes(AttributeEnumCallback callback, void* buffer, size_t bufsize)
+	{
+		GET_FS(lastError);
+		int res = fs->fenumxattr(handle, callback, buffer, bufsize);
+		check(res);
+		return res;
+	}
+
 	/**
 	 * @brief remove (delete) an open file (and close it)
      * @retval bool true on success

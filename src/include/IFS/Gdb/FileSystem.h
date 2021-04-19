@@ -80,6 +80,10 @@ public:
 	{
 		return Error::NotSupported;
 	}
+	int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) override
+	{
+		return Error::NotSupported;
+	}
 	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;

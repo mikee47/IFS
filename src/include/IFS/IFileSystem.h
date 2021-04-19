@@ -33,6 +33,7 @@
 #include "Error.h"
 #include "Control.h"
 #include "Profiler.h"
+#include "Attribute.h"
 #include <Data/Stream/SeekOrigin.h>
 
 /**
@@ -375,6 +376,16 @@ public:
      * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
 	virtual int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) = 0;
+
+	/**
+	 * @brief Enumerate attributes
+     * @param file handle to open file
+	 * @param callback Callback function to invoke for each attribute found
+	 * @param buffer Buffer to use for reading attribute data. Use nullptr if only tags are required
+	 * @param bufsize Size of buffer
+     * @retval int error code, on success returns number of attributes read
+     */
+	virtual int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) = 0;
 
 	/**
 	 * @brief Set an extended attribute for a file given its path

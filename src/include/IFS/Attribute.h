@@ -45,6 +45,39 @@ enum class AttributeTag : uint16_t {
 		User = 16, ///< First user attribute
 };
 
+/**
+ * @brief Attribute information passed to enumeration callback
+ */
+struct AttributeEnum {
+	AttributeTag tag{}; ///< The attribute tag
+	size_t size{0};		///< Size of returned data, may be less than attrsize if buffer too small
+	size_t attrsize{0}; ///< Actual attribute size
+	void* buffer;		///< User-provided buffer with tag value
+	size_t bufsize;		///< User-provided buffer size
+
+	AttributeEnum(void* buffer, size_t bufsize) : buffer(buffer), bufsize(bufsize)
+	{
+	}
+
+	void set(AttributeTag tag, const void* value, size_t valueSize)
+	{
+		this->tag = tag;
+		attrsize = valueSize;
+		size = std::min(attrsize, bufsize);
+		memcpy(buffer, value, size);
+	}
+
+	template <typename T> void set(AttributeTag tag, const T& value)
+	{
+		set(tag, &value, sizeof(value));
+	}
+};
+
+/**
+ * @brief Return true to continue enumeration, false to stop
+ */
+using AttributeEnumCallback = Delegate<bool(AttributeEnum& e)>;
+
 inline AttributeTag getUserAttributeTag(uint8_t value)
 {
 	unsigned tagValue = value + unsigned(AttributeTag::User);
