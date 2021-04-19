@@ -238,10 +238,7 @@ struct Object {
 				} objectAttributes;
 
 				// Compression descriptor
-				struct {
-					Compression::Type type;
-					uint32_t originalSize;
-				} compression;
+				Compression compression;
 
 				// ReadACE, WriteACE
 				struct {

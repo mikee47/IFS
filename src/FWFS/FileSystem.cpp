@@ -148,8 +148,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 
 		case Object::Type::Compression:
 			stat.attr |= FileAttribute::Compressed;
-			stat.compression.type = child.obj.data8.compression.type;
-			stat.compression.originalSize = child.obj.data8.compression.originalSize;
+			stat.compression = child.obj.data8.compression;
 			break;
 
 		case Object::Type::ReadACE:
