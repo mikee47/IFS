@@ -34,7 +34,9 @@ namespace IFS
 	XX(FileAttributes, sizeof(FileAttributes))                                                                         \
 	XX(ReadAce, sizeof(UserRole))                                                                                      \
 	XX(WriteAce, sizeof(UserRole))                                                                                     \
-	XX(Compression, sizeof(Compression))
+	XX(Compression, sizeof(Compression))                                                                               \
+	XX(Md5Hash, 16)                                                                                                    \
+	XX(VolumeIndex, sizeof(uint8_t))
 
 /**
  * @brief Identifies a specific attribute

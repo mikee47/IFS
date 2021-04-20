@@ -1037,6 +1037,84 @@ int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_
 	return readAttribute(fd.odFile, tag, buffer, size);
 }
 
+int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize)
+{
+	GET_FD()
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fenumxattr(fd.file, callback, buffer, bufsize);
+	}
+
+	unsigned count{0};
+	AttributeEnum e{buffer, bufsize};
+
+	auto send = [&](AttributeTag tag, const void* value, size_t attrsize) -> bool {
+		++count;
+		e.set(tag, value, attrsize);
+		return callback(e);
+	};
+
+	if(!send(AttributeTag::ModifiedTime, &fd.odFile.obj.data16.named.mtime, sizeof(TimeStamp))) {
+		return count;
+	}
+
+	int res;
+	FWObjDesc child;
+	bool cont{true};
+	while(cont && (res = readChildObjectHeader(fd.odFile, child)) >= 0) {
+		switch(child.obj.type()) {
+		case Object::Type::ObjAttr: {
+			Object::Attributes objattr = child.obj.data8.objectAttributes.attr;
+			auto attr = getFileAttributes(objattr);
+			cont = send(AttributeTag::FileAttributes, &attr, sizeof(attr));
+			break;
+		}
+
+		case Object::Type::Compression:
+			cont = send(AttributeTag::Compression, &child.obj.data8.compression, sizeof(Compression));
+			break;
+
+		case Object::Type::ReadACE:
+			cont = send(AttributeTag::ReadAce, &child.obj.data8.ace.role, sizeof(UserRole));
+			break;
+
+		case Object::Type::WriteACE:
+			cont = send(AttributeTag::WriteAce, &child.obj.data8.ace.role, sizeof(UserRole));
+			break;
+
+		case Object::Type::VolumeIndex:
+			cont = send(AttributeTag::VolumeIndex, &child.obj.data8.volumeIndex, sizeof(uint8_t));
+			break;
+
+		case Object::Type::Md5Hash: {
+			e.attrsize = 16;
+			FWObjDesc od;
+			getChildObject(fd.odFile, child, od);
+			e.tag = AttributeTag::Md5Hash;
+			e.size = std::min(e.attrsize, e.bufsize);
+			readObjectContent(od, 0, e.size, e.buffer);
+			++count;
+			cont = callback(e);
+			break;
+		}
+
+		case Object::Type::Data8:
+		case Object::Type::Data16:
+		case Object::Type::Data24:
+			break; // ignore
+
+		default:
+			if(!child.obj.isNamed()) {
+				debug_w("[FWFS] Ignoring unknown object %u (%u bytes)", child.obj.type(), child.obj.size());
+			}
+		}
+
+		child.next();
+	}
+
+	return count;
+}
+
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
 {
 	IFileSystem* fs;
