@@ -27,6 +27,7 @@
 
 int fgetxattr(int file, const char* name, void* value, size_t size);
 int fsetxattr(int file, const char* name, const void* value, size_t size, int flags);
+int flistxattr(int file, char* namebuf, size_t size);
 
 // Get Win32 attribute bits (FILE_ATTRIBUTE_xxx)
 int fgetattr(int file, uint32_t& attr);
