@@ -66,14 +66,6 @@ class IFileSystem;
  */
 using DirHandle = struct ImplFileDir*;
 
-/**
- * @brief Get current timestamp in UTC
- * @retval time_t
- * @note Filing systems must store timestamps in UTC
- * Use this function; makes porting easier.
- */
-time_t fsGetTimeUTC();
-
 #if DEBUG_BUILD
 #define debug_ifserr(err, func, ...)                                                                                   \
 	do {                                                                                                               \

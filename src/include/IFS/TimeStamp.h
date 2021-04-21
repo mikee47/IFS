@@ -47,4 +47,12 @@ struct TimeStamp {
 	}
 };
 
+/**
+ * @brief Get current timestamp in UTC
+ * @retval time_t
+ * @note Filing systems must store timestamps in UTC
+ * Use this function; makes porting easier.
+ */
+time_t fsGetTimeUTC();
+
 } // namespace IFS
