@@ -136,13 +136,8 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 
 		switch(child.obj.type()) {
 		case Object::Type::ObjAttr: {
-			Object::Attributes attr = child.obj.data8.objectAttributes.attr;
-			if(attr[Object::Attribute::ReadOnly]) {
-				stat.attr |= FileAttribute::ReadOnly;
-			}
-			if(attr[Object::Attribute::Archive]) {
-				stat.attr |= FileAttribute::Archive;
-			}
+			Object::Attributes objattr = child.obj.data8.objectAttributes.attr;
+			stat.attr |= getFileAttributes(objattr);
 			break;
 		}
 
@@ -973,56 +968,48 @@ int FileSystem::getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize)
 	}
 	FWObjDesc od;
 	getChildObject(fd.odFile, child, od);
-	readObjectContent(od, 0, md5HashSize, buffer);
 
-	return md5HashSize;
+	res = readObjectContent(od, 0, md5HashSize, buffer);
+	return (res < 0) ? res : md5HashSize;
 }
 
 int FileSystem::readAttribute(FWObjDesc& od, AttributeTag tag, void* buffer, size_t size)
 {
 	assert(od.obj.isNamed());
 
-	FWObjDesc child;
-	FileAttributes fileAttr{};
-	void* value{nullptr};
-	auto attrsize = getAttributeSize(tag);
+	auto setValue = [&](const void* value, size_t attrsize) -> int {
+		memcpy(buffer, value, std::min(size, attrsize));
+		return attrsize;
+	};
+
+	auto getChild = [&](Object::Type type, size_t attrsize) -> int {
+		FWObjDesc child;
+		int res = findChildObjectHeader(od, child, type);
+		if(res < 0) {
+			return res;
+		}
+		return setValue(&child.obj.typeData + child.obj.data8.contentOffset(), attrsize);
+	};
+
 	switch(tag) {
 	case AttributeTag::ModifiedTime:
-		value = &child.obj.data16.named.mtime;
-		break;
+		return setValue(&od.obj.data16.named.mtime, sizeof(TimeStamp));
 	case AttributeTag::FileAttributes: {
+		FWObjDesc child;
 		int res = findChildObjectHeader(od, child, Object::Type::ObjAttr);
 		if(res < 0) {
-			return Error::NotFound;
+			return res;
 		}
-		Object::Attributes attr = child.obj.data8.objectAttributes.attr;
-		if(attr[Object::Attribute::ReadOnly]) {
-			fileAttr |= FileAttribute::ReadOnly;
-		}
-		if(attr[Object::Attribute::Archive]) {
-			fileAttr |= FileAttribute::Archive;
-		}
-		value = &fileAttr;
-		break;
+		Object::Attributes objattr = child.obj.data8.objectAttributes.attr;
+		FileAttributes fileAttr = getFileAttributes(objattr);
+		return setValue(&fileAttr, sizeof(fileAttr));
 	}
 	case AttributeTag::ReadAce:
-	case AttributeTag::WriteAce: {
-		auto objectType = tag == AttributeTag::ReadAce ? Object::Type::ReadACE : Object::Type::WriteACE;
-		int res = findChildObjectHeader(od, child, objectType);
-		if(res < 0) {
-			return Error::NotFound;
-		}
-		value = &child.obj.data8.ace.role;
-		break;
-	}
-	case AttributeTag::Compression: {
-		int res = findChildObjectHeader(od, child, Object::Type::ReadACE);
-		if(res < 0) {
-			return Error::NotFound;
-		}
-		value = &child.obj.data8.compression;
-		break;
-	}
+		return getChild(Object::Type::ReadACE, sizeof(UserRole));
+	case AttributeTag::WriteAce:
+		return getChild(Object::Type::WriteACE, sizeof(UserRole));
+	case AttributeTag::Compression:
+		return getChild(Object::Type::Compression, sizeof(Compression));
 	default:
 		return Error::NotFound;
 	}

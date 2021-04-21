@@ -27,7 +27,26 @@ namespace IFS
 namespace FWFS
 {
 constexpr uint8_t Object::FWOBT_REF;
+
+FileAttributes getFileAttributes(Object::Attributes objattr)
+{
+	using ObjAttr = Object::Attribute;
+	FileAttributes fileAttr{};
+	fileAttr[FileAttribute::ReadOnly] = objattr[ObjAttr::ReadOnly];
+	fileAttr[FileAttribute::Archive] = objattr[ObjAttr::Archive];
+	return fileAttr;
 }
+
+Object::Attributes getObjectAttributes(FileAttributes fileAttr)
+{
+	using ObjAttr = Object::Attribute;
+	Object::Attributes objattr{};
+	objattr[ObjAttr::ReadOnly] = fileAttr[FileAttribute::ReadOnly];
+	objattr[ObjAttr::Archive] = fileAttr[FileAttribute::Archive];
+	return objattr;
+}
+
+} // namespace FWFS
 } // namespace IFS
 
 namespace

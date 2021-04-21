@@ -444,6 +444,9 @@ struct FWObjDesc {
 	}
 };
 
+FileAttributes getFileAttributes(Object::Attributes objattr);
+Object::Attributes getObjectAttributes(FileAttributes fileAttr);
+
 } // namespace FWFS
 } // namespace IFS
 
