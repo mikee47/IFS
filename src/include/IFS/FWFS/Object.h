@@ -372,7 +372,8 @@ struct Object {
 	uint32_t childTableSize() const
 	{
 		assert(isNamed());
-		return data16.contentSize() - data16.named.childTableOffset();
+		int size = data16.contentSize() - data16.named.childTableOffset();
+		return (size <= 0) ? 0 : size;
 	}
 
 	/** @brief total size this object occupies in the image
