@@ -159,6 +159,19 @@ public:
 	};
 
 	/**
+	 * @brief Filing system information with buffer for name
+	 */
+	struct NameInfo : public Info {
+	public:
+		NameInfo() : Info(buffer, sizeof(buffer))
+		{
+		}
+
+	private:
+		char buffer[256];
+	};
+
+	/**
 	 * @brief Filing system implementations should dismount and cleanup here
 	 */
 	virtual ~IFileSystem()

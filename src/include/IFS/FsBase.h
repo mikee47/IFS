@@ -37,6 +37,11 @@ public:
 	{
 	}
 
+	bool isValid() const
+	{
+		return fileSystem != nullptr;
+	}
+
 	/** @brief determine if an error occurred during operation
 	 *  @retval int filesystem error code
 	 */

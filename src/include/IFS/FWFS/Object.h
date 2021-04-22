@@ -189,6 +189,14 @@ struct Object {
 		return static_cast<Type>(typeData & 0x7f);
 	}
 
+	void setType(Type type, bool isRef = false)
+	{
+		typeData = unsigned(type);
+		if(isRef) {
+			typeData |= FWOBT_REF;
+		}
+	}
+
 	bool isRef() const
 	{
 		return (typeData & FWOBT_REF) != 0;
@@ -238,6 +246,11 @@ struct Object {
 			unsigned contentSize() const
 			{
 				return _contentSize;
+			}
+
+			void setContentSize(uint32_t value)
+			{
+				_contentSize = value;
 			}
 
 			union {
@@ -295,6 +308,11 @@ struct Object {
 			uint32_t contentSize() const
 			{
 				return _contentSize;
+			}
+
+			void setContentSize(uint32_t value)
+			{
+				_contentSize = value;
 			}
 
 			uint32_t size() const
@@ -385,6 +403,17 @@ struct Object {
 			return data16.contentSize();
 		} else {
 			return data24.contentSize();
+		}
+	}
+
+	void setContentSize(size_t size)
+	{
+		if(isRef() || type() < Type::Data16) {
+			data8.setContentSize(size);
+		} else if(type() < Type::Data24) {
+			data16.setContentSize(size);
+		} else {
+			data24.setContentSize(size);
 		}
 	}
 
