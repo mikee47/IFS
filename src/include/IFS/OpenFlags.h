@@ -36,7 +36,8 @@ namespace IFS
 	XX(Truncate, "Create empty file")                                                                                  \
 	XX(Create, "Create new file if file doesn't exist")                                                                \
 	XX(Read, "Read access")                                                                                            \
-	XX(Write, "Write access")
+	XX(Write, "Write access")                                                                                          \
+	XX(NoFollow, "Don't follow symbolic links")
 
 enum class OpenFlag {
 #define XX(_tag, _comment) _tag,

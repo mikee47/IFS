@@ -837,7 +837,16 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	auto& fd = fileDescriptors[descriptorIndex];
 	fd = FWFileDesc{od};
 
-	if(od.obj.isMountPoint()) {
+	bool openMountPoint = od.obj.isMountPoint();
+	if(openMountPoint && flags[OpenFlag::NoFollow]) {
+		if(path == nullptr || *path == '\0') {
+			openMountPoint = false;
+			// Change to regular directory...
+			fd.odFile.obj.typeData = unsigned(Object::Type::Directory);
+		}
+	}
+
+	if(openMountPoint) {
 		res = resolveMountPoint(od, fd.fileSystem);
 		if(res == FS_OK) {
 			res = fd.file = fd.fileSystem->open(path, flags);
