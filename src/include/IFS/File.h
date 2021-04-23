@@ -250,6 +250,18 @@ public:
 		return check(fs->setcompression(handle, compression));
 	}
 
+	template <typename... ParamTypes> bool setAttribute(AttributeTag tag, ParamTypes... params)
+	{
+		GET_FS(false);
+		return check(fs->setAttribute(handle, tag, params...));
+	}
+
+	template <typename... ParamTypes> int getAttribute(AttributeTag tag, ParamTypes... params)
+	{
+		GET_FS(lastError);
+		return check(fs->getAttribute(handle, tag, params...));
+	}
+
 	template <typename... ParamTypes> bool setUserAttribute(uint8_t tagValue, ParamTypes... params)
 	{
 		GET_FS(false);
