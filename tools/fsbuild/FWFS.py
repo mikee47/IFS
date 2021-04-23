@@ -361,7 +361,7 @@ class NamedObject(Object16):
             if obj.isRef:
                 size += 4
             else:
-                size += util.alignUp(obj.size())
+                size += obj.size()
         return size
 
     def childTable(self):
@@ -371,7 +371,7 @@ class NamedObject(Object16):
                 table += obj.refHeader()
             else:
                 # print("emit %s, %d" % (obj.obt(), obj.contentSize()))
-                table += util.pad(obj.header() + obj.content())
+                table += obj.header() + obj.content()
         cts = self.childTableSize()
         if len(table) != cts:
             print("len(table) = {}, cts = {}".format(len(table), cts))
@@ -380,12 +380,12 @@ class NamedObject(Object16):
 
     def contentSize(self):
         # temporary: children are all references
-        return 5 + util.alignUp(len(self.name)) + self.childTableSize()
+        return 5 + len(self.name) + self.childTableSize()
         
     # Fetch the content - must be called after object indices have been assigned
     def content(self):
         s = struct.pack("<BL", len(self.name), round(self.mtime))
-        s += util.pad(self.name.encode())
+        s += self.name.encode()
         s += self.childTable()
         return s;
 
@@ -597,7 +597,6 @@ class Image:
         self.__fout.write(header)
         self.__fout.write(content)
         size = len(header) + len(content)
-        self.__fout.write(b''.ljust(util.alignUp(size) - size, b'\0'))
         self.__objectCount += 1
         objID = self.__objectCount
         return objID

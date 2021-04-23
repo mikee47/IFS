@@ -283,13 +283,12 @@ struct Object {
 				 *
 				 * child objects can be contained or referenced (flag in _id)
 				 * object attributes are optional so can be another object/attribute
-				 * objects are word aligned
 				 */
 				struct {
 					uint8_t namelen; ///< Length of object name
 					TimeStamp mtime; // Object modification time
 					// char name[namelen];
-					// Object children[];	// __aligned
+					// Object children[];
 
 					// Offset to object name relative to content start
 					unsigned nameOffset() const
@@ -300,7 +299,7 @@ struct Object {
 					// Offset to start of child object table
 					unsigned childTableOffset() const
 					{
-						return nameOffset() + ALIGNUP4(namelen);
+						return nameOffset() + namelen;
 					}
 
 				} named;
@@ -378,16 +377,10 @@ struct Object {
 
 	/** @brief total size this object occupies in the image
 	 *  @retval size or error code
-	 *  @note objects are word-aligned but this method returns only the used size
 	 */
 	uint32_t size() const
 	{
 		return contentOffset() + contentSize();
-	}
-
-	uint32_t sizeAligned() const
-	{
-		return ALIGNUP4(size());
 	}
 };
 
@@ -429,7 +422,7 @@ struct FWObjDesc {
 
 	uint32_t nextOffset() const
 	{
-		return ref.offset + obj.sizeAligned();
+		return ref.offset + obj.size();
 	}
 
 	// Move to next object location
