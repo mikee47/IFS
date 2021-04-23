@@ -402,7 +402,7 @@ int FileSystem::getinfo(Info& info)
 		if(res >= 0) {
 			readObjectName(odVolume, info.name);
 			FWObjDesc od;
-			if(findChildObjectHeader(odVolume, od, Object::Type::ID32)) {
+			if(findChildObjectHeader(odVolume, od, Object::Type::ID32) == FS_OK) {
 				info.volumeID = od.obj.data8.id32.value;
 			}
 		}
