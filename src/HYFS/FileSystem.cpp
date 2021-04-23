@@ -84,7 +84,13 @@
 #include "../include/IFS/FWFS/FileSystem.h"
 #include "../include/IFS/Util.h"
 
+#define CHECK_MOUNTED()                                                                                                \
+	if(!mounted) {                                                                                                     \
+		return Error::NotMounted;                                                                                      \
+	}
+
 #define GET_FS(handle)                                                                                                 \
+	CHECK_MOUNTED()                                                                                                    \
 	if(handle < 0) {                                                                                                   \
 		return handle;                                                                                                 \
 	}                                                                                                                  \
@@ -111,11 +117,26 @@ struct FileDir {
 
 int FileSystem::mount()
 {
-	// Mount both filesystems so they take ownership of the media objects
-	int res = fwfs->mount();
-	if(res >= 0) {
-		res = ffs->mount();
+	if(mounted) {
+		return FS_OK;
 	}
+
+	if(fwfs == nullptr || ffs == nullptr) {
+		return Error::NoFileSystem;
+	}
+
+	int res = fwfs->mount();
+	if(res < 0) {
+		return res;
+	}
+
+	res = ffs->mount();
+	if(res < 0) {
+		return res;
+	}
+
+	mounted = true;
+
 	return res;
 }
 
@@ -157,6 +178,7 @@ String FileSystem::getErrorString(int err)
 
 int FileSystem::setVolume(uint8_t index, IFileSystem* fileSystem)
 {
+	CHECK_MOUNTED()
 	return fwfs->setVolume(index, fileSystem);
 }
 
@@ -196,6 +218,9 @@ bool FileSystem::isFWFileHidden(const Stat& fwstat)
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
+	CHECK_MOUNTED()
+	FS_CHECK_PATH(path)
+
 	auto d = new FileDir{};
 	if(d == nullptr) {
 		return Error::NoMem;
@@ -326,6 +351,8 @@ int FileSystem::mkdir(const char* path)
  */
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
+	CHECK_MOUNTED()
+
 	// If file exists on FFS then open it and return
 	int res = ffs->stat(path, nullptr);
 	if(res >= 0) {
@@ -419,6 +446,11 @@ int FileSystem::close(FileHandle file)
  */
 int FileSystem::remove(const char* path)
 {
+	CHECK_MOUNTED()
+	if(isRootPath(path)) {
+		return Error::BadParam;
+	}
+
 	int res = ffs->remove(path);
 	if(hideFWFile(path, false) == FS_OK) {
 		if(res < 0) {
@@ -430,6 +462,10 @@ int FileSystem::remove(const char* path)
 
 int FileSystem::format()
 {
+	if(ffs == nullptr) {
+		return Error::NoFileSystem;
+	}
+
 #if HYFS_HIDE_FLAGS == 1
 	hiddenFwFiles.removeAllElements();
 #endif
@@ -439,11 +475,17 @@ int FileSystem::format()
 
 int FileSystem::check()
 {
+	if(ffs == nullptr) {
+		return Error::NoFileSystem;
+	}
+
 	return ffs->check();
 }
 
 int FileSystem::stat(const char* path, Stat* stat)
 {
+	CHECK_MOUNTED()
+
 	int res = ffs->stat(path, stat);
 	if(res < 0) {
 		res = fwfs->stat(path, stat);
@@ -477,12 +519,16 @@ int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_
 
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
 {
+	CHECK_MOUNTED()
+
 	int res = ffs->setxattr(path, tag, data, size);
 	return (res == Error::NotFound) ? Error::ReadOnly : res;
 }
 
 int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
+	CHECK_MOUNTED()
+
 	int res = ffs->getxattr(path, tag, buffer, size);
 	if(res < 0) {
 		res = fwfs->getxattr(path, tag, buffer, size);

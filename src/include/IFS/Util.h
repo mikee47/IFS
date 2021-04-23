@@ -22,40 +22,33 @@
 
 #pragma once
 
-#include "Error.h"
+#include "Stat.h"
 
 namespace IFS
 {
-/*
+/**
+ * @brief Check if path is root directory
+ * @param Path to check, set to nullptr if it's the root directory
+ * @retval bool true if path is root directory
+ * 
  * Paths equal to "/" or "" are empty and considered equivalent to nullptr.
  * Methods or functions can use this macro to resolve these for simpler parsing.
  */
-#define FS_CHECK_PATH(path)                                                                                            \
-	if(path) {                                                                                                         \
-		if(*path == '/') {                                                                                             \
-			++path;                                                                                                    \
-		}                                                                                                              \
-		if(*path == '\0') {                                                                                            \
-			path = nullptr;                                                                                            \
-		}                                                                                                              \
-	}
+bool isRootPath(const char*& path);
+
+#define FS_CHECK_PATH(path) isRootPath(path);
 
 /*
  * Methods with a DirHandle parameter use this to check and cast to locally defined FileDir*
  */
 #define GET_FILEDIR()                                                                                                  \
+	CHECK_MOUNTED()                                                                                                    \
 	if(dir == nullptr) {                                                                                               \
 		return Error::InvalidHandle;                                                                                   \
 	}                                                                                                                  \
 	auto d = reinterpret_cast<FileDir*>(dir);
 
 // Final check before returning completed stat structure
-inline void checkStat(Stat& stat)
-{
-	stat.attr[FileAttribute::Compressed] = (stat.compression.type != Compression::Type::None);
-	if(!stat.attr[FileAttribute::Compressed]) {
-		stat.compression.originalSize = stat.size;
-	}
-}
+void checkStat(Stat& stat);
 
 } // namespace IFS

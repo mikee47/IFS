@@ -60,6 +60,9 @@ struct FileDir {
 
 namespace
 {
+// Always mounted
+#define CHECK_MOUNTED()
+
 FileSystem hostFileSystem;
 
 const char* extendedAttributeName{"user.sming.ifs"};

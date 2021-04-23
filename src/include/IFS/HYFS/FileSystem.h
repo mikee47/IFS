@@ -107,6 +107,7 @@ private:
 #if HYFS_HIDE_FLAGS == 1
 	Vector<FileID> hiddenFwFiles;
 #endif
+	bool mounted{false};
 };
 
 } // namespace HYFS
