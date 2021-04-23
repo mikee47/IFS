@@ -73,7 +73,7 @@ def objectAttrFromChar(c):
 
 
 class Object(object):
-    def __init__(self, parent, obt, content = ''):
+    def __init__(self, parent, obt, content = b''):
         self.__parent = parent
         self.__obt = obt
         self.__offset = 0
@@ -274,7 +274,7 @@ class VolumeIndexObject(Object8):
 
 
 class Md5Object(Object8):
-    """Maintains Md5 hash for named object"""
+    """Maintains Md5 hash for object content"""
     def __init__(self, parent):
         super().__init__(parent, FwObt.Md5Hash)
         self.__md5 = hashlib.md5()
@@ -315,7 +315,7 @@ class EndObject(Object8):
         return struct.pack("<L", self.__checksum)
 
     def checksum(self):
-        return self.__checsum
+        return self.__checksum
 
 
 
@@ -326,7 +326,6 @@ class NamedObject(Object16):
         self.name = name
         self.mtime = time.time()
         self.__dataSize = 0
-        self.__md5 = Md5Object(self)
 
     def pathsep(self):
         return ':'
@@ -387,7 +386,7 @@ class NamedObject(Object16):
         s = struct.pack("<BL", len(self.name), round(self.mtime))
         s += self.name.encode()
         s += self.childTable()
-        return s;
+        return s
 
     def appendObject(self, obj):
         self.__children.append(obj)
@@ -455,8 +454,6 @@ class NamedObject(Object16):
             print("Object data too large")
             exit(1)
         self.__dataSize += len(content)
-        self.__md5.update(content)
-
 
     def childCount(self):
         return len(self.__children)
@@ -559,6 +556,11 @@ class File(NamedObject):
 
     def __init__(self, parent, name):
         super().__init__(parent, FwObt.File, name)
+        self.__md5 = Md5Object(self)
+
+    def appendData(self, content):
+        super().appendData(content)
+        self.__md5.update(content)
 
 
 # Used to build a Firmware file image
