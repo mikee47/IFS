@@ -133,6 +133,7 @@ int getUserAttributes(FileHandle file, Stat& stat)
 	stat.acl = ea.acl;
 	stat.compression = ea.compression;
 	stat.attr = ea.attr;
+	checkStat(stat);
 
 	return FS_OK;
 }

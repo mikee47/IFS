@@ -49,4 +49,13 @@ namespace IFS
 	}                                                                                                                  \
 	auto d = reinterpret_cast<FileDir*>(dir);
 
+// Final check before returning completed stat structure
+inline void checkStat(Stat& stat)
+{
+	stat.attr[FileAttribute::Compressed] = (stat.compression.type != Compression::Type::None);
+	if(!stat.attr[FileAttribute::Compressed]) {
+		stat.compression.originalSize = stat.size;
+	}
+}
+
 } // namespace IFS
