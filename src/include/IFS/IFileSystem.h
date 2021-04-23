@@ -125,6 +125,7 @@ public:
 		NameBuffer name;		///< Buffer for name
 		uint32_t volumeSize{0}; ///< Size of volume, in bytes
 		uint32_t freeSpace{0};  ///< Available space, in bytes
+		TimeStamp creationTime{};
 
 		Info()
 		{

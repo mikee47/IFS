@@ -407,6 +407,7 @@ int FileSystem::getinfo(Info& info)
 		FWObjDesc odVolume;
 		res = findObject(volume, odVolume);
 		if(res >= 0) {
+			info.creationTime = odVolume.obj.data16.named.mtime;
 			readObjectName(odVolume, info.name);
 			FWObjDesc od;
 			if(findChildObjectHeader(odVolume, od, Object::Type::ID32) == FS_OK) {
