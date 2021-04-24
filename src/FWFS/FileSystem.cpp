@@ -847,6 +847,8 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 		if(res == FS_OK) {
 			res = fd.file = fd.fileSystem->open(path, flags);
 		}
+	} else if(flags[OpenFlag::Write]) {
+		res = Error::ReadOnly;
 	} else {
 		res = getObjectDataSize(fd.odFile, fd.dataSize);
 	}
