@@ -107,6 +107,7 @@ public:
 	// IFileSystem methods
 	int mount() override;
 	int getinfo(Info& info) override;
+	String getErrorString(int err) override;
 	int setVolume(uint8_t index, IFileSystem* fileSystem) override;
 	int opendir(const char* path, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;

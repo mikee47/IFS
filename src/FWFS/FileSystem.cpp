@@ -275,6 +275,23 @@ int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 	return newOffset;
 }
 
+String FileSystem::getErrorString(int err)
+{
+	if(Error::isSystem(err)) {
+		for(unsigned i = 0; i < FWFS_MAX_VOLUMES; ++i) {
+			auto& fs = volumes[i].fileSystem;
+			if(!fs) {
+				continue;
+			}
+			String s = fs->getErrorString(err);
+			if(s) {
+				return s;
+			}
+		}
+	}
+	return Error::toString(err);
+}
+
 int FileSystem::setVolume(uint8_t index, IFileSystem* fileSystem)
 {
 	if(index >= FWFS_MAX_VOLUMES || fileSystem == this) {
@@ -550,7 +567,7 @@ int FileSystem::findLinkedObject(const char*& path, IFileSystem*& fileSystem)
 		return res;
 	}
 
-	if(!od.obj.isMountPoint()) {
+	if(!od.obj.isMountPoint() || isRootPath(path)) {
 		return Error::ReadOnly;
 	}
 
@@ -1055,7 +1072,7 @@ int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_
 		return res;
 	}
 
-	if(od.obj.isMountPoint()) {
+	if(od.obj.isMountPoint() && !isRootPath(path)) {
 		IFileSystem* fs;
 		res = resolveMountPoint(od, fs);
 		return (res < 0) ? res : fs->getxattr(path, tag, buffer, size);
