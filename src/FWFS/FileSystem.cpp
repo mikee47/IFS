@@ -163,8 +163,14 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 		child.next();
 	}
 
-	if(entry.obj.type() == Object::Type::Directory) {
+	switch(entry.obj.type()) {
+	case Object::Type::Directory:
 		stat.attr |= FileAttribute::Directory;
+		break;
+	case Object::Type::MountPoint:
+		stat.attr |= FileAttribute::Directory + FileAttribute::MountPoint;
+		break;
+	default:;
 	}
 
 	checkStat(stat);
@@ -877,7 +883,7 @@ int FileSystem::stat(const char* path, Stat* stat)
 		return res;
 	}
 
-	if(od.obj.isMountPoint()) {
+	if(od.obj.isMountPoint() && !isRootPath(path)) {
 		IFileSystem* fs;
 		res = resolveMountPoint(od, fs);
 		return (res < 0) ? res : fs->stat(path, stat);
