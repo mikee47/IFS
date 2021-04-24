@@ -7,7 +7,12 @@
             "address": "0x00100000",
             "size": "512K",
             "type": "data",
-            "subtype": "littlefs"
+            "subtype": "littlefs",
+            "filename": "$(FW_BASE)/lfs1.bin",
+            "build": {
+                "target": "lfs-build",
+                "config": "backup.fwfs"
+            }
         },
         "fwfs1": {
             "address": "0x280000",

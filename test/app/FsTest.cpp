@@ -51,9 +51,9 @@ void printFileInfo(const IFS::Stat& stat)
 {
 	FileSystem::Info info;
 	stat.fs->getinfo(info);
-	m_printf(_F("%-50s %8u %s #0x%08x %s %s [%s] {%s, %u}\r\n"), stat.name.c_str(), stat.size,
-			 toString(info.type).c_str(), stat.id, timeToStr(stat.mtime, " ").c_str(), toString(stat.acl).c_str(),
-			 toString(stat.attr).c_str(), toString(stat.compression.type).c_str(), stat.compression.originalSize);
+	debug_i("%-50s %8u %s #0x%08x %s %s [%s] {%s, %u}", stat.name.c_str(), stat.size, toString(info.type).c_str(),
+			stat.id, timeToStr(stat.mtime, " ").c_str(), toString(stat.acl).c_str(), toString(stat.attr).c_str(),
+			toString(stat.compression.type).c_str(), stat.compression.originalSize);
 }
 
 void printAttrInfo(IFS::FileSystem* fs, const String& filename)
@@ -63,8 +63,8 @@ void printAttrInfo(IFS::FileSystem* fs, const String& filename)
 		return;
 	}
 	auto callback = [](IFS::AttributeEnum& e) -> bool {
-		m_printf("  attr 0x%04x %s, %u bytes\r\n", unsigned(e.tag), toString(e.tag).c_str(), e.attrsize);
-		m_printHex("  ATTR", e.buffer, e.size);
+		debug_i("  attr 0x%04x %s, %u bytes", unsigned(e.tag), toString(e.tag).c_str(), e.attrsize);
+		debug_hex(INFO, "  ATTR", e.buffer, e.size);
 		return true;
 	};
 	char buffer[64];
@@ -81,7 +81,7 @@ String timeToStr(time_t t, const char* dtsep)
 		return nullptr;
 	}
 	char buffer[64];
-	m_snprintf(buffer, sizeof(buffer), "%02u/%02u/%04u%s%02u:%02u:%02u", tm->tm_mday, tm->tm_mon + 1,
+	m_snprintf(buffer, sizeof(buffer), _F("%02u/%02u/%04u%s%02u:%02u:%02u"), tm->tm_mday, tm->tm_mon + 1,
 			   1900 + tm->tm_year, dtsep, tm->tm_hour, tm->tm_min, tm->tm_sec);
 	return buffer;
 }
