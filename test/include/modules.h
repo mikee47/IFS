@@ -9,4 +9,5 @@
 #define TEST_MAP(XX)                                                                                                   \
 	XX(Errors)                                                                                                         \
 	XX(Attributes)                                                                                                     \
+	XX(Links)                                                                                                          \
 	HOST_TEST_MAP(XX)

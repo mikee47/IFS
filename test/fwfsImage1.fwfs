@@ -11,7 +11,7 @@
     },
     // Directories to mount other filesystems
     "mountpoints": {
-        "config": 0
+        "spiffs": 0
     },
     // Rules for file metadata. All rules are evaluated in sequence for every file
     // The masks apply to the full target path
