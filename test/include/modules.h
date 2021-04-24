@@ -10,4 +10,5 @@
 	XX(Errors)                                                                                                         \
 	XX(Attributes)                                                                                                     \
 	XX(Links)                                                                                                          \
+	XX(Performance)                                                                                                    \
 	HOST_TEST_MAP(XX)

@@ -2,6 +2,13 @@
     "name": "FS Test",
     "base_config": "spiffs",
     "partitions": {
+        "lfs1": {
+            "device": "spiFlash",
+            "address": "0x00100000",
+            "size": "512K",
+            "type": "data",
+            "subtype": "littlefs"
+        },
         "fwfs1": {
             "address": "0x280000",
             "size": "0x60000",
