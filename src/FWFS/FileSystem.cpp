@@ -228,13 +228,16 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 
 			ext.start += ext.length;
 
-			if(res < 0 || readTotal == size) {
+			if(res < 0 || readTotal == size || fd.cursor >= fd.dataSize) {
+				// if(res < 0 || readTotal == size) {
 				break;
 			}
 		}
 
 		child.next();
 	}
+
+	debug_d("readCount = %u", fd.odFile.ref.readCount);
 
 	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
 }
@@ -260,14 +263,12 @@ int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 
 	int newOffset = offset;
 	if(origin == SeekOrigin::Current) {
-		newOffset += (int)fd.cursor;
+		newOffset += int(fd.cursor);
 	} else if(origin == SeekOrigin::End) {
-		newOffset += (int)fd.dataSize;
+		newOffset += int(fd.dataSize);
 	}
 
-	//	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
-
-	if((uint32_t)newOffset > fd.dataSize) {
+	if(uint32_t(newOffset) > fd.dataSize) {
 		return Error::SeekBounds;
 	}
 
@@ -425,7 +426,6 @@ int FileSystem::getinfo(Info& info)
 
 int FileSystem::readObjectHeader(FWObjDesc& od)
 {
-	//	debug_d("readObject(0x%08X), offset = 0x%08X, sod = %u", &od, od.offset, sizeof(od.obj));
 	++od.ref.readCount;
 
 	// First object ID is 1
@@ -433,7 +433,11 @@ int FileSystem::readObjectHeader(FWObjDesc& od)
 		od.ref.id = 1;
 		od.ref.offset = FWFS_BASE_OFFSET;
 	}
-	return partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
+	int res = partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
+
+	debug_d("read #%-3u @ 0x%08x - %s", od.ref.id, od.ref.offset, toString(od.obj.type()).c_str());
+
+	return res;
 }
 
 int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
@@ -579,7 +583,7 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 {
 	assert(parent.obj.isNamed());
 
-	char buf[ALIGNUP4(namelen)];
+	char buf[namelen];
 	int res;
 	FWObjDesc od;
 	while((res = readChildObjectHeader(parent, od)) >= 0) {
@@ -594,7 +598,7 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 				if(namelen == 0) {
 					break;
 				}
-				res = readObjectContent(child, objNamed.nameOffset(), ALIGNUP4(namelen), buf);
+				res = readObjectContent(child, objNamed.nameOffset(), namelen, buf);
 				if(res < 0) {
 					break;
 				}
@@ -704,8 +708,6 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 	fd.cursor = od.ref.offset;
 
-	//	debug_d("readdir(), res = %d, od.seekCount = %u", res, od.ref.readCount);
-
 	return res == Error::EndOfObjects ? Error::NoMoreFiles : res;
 }
 
@@ -758,10 +760,6 @@ int FileSystem::mkdir(const char* path)
  */
 int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 {
-#ifdef DEBUG_FWFS
-	CpuCycleTimer timer;
-#endif
-
 	// Start with the root directory object
 	od = odRoot;
 
@@ -795,11 +793,6 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 		tail = path;
 	} while(sep != nullptr && !od.obj.isMountPoint());
 
-#ifdef DEBUG_FWFS
-	debug_i("findObjectByPath('%s'), res = %d, od.seekCount = %u, ticks = %u", path, res, od.ref.readCount,
-			timer.elapsedTicks());
-#endif
-
 	return res;
 }
 
@@ -829,7 +822,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	CHECK_MOUNTED();
 
-	debug_d("open('%s', 0x%02X)", path, flags);
+	debug_d("open('%s', %s)", path, toString(flags).c_str());
 
 	FS_CHECK_PATH(path)
 
@@ -838,6 +831,8 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	if(res < 0) {
 		return res;
 	}
+
+	debug_d("Found '%s', readCount = %u", path, od.ref.readCount);
 
 	int descriptorIndex = findUnusedDescriptor();
 	if(descriptorIndex < 0) {
@@ -861,7 +856,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 		return res;
 	}
 
-	debug_d("Descriptor #%u allocated", descriptorIndex);
+	debug_d("Descriptor #%u allocated, readCount = %u", descriptorIndex, fd.odFile.ref.readCount);
 	return FWFS_HANDLE_MIN + descriptorIndex;
 }
 

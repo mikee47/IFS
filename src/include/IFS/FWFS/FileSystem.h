@@ -243,20 +243,20 @@ private:
 	void printObject(const FWObjDesc& od, bool isChild);
 
 private:
-	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index
-	ACL rootACL;
-	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 	enum class Flag {
 		mounted,
 	};
 
 	Storage::Partition partition;
+	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index
+	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 	FWObjDesc odRoot; ///< Reference to root directory object
-	ObjRef lastFound; ///< Speeds up consective searches
 #if FWFS_CACHE_SPACING
 	ObjRefCache cache;
 #endif
+	ObjRef lastFound; ///< Speeds up consective searches
 	Object::ID volume;
+	ACL rootACL;
 	BitSet<uint8_t, Flag> flags;
 };
 
