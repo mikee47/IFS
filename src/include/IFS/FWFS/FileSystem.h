@@ -153,8 +153,6 @@ private:
 		return flags[Flag::mounted];
 	}
 
-	int openRootObject(FWObjDesc& odRoot);
-
 	/**
 	 * @brief read a root object header
 	 * @param od object descriptor, with offset and ID fields initialised
@@ -200,6 +198,7 @@ private:
 
 	int findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId);
 	int findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen);
+	int findObject(Object::ID objId, FWObjDesc& od);
 
 	/**
 	 * @brief Parse a file path to locate the corresponding object
@@ -252,11 +251,12 @@ private:
 	};
 
 	Storage::Partition partition;
-	ObjRef volume;	///< Reference to main volume object
+	FWObjDesc odRoot; ///< Reference to root directory object
 	ObjRef lastFound; ///< Speeds up consective searches
 #if FWFS_CACHE_SPACING
 	ObjRefCache cache;
 #endif
+	Object::ID volume;
 	BitSet<uint8_t, Flag> flags;
 };
 

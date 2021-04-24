@@ -323,6 +323,7 @@ int FileSystem::mount()
 	}
 
 	unsigned objectCount = 0;
+	FWObjDesc odVolume{};
 	FWObjDesc od;
 	int res;
 	while((res = readObjectHeader(od)) >= 0) {
@@ -330,7 +331,9 @@ int FileSystem::mount()
 		printObject(od, false);
 
 		if(od.obj.type() == Object::Type::Volume) {
-			volume = od.ref;
+			odVolume = od;
+		} else if(od.obj.type() == Object::Type::Directory) {
+			odRoot = od;
 		} else if(od.obj.type() == Object::Type::End) {
 			// @todo verify checksum
 			// od.obj.end.checksum
@@ -341,14 +344,26 @@ int FileSystem::mount()
 	}
 
 	debug_d("Ended @ 0x%08X (#%u), %u objects, volume @ 0x%08X, od @ 0x%08X", od.ref.offset, od.ref.offset, od.ref.id,
-			objectCount, volume.offset);
+			objectCount, odVolume.ref.offset);
 
 	if(res < 0) {
 		return res;
 	}
 
-	if(volume.offset == 0) {
+	if(odVolume.ref.offset == 0) {
 		debug_e("Volume object missing");
+		return Error::BadFileSystem;
+	}
+
+	volume = odVolume.ref.id;
+	FWObjDesc child;
+	res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
+	if(res < 0) {
+		debug_e("Root directory reference missing");
+		return Error::BadFileSystem;
+	}
+	if(child.obj.data8.ref.id != odRoot.ref.id) {
+		debug_e("Root directory is not last");
 		return Error::BadFileSystem;
 	}
 
@@ -371,11 +386,6 @@ int FileSystem::mount()
 	}
 #endif
 
-	FWObjDesc odRoot;
-	res = openRootObject(odRoot);
-	if(res < 0) {
-		return res;
-	}
 	Stat stat;
 	fillStat(stat, odRoot);
 	rootACL = stat.acl;
@@ -383,25 +393,6 @@ int FileSystem::mount()
 	flags[Flag::mounted] = true;
 
 	return FS_OK;
-}
-
-int FileSystem::openRootObject(FWObjDesc& odRoot)
-{
-	FWObjDesc odVolume(volume);
-	int res = readObjectHeader(odVolume);
-	if(res >= 0) {
-		FWObjDesc child;
-		res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
-		if(res >= 0) {
-			res = getChildObject(odVolume, child, odRoot);
-		}
-	}
-
-	if(res < 0) {
-		debug_e("Problem reading root directory %d", res);
-	}
-
-	return res;
 }
 
 int FileSystem::getinfo(Info& info)
@@ -417,8 +408,8 @@ int FileSystem::getinfo(Info& info)
 	info.volumeSize = partition.size();
 
 	if(isMounted()) {
-		FWObjDesc odVolume(volume);
-		res = readObjectHeader(odVolume);
+		FWObjDesc odVolume;
+		res = findObject(volume, odVolume);
 		if(res >= 0) {
 			readObjectName(odVolume, info.name);
 			FWObjDesc od;
@@ -447,15 +438,22 @@ int FileSystem::readObjectHeader(FWObjDesc& od)
 
 int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
 {
-	if(!child.obj.isRef()) {
-		od = child;
-		od.ref.offset += parent.childTableOffset();
-		return FS_OK;
+	if(child.obj.isRef()) {
+		int res = findObject(child.obj.data8.ref.id, od);
+		if(res == FS_OK && od.obj.type() != child.obj.type()) {
+			// Reference must point to object of same type
+			return Error::BadObject;
+		}
+		return res;
 	}
 
-	// The object we're looking for
-	Object::ID objId = child.obj.data8.ref.id;
+	od = child;
+	od.ref.offset += parent.childTableOffset();
+	return FS_OK;
+}
 
+int FileSystem::findObject(Object::ID objId, FWObjDesc& od)
+{
 	if(objId > lastFound.id) {
 		od.ref = lastFound;
 	} else {
@@ -482,11 +480,6 @@ int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, 
 	}
 
 	lastFound = od.ref;
-
-	if(od.obj.type() != child.obj.type()) {
-		// Reference must point to object of same type
-		return Error::BadObject;
-	}
 
 	if(od.obj.isRef()) {
 		// Reference must point to an actual object, not another reference
@@ -770,10 +763,7 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 #endif
 
 	// Start with the root directory object
-	int res = openRootObject(od);
-	if(res < 0) {
-		return res;
-	}
+	od = odRoot;
 
 	// Empty paths indicate root directory
 	const char* tail = path;
@@ -782,6 +772,7 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 		return FS_OK;
 	}
 
+	int res{FS_OK};
 	const char* sep;
 	do {
 		sep = strchr(tail, '/');
