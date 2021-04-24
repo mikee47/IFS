@@ -33,8 +33,8 @@ namespace IFS
  */
 struct ACL {
 	/* Minimum access permissions */
-	UserRole readAccess : 8;
-	UserRole writeAccess : 8;
+	UserRole readAccess;
+	UserRole writeAccess;
 
 	bool operator==(const ACL& other) const
 	{
@@ -46,6 +46,8 @@ struct ACL {
 		return !operator==(other);
 	}
 };
+
+static_assert(sizeof(ACL) == 2, "ACL is misaligned");
 
 /**
  * @brief Return a brief textual representation for an ACL

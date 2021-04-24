@@ -238,7 +238,7 @@ private:
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
 	int fillStat(Stat& stat, const FWObjDesc& entry);
-	int readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size);
+	int readAttribute(FWObjDesc& od, AttributeTag tag, void* buffer, size_t size);
 
 	void printObject(const FWObjDesc& od, bool isChild);
 

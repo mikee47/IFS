@@ -32,7 +32,8 @@ namespace IFS
 #define IFS_ATTRIBUTE_TAG_MAP(XX)                                                                                      \
 	XX(ModifiedTime, sizeof(TimeStamp))                                                                                \
 	XX(FileAttributes, sizeof(FileAttributes))                                                                         \
-	XX(Acl, sizeof(ACL))                                                                                               \
+	XX(ReadAce, sizeof(UserRole))                                                                                      \
+	XX(WriteAce, sizeof(UserRole))                                                                                     \
 	XX(Compression, sizeof(Compression))
 
 /**

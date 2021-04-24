@@ -144,7 +144,8 @@ int setExtendedAttribute(FileHandle file, AttributeTag tag, const void* data, si
 
 void getExtendedAttributes(FileHandle file, Stat& stat)
 {
-	getExtendedAttribute(file, AttributeTag::Acl, stat.acl);
+	getExtendedAttribute(file, AttributeTag::ReadAce, stat.acl.readAccess);
+	getExtendedAttribute(file, AttributeTag::WriteAce, stat.acl.writeAccess);
 	getExtendedAttribute(file, AttributeTag::FileAttributes, stat.attr);
 	getExtendedAttribute(file, AttributeTag::Compression, stat.compression);
 	checkStat(stat);

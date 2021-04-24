@@ -978,41 +978,51 @@ int FileSystem::getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize)
 	return md5HashSize;
 }
 
-int FileSystem::readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::readAttribute(FWObjDesc& od, AttributeTag tag, void* buffer, size_t size)
 {
+	assert(od.obj.isNamed());
+
+	FWObjDesc child;
+	FileAttributes fileAttr{};
+	void* value{nullptr};
+	auto attrsize = getAttributeSize(tag);
 	switch(tag) {
-	case AttributeTag::ModifiedTime: {
-		auto res = sizeof(stat.mtime);
-		if(size >= res) {
-			memcpy(buffer, &stat.mtime, res);
-		}
-		return res;
-	}
-
+	case AttributeTag::ModifiedTime:
+		value = &child.obj.data16.named.mtime;
+		break;
 	case AttributeTag::FileAttributes: {
-		auto res = sizeof(stat.attr);
-		if(size >= res) {
-			memcpy(buffer, &stat.attr, res);
+		int res = findChildObjectHeader(od, child, Object::Type::ObjAttr);
+		if(res < 0) {
+			return Error::NotFound;
 		}
-		return res;
-	}
-
-	case AttributeTag::Acl: {
-		auto res = sizeof(stat.acl);
-		if(size >= res) {
-			memcpy(buffer, &stat.acl, res);
+		Object::Attributes attr = child.obj.data8.objectAttributes.attr;
+		if(attr[Object::Attribute::ReadOnly]) {
+			fileAttr |= FileAttribute::ReadOnly;
 		}
-		return res;
+		if(attr[Object::Attribute::Archive]) {
+			fileAttr |= FileAttribute::Archive;
+		}
+		value = &fileAttr;
+		break;
 	}
-
+	case AttributeTag::ReadAce:
+	case AttributeTag::WriteAce: {
+		auto objectType = tag == AttributeTag::ReadAce ? Object::Type::ReadACE : Object::Type::WriteACE;
+		int res = findChildObjectHeader(od, child, objectType);
+		if(res < 0) {
+			return Error::NotFound;
+		}
+		value = &child.obj.data8.ace.role;
+		break;
+	}
 	case AttributeTag::Compression: {
-		auto res = sizeof(stat.compression);
-		if(size >= res) {
-			memcpy(buffer, &stat.compression, res);
+		int res = findChildObjectHeader(od, child, Object::Type::ReadACE);
+		if(res < 0) {
+			return Error::NotFound;
 		}
-		return res;
+		value = &child.obj.data8.compression;
+		break;
 	}
-
 	default:
 		return Error::NotFound;
 	}
@@ -1037,9 +1047,7 @@ int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_
 		return fd.fileSystem->fgetxattr(fd.file, tag, buffer, size);
 	}
 
-	Stat s{};
-	fillStat(s, fd.odFile);
-	return readAttribute(s, tag, buffer, size);
+	return readAttribute(fd.odFile, tag, buffer, size);
 }
 
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
@@ -1066,9 +1074,7 @@ int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_
 		return (res < 0) ? res : fs->getxattr(path, tag, buffer, size);
 	}
 
-	Stat s{};
-	fillStat(s, od);
-	return readAttribute(s, tag, buffer, size);
+	return readAttribute(od, tag, buffer, size);
 }
 
 int FileSystem::ftruncate(FileHandle file, size_t new_size)

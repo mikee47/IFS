@@ -238,7 +238,9 @@ public:
      */
 	template <typename T> int setacl(const T& file, const ACL& acl)
 	{
-		return setAttribute(file, AttributeTag::Acl, &acl, sizeof(acl));
+		int res1 = setAttribute(file, AttributeTag::ReadAce, &acl.readAccess, sizeof(acl.readAccess));
+		int res2 = setAttribute(file, AttributeTag::WriteAce, &acl.writeAccess, sizeof(acl.writeAccess));
+		return std::min(res1, res2);
 	}
 
 	/**
