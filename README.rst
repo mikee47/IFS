@@ -35,7 +35,8 @@ FileSystem API
 
 Firmware FileSystem (FWFS)
    Files, directories and metadata are all stored as objects in read-only image.
-   FWFS images are compact, fast and use less RAM than SPIFFS.
+   FWFS images are compact, fast to access and use very little RAM (approx. 240 bytes for file descriptors, etc.)
+
    To support read/write data a writeable filesystem can be mounted in a sub-directory.
 
    A python tool ``fsbuild`` is used to build an FWFS image from user files. See :doc:`tools/fsbuild/README`.
@@ -61,17 +62,15 @@ Firmware FileSystem (FWFS)
    Sming provides the :sample:`Basic_IFS` sample application which gives a worked example of this.
 
 
-Various IFS implementations are provided:
+The following basic IFS implementations are provided in this library:
 
 :cpp:class:`IFS::FWFS::FileSystem`
    Firmware Filesystem. It is designed to support all features  of IFS, whereas other filesystems
    may only use a subset.
 
-:cpp:class:`IFS::SPIFFS::FileSystem`
-   SPIFFS filesystem. The metadata feature is used to store extended file attributes.
-
 :cpp:class:`IFS::HYFS::FileSystem`
-   Hybrid filesystem. Uses FWFS as the root filesystem, with SPIFFS 'layered' on top.
+   Hybrid filesystem. Uses FWFS as the read-only root filesystem, with a writeable filesystem 'layered' on top.
+
    When a file is opened for writing it is transparently copied to the SPIFFS partition so it can be updated.
    Wiping the SPIFFS partition reverts the filesystem to its original state.
 
@@ -88,13 +87,14 @@ Various IFS implementations are provided:
 IFS (and FWFS) has the following features:
 
 Attributes
-   Files have a standard set of attribute flags plus modification time and simple role-based access control list (ACL)
+   Files have a standard set of attribute flags plus modification time and simple role-based access control list (ACL).
 
 Directories
    Fully supported, and can be enumerated with associated file information using a standard opendir/readdir/closedir function set.
 
 User metadata
-   Supported for application use
+   Supported for application use. The API for this is loosely based on Linux extended attributes (non-POSIX).
+   Attributes are small chunks of data attached to files and directories, each identified by a numeric :cpp:enum:`IFS::AttributeTag`.
 
 Filesystem API
    The Sming FileSystem functions are now wrappers around a single IFileSystem instance, which is provided by the application.
@@ -108,6 +108,10 @@ Dynamic loading
 Multiple filesystems
    Applications may use any supported filesystem, or write their own, or use any combination of existing filesystems to meet requirements.
    The API is the same.
+
+Mount points
+   FWFS is designed for use as a read-only root filing system, and supports mounting other filesystems in special directories.
+
 
 
 FWFS
@@ -132,35 +136,57 @@ within another filesystem.
    This behaviour is supported by partitions (see :component:`Storage`) using custom :cpp:class:`Storage::Device` objects.
 
 
-Objects
-~~~~~~~
-
-FWFS goes further than a simple read-write system.
-All files, directories and associated information elements are stored as 'objects'.
-Files and directories are 'named' objects, which may contain other objects either directly or as references.
-Small objects (255 bytes or less) are stored directly, larger ones get their own file. Maximum object size is 16Mbytes.
-
-File content is stored in un-named data objects.
-A named object can have any number of these and will be treated as a single entity for read/write operations.
-File 'fragments' do not need to be contiguous, and are reassembled during read operations.
-
-**Named** objects can be enumerated using :cpp:func:`IFS::IFileSystem::readdir()`.
-Internally, FWFS uses handles to access any named object.
-Handles are allocated from a static pool to avoid excessive dynamic (heap) allocation.
-Users can attach their own data to any named object using custom object types.
-
 Redirection
 ~~~~~~~~~~~
 
-FWFS incorporates a redirector. This works by creating a mount point (a named object), which looks like a directory.
+FWFS incorporates a redirector. This works by creating a mount point (a named object), which looks like an empty directory.
 When accessed, this get redirected to the root of another filesystem.
 The maximum number of mount points is fixed at compile time, but file systems can be mounted and dismounted at any time.
 
-Archival
-~~~~~~~~
+Mount points are identified explicitly in the build configuration file:
 
-One possible application for FWFS images is for archiving.
-Multiple filesystem images could be stored on a web server and pulled into memory as required.
+.. highlight:: json
+
+   "mountpoints": {
+      "path/to/use/spiffs": 0,
+      "path/to/use/littlefs": 1
+   }
+
+The filesystem builder creates the MountPoint objects and tags them with the given volume indices.
+For example, the directory "path/to/use/littlefs" is attached to volume index #0.
+
+.. note::
+   
+   Unlike other filesystems you cannot use a regular directory as a mountpoint.
+   To change the name of a mountpoint requires the filesystem image to be re-built and re-flashed.
+
+Applications use the :func:`IFileSystem::setVolume` method to install the actual filesystem.
+
+
+Streaming backup/archive support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :cpp:class:`IFS::FWFS::ArchiveStream` class can be used to generate streaming filesystem backups
+from any supported filesystem. The archive files are in FWFS format.
+
+Here are some examples of how it can be used:
+
+-  Stream filesystem (or directory) images directly to remote servers
+-  Make local filesystem backups
+-  Compact log files which don't change much (think of ZIP files - just needs a compression plugin)
+-  Backup entire filesystem a local file, an empty partition, etc.
+-  Defragment/compact or repair a damaged filesystem by re-formatting then restoring from backup
+
+The archiver has some additional features:
+
+-  Specify whether to archive an entire filesystem or start from a specific directory
+-  Specify whether to follow links (e.g. other filesystems in mountpoints) or not
+-  Exclude any file or directory via custom callback (or by overriding methods)
+-  Perform custom file data encoding such as compression or encryption via callbacks
+-  Add additional metadata to files (comments, encryption codes, etc.)
+
+See the :sample:`Basic_IFS` sample for 
+
 
 Access Control
 --------------
@@ -204,14 +230,18 @@ but having said that extending this system would probably be fairly straightforw
 Configuration filesystem
 ------------------------
 
-@todo
-
 If an application only requires write access for configuration files, SPIFFS is overkill.
 These files would be updated very infrequently, so wear-levelling would be un-necessary.
 The names and number of files would probably also be known at build time, and an individual file could be limited to a fixed size,
 for example one or two flash sectors. A ConfigFileSystem implementation would not need to support file creation or deletion.
 
 Such a system would require almost no static RAM allocation and code size would be tiny.
+
+
+However, the :library:`LittleFS` has excellent metadata support and is ideal for storing configuration information.
+This can be done using :IFS::FileSystem::`setUserAttribute` and read using :IFS::FileSystem::`getUserAttribute`
+or :IFS::FileSystem::`enumAttributes`.
+
 
 .. note::
 
@@ -220,10 +250,59 @@ Such a system would require almost no static RAM allocation and code size would 
    its use with the ESP8266.
 
 
+
+FWFS Objects
+~~~~~~~~~~~~
+
+All files, directories and associated information elements are stored as 'objects'.
+Files and directories are 'named' objects, which may contain other objects either directly or as references.
+Small objects (255 bytes or less) are stored directly, larger ones get their own file. Maximum object size is 16Mbytes.
+
+File content is stored in un-named data objects.
+A named object can have any number of these and will be treated as a single entity for read/write operations.
+File 'fragments' do not need to be contiguous, and are reassembled during read operations.
+
+**Named** objects can be enumerated using :cpp:func:`IFS::IFileSystem::readdir()`.
+Internally, FWFS uses handles to access any named object.
+Handles are allocated from a static pool to avoid excessive dynamic (heap) allocation.
+Users can attach their own data to any named object using custom object types.
+
+The filesystem layout is displayed during initial mount if this library is built with :envvar:`DEBUG_VERBOSE_LEVEL` = 3.
+
+Why FWFS?
+---------
+
+There are many existing candidates for a read-only system, so why do we need another one? Here are some reasons:
+
+-  SPIFFS and LittleFS could be used in read-only mode but they are not designed for space-efficiency. Images are therefore
+   larger than necessary, sometimes considerably larger. This is also true of other such filesystems designed for Linux, etc.
+
+   FWFS is designed to produce the smallest possible images to conserve limited flash storage.
+   It therefore has a high effective capacity, i.e. you can put a lot more in there than with other filesystems.
+
+-  With ROMFS, for example, information is laid out with headers first, followed by data.
+   The root directory and volume information are at the front.
+
+   FWFS works in reverse by writing out file contents first, then file headers and then directory records.
+   The root directory comes at the end, followed by the volume information record.
+   This allows images to be created as a stream because directory records can be efficiently constructed in RAM
+   as each file or subdirectory record is written out. This keeps memory usage low.
+
+   In addition, checksums and additional metadata can be created while file data is written out. This could be required for
+   compressing or encrypting the contents, or for error tolerance. For example, if corruption is encountered whilst reading
+   file contents this can be noted in the metadata which is written out afterwards.
+
+   Filesystem images are therefore generated in a single pass, with each file or directory only read once.
+
+-  Standard attribute support not well-suited to embedded microsystems.
+
+   The small set of standard metadata defined by IFS is designed to solve specific problems with typical IOT applications.
+
+   
 Code dependencies
 -----------------
 
-Written initially for Sming, the library is portable to other systems.
+Written initially for Sming, the library should be fairly portable to other systems.
 
 No definitions from SPIFFS or other modules should be used in the public interface; such dependencies should be managed internally.
 
