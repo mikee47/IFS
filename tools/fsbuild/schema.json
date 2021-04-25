@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/Config",
+  "definitions": {
+    "Config": {
+      "title": "Firmware Filesystem build configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "id",
+        "source"
+      ],
+      "properties": {
+        "name": {
+          "title": "Volume name",
+          "type": "string"
+        },
+        "id": {
+          "title": "Volume ID",
+          "description": "32-bit 'tag' or serial number",
+          "type": [
+            "string",
+            "integer"
+          ]
+        },
+        "source": {
+          "title": "Source information",
+          "description": "Each entry maps an image path to filesystem path",
+          "type": "object",
+          "additionalProperties": {
+            "title": "Local filesystem path",
+            "description": "Key is path within image",
+            "type": "string"
+          }
+        },
+        "mountpoints": {
+          "title": "Maps image directory to another object store",
+          "type": "object",
+          "additionalProperties": {
+            "title": "Object store index",
+            "description": "Starts at 1, 0 is reserved for primary",
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Rule"
+          }
+        }
+      }
+    },
+    "Rule": {
+      "title": "Rule for configuring build properties",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mask"
+      ],
+      "properties": {
+        "mask": {
+          "title": "File mask",
+          "description": "Which files or folders to apply this rule to. Matches full path, and if rule does not start with '/' also match filename only.",
+          "type": [
+            "string",
+            "array"
+          ]
+        },
+        "read": {
+          "title": "Read ACE",
+          "$ref": "#/definitions/Ace"
+        },
+        "write": {
+          "title": "Write ACE",
+          "$ref": "#/definitions/Ace"
+        },
+        "readonly": {
+          "title": "Set read-only flag",
+          "description": "Indicates the file is to remain read-only even when copied to a writeable filesystem",
+          "type": "boolean"
+        },
+        "compress": {
+          "title": "Set compression level",
+          "type": "string",
+          "enum": [
+            "none",
+            "gzip"
+          ]
+        }
+      }
+    },
+    "Ace": {
+      "title": "Access Control Entry",
+      "description": "Determines minimum user role required to access file",
+      "type": "string",
+      "enum": [
+        "none",
+        "any",
+        "guest",
+        "user",
+        "manager",
+        "admin"
+      ]
+    }
+  }
+}

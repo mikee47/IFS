@@ -1,0 +1,63 @@
+// Filesystem builder configuration
+{
+    "name": "FWFS demo volume",
+    "id": "0x12345678",
+    // Where to read files from
+    "source": {
+        "/": "files",
+        "README.rst": "README.rst"
+    },
+    // Directories to mount other object stores
+    "mountpoints": {
+        "config": 1
+    },
+    // Rules for file metadata. All rules are evaluated in sequence for every file
+    // The masks apply to the full target path
+    "rules": [
+        {
+            "mask": "*",
+            "read": "guest",
+            "write": "admin"
+        },
+        {
+            "mask": ".*",
+            "read": "admin"
+        },
+        {
+            "mask": "*.html",
+            "readonly": true
+        },
+        {
+            "mask": [
+                "*.js",
+                "*.png",
+                "*.ico",
+                "*.jpg",
+                "*.jpeg",
+                "*.html",
+                "*.css",
+                "*.txt",
+                "*.md",
+                "/layout.json",
+                "/full-layout.json"
+            ],
+            "compress": "gzip"
+        },
+        {
+            "mask": [
+                "/index.html",
+                "/index.js",
+                "/stswsio.js",
+                "/styles.css",
+                "*.ico",
+                "*.png"
+            ],
+            "read": "any"
+        },
+        //This is a template file so firmware needs to read it
+        {
+            "mask": "/error.html",
+            "compress": "none"
+        }
+    ]
+}
