@@ -53,16 +53,30 @@ size_t getAttributeSize(AttributeTag tag)
 
 String toString(IFS::AttributeTag tag)
 {
-	String s;
 	if(tag >= IFS::AttributeTag::User) {
-		s += F("User_");
-		s += unsigned(tag) - unsigned(IFS::AttributeTag::User);
-	} else {
-		s = strings[unsigned(tag)];
-		if(!s) {
-			s += F("System_");
-			s += unsigned(tag);
-		}
+		char buf[32];
+		uint8_t tagIndex = unsigned(tag) - unsigned(IFS::AttributeTag::User);
+		m_snprintf(buf, sizeof(buf), _F("user%02x"), tagIndex);
+		return buf;
 	}
-	return s;
+
+	return strings[unsigned(tag)];
+}
+
+bool fromString(const char* name, IFS::AttributeTag& tag)
+{
+	auto namelen = strlen(name);
+	if(namelen == 6 && memicmp(name, _F("user"), 4) == 0) {
+		auto tagIndex = (unhex(name[4]) << 4) | unhex(name[5]);
+		tag = IFS::AttributeTag(unsigned(IFS::AttributeTag::User) + tagIndex);
+		return true;
+	}
+
+	int i = strings.indexOf(name);
+	if(i < 0) {
+		return false;
+	}
+
+	tag = IFS::AttributeTag(i);
+	return true;
 }

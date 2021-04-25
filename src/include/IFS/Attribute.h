@@ -89,3 +89,4 @@ size_t getAttributeSize(AttributeTag tag);
 } // namespace IFS
 
 String toString(IFS::AttributeTag tag);
+bool fromString(const char* name, IFS::AttributeTag& tag);
