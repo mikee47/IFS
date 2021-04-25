@@ -1,17 +1,29 @@
-/*
- * Attributes.h
+/**
+ * FileAttributes.h
  *
- *  Created on: 31 Aug 2018
- *      Author: mikee47
- */
+ * Created on: 31 Aug 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #pragma once
 
-#include "../Types.h"
+#include "Types.h"
 
 namespace IFS
-{
-namespace File
 {
 /**
  * @brief file attributes
@@ -23,16 +35,16 @@ namespace File
  * Applications may find it useful to determine if a file has been modified whilst open. Clearing this
  * flag before closing a file will prevent any metadata changes being flushed to disk.
  */
-#define FILEATTR_MAP(XX)                                                                                               \
+#define IFS_FILEATTR_MAP(XX)                                                                                           \
 	XX(Compressed, C, "File content is compressed")                                                                    \
 	XX(Archive, A, "File modified flag")                                                                               \
 	XX(ReadOnly, R, "File may not be modified or deleted")                                                             \
 	XX(Directory, D, "Object is a directory entry")                                                                    \
 	XX(MountPoint, M, "Directs to another object store")
 
-enum class Attribute {
+enum class FileAttribute {
 #define XX(_tag, _char, _comment) _tag,
-	FILEATTR_MAP(XX)
+	IFS_FILEATTR_MAP(XX)
 #undef XX
 		MAX
 };
@@ -40,7 +52,7 @@ enum class Attribute {
 /**
  * @brief File attributes are stored as a bitmask
  */
-using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
+using FileAttributes = BitSet<uint8_t, FileAttribute, size_t(FileAttribute::MAX)>;
 
 /**
  * @brief Get the string representation for the given set of file attributes
@@ -48,12 +60,11 @@ using Attributes = BitSet<uint8_t, Attribute, size_t(Attribute::MAX)>;
  * @param attr
  * @retval String
  */
-String getAttributeString(File::Attributes attr);
+String getFileAttributeString(FileAttributes attr);
 
-} // namespace File
 } // namespace IFS
 
 /**
  * @brief Get descriptive String for a given file attribute
  */
-String toString(IFS::File::Attribute attr);
+String toString(IFS::FileAttribute attr);

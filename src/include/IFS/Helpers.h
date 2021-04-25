@@ -1,31 +1,44 @@
-/*
+/**
  * Helpers.h
- *
- *  Created on: 27 Jan 2019
- *      Author: Mike
- *
  * Helper functions to assist with standard filesystem creation
- */
+ *
+ * Created on: 27 Jan 2019
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #pragma once
 
-#include "IFS/FileSystem.h"
+#include "FileSystem.h"
 
 namespace IFS
 {
 /**
  * @brief Create a firmware filesystem
  * @param partition
- * @retval IFileSystem* constructed filesystem object
+ * @retval FileSystem* constructed filesystem object
  */
-IFileSystem* createFirmwareFilesystem(Storage::Partition partition);
+FileSystem* createFirmwareFilesystem(Storage::Partition partition);
 
 /**
  * @brief Create a hybrid filesystem
- * @param fwfsPartition
- * @param spiffsPartition
- * @retval IFileSystem* constructed filesystem object
+ * @param fwfsPartition Base read-only filesystem partition
+ * @param flashFileSystem The filesystem to use for writing
+ * @retval FileSystem* constructed filesystem object
  */
-IFileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, Storage::Partition spiffsPartition);
+FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, IFileSystem* flashFileSystem);
 
 } // namespace IFS

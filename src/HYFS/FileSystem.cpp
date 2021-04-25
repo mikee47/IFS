@@ -1,8 +1,25 @@
-/*
+/**
  * FileSystem.cpp
  *
- *  Created on: 22 Jul 2018
- *      Author: mikee47
+ * Created on: 22 Jul 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
+
+/*
  *
  * Enumerating the file system is probably the trickiest bit.
  * If the files in both systems are sorted this makes life much
@@ -64,22 +81,27 @@
  */
 
 #include "../include/IFS/HYFS/FileSystem.h"
+#include "../include/IFS/FWFS/FileSystem.h"
+#include "../include/IFS/Util.h"
 
-#define GET_FS(__file)                                                                                                 \
-	if(__file < 0) {                                                                                                   \
-		return __file;                                                                                                 \
+#define GET_FS(handle)                                                                                                 \
+	if(handle < 0) {                                                                                                   \
+		return handle;                                                                                                 \
 	}                                                                                                                  \
 	IFileSystem* fs;                                                                                                   \
-	if(fwfs.isfile(file) == FS_OK) {                                                                                   \
-		fs = &fwfs;                                                                                                    \
+	if(handle >= FWFS_HANDLE_MIN && handle < FWFS_HANDLE_MAX) {                                                        \
+		fs = fwfs;                                                                                                     \
 	} else {                                                                                                           \
-		fs = &ffs;                                                                                                     \
+		fs = ffs;                                                                                                      \
 	}
 
 namespace IFS
 {
+namespace HYFS
+{
 // opendir() uses this structure to track file listing
 struct FileDir {
+	CString path;
 	// Directory objects for both filing systems
 	DirHandle ffs;
 	DirHandle fw;
@@ -87,14 +109,12 @@ struct FileDir {
 	IFileSystem* fs;
 };
 
-namespace HYFS
-{
 int FileSystem::mount()
 {
 	// Mount both filesystems so they take ownership of the media objects
-	int res = fwfs.mount();
+	int res = fwfs->mount();
 	if(res >= 0) {
-		res = ffs.mount();
+		res = ffs->mount();
 	}
 	return res;
 }
@@ -103,15 +123,17 @@ int FileSystem::getinfo(Info& info)
 {
 	Info ffsinfo;
 	ffsinfo.name = info.name;
-	ffs.getinfo(ffsinfo);
+	ffs->getinfo(ffsinfo);
 	Info fwinfo;
 	if(info.name.length == 0) {
 		fwinfo.name = info.name;
 	}
-	fwfs.getinfo(fwinfo);
+	fwfs->getinfo(fwinfo);
 
 	info.type = Type::Hybrid;
-	info.attr = fwinfo.attr | ffsinfo.attr;
+	info.maxNameLength = ffsinfo.maxNameLength;
+	info.maxPathLength = ffsinfo.maxPathLength;
+	info.attr = (fwinfo.attr | ffsinfo.attr) - Attribute::ReadOnly;
 	bitSet(info.attr, Attribute::Virtual);
 	info.volumeSize = fwinfo.volumeSize + ffsinfo.volumeSize;
 	info.freeSpace = ffsinfo.freeSpace;
@@ -127,9 +149,9 @@ int FileSystem::getinfo(Info& info)
 String FileSystem::getErrorString(int err)
 {
 	if(err < Error::SYSTEM) {
-		return ffs.getErrorString(err);
+		return ffs->getErrorString(err);
 	} else {
-		return fwfs.getErrorString(err);
+		return fwfs->getErrorString(err);
 	}
 }
 
@@ -137,8 +159,8 @@ int FileSystem::hideFWFile(const char* path, bool hide)
 {
 	int res = FS_OK;
 #if HYFS_HIDE_FLAGS == 1
-	FileStat stat;
-	res = fwfs.stat(path, &stat);
+	Stat stat;
+	res = fwfs->stat(path, &stat);
 	if(res >= 0) {
 		if(hide) {
 			if(!hiddenFwFiles.contains(stat.id)) {
@@ -152,12 +174,12 @@ int FileSystem::hideFWFile(const char* path, bool hide)
 	return res;
 }
 
-bool FileSystem::isFWFileHidden(const FileStat& fwstat)
+bool FileSystem::isFWFileHidden(const Stat& fwstat)
 {
 #if HYFS_HIDE_FLAGS == 1
 	return hiddenFwFiles.contains(fwstat.id);
 #else
-	return ffs.stat(fwstat.name, nullptr) >= 0;
+	return ffs->stat(fwstat.name, nullptr) >= 0;
 #endif
 }
 
@@ -169,63 +191,70 @@ bool FileSystem::isFWFileHidden(const FileStat& fwstat)
 
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
-	auto d = new FileDir;
+	auto d = new FileDir{};
 	if(d == nullptr) {
 		return Error::NoMem;
 	}
 
-	// Open directories on both filing systems
-	int res = ffs.opendir(path, d->ffs);
-	if(res >= 0) {
-		res = fwfs.opendir(path, d->fw);
-		if(res < 0) {
-			ffs.closedir(d->ffs);
-		}
-	}
-
+	// Open valid directory on FFS if exists, otherwise on FWFS
+	int res = ffs->opendir(path, d->ffs);
 	if(res < 0) {
-		delete d;
+		res = fwfs->opendir(path, d->fw);
+		if(res < 0) {
+			delete d;
+			return res;
+		}
+		d->fs = fwfs;
 	} else {
-		d->fs = &ffs;
-		dir = d;
+		d->fs = ffs;
 	}
 
-	return res;
+	d->path = path;
+	dir = DirHandle(d);
+	return FS_OK;
 }
 
-int FileSystem::readdir(DirHandle dir, FileStat& stat)
+int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
 	int res;
 
 	// FFS ?
-	if(dir->fs == &ffs) {
+	if(d->fs == ffs) {
 		// Use a temporary stat in case it's not provided
-		res = ffs.readdir(dir->ffs, stat);
+		NameStat s;
+		res = ffs->readdir(d->ffs, s);
 		if(res >= 0) {
-			char buf[SPIFFS_OBJ_NAME_LEN];
-			NameBuffer name(buf, sizeof(buf));
-			int err = ffs.getFilePath(stat.id, name);
-			if(err < 0) {
-				debug_e("getFilePath(%u) error %d", stat.id, err);
-			} else {
-				debug_d("getFilePath(%u) - '%s'", stat.id, buf);
-				hideFWFile(name.buffer, true);
+			stat = s;
+			char* path = s.name.buffer;
+			auto pathlen = d->path.length();
+			if(pathlen != 0) {
+				memmove(path + pathlen + 1, path, s.name.length);
+				path[pathlen] = '/';
 			}
+			memcpy(path, d->path.c_str(), pathlen);
+			hideFWFile(path, true);
 			return res;
 		}
 
 		// End of FFS files
-		dir->fs = &fwfs;
-	} else if(dir->fs != &fwfs) {
+		if(d->fw == nullptr) {
+			res = fwfs->opendir(d->path.c_str(), d->fw);
+			if(res == Error::NotFound) {
+				return Error::NoMoreFiles;
+			}
+			if(res < 0) {
+				return res;
+			}
+		}
+		d->fs = fwfs;
+	} else if(d->fs != fwfs) {
 		return Error::BadParam;
 	}
 
 	do {
-		res = fwfs.readdir(dir->fw, stat);
+		res = fwfs->readdir(d->fw, stat);
 		if(res < 0) {
 			break;
 		}
@@ -236,30 +265,31 @@ int FileSystem::readdir(DirHandle dir, FileStat& stat)
 
 int FileSystem::rewinddir(DirHandle dir)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
+	GET_FILEDIR()
+
+	if(d->fw != nullptr) {
+		d->fs = fwfs;
+		int res = fwfs->rewinddir(d->fw);
+		if(res < 0) {
+			return res;
+		}
 	}
 
-	if(dir->fs == &ffs) {
-		return ffs.rewinddir(dir->ffs);
+	if(d->ffs == nullptr) {
+		return FS_OK;
 	}
 
-	if(dir->fs == &fwfs) {
-		return fwfs.rewinddir(dir->fw);
-	}
-
-	return Error::BadParam;
+	d->fs = ffs;
+	return ffs->rewinddir(d->ffs);
 }
 
 int FileSystem::closedir(DirHandle dir)
 {
-	if(dir == nullptr) {
-		return Error::BadParam;
-	}
+	GET_FILEDIR()
 
-	fwfs.closedir(dir->fw);
-	ffs.closedir(dir->ffs);
-	delete dir;
+	fwfs->closedir(d->fw);
+	ffs->closedir(d->ffs);
+	delete d;
 
 	return FS_OK;
 }
@@ -289,40 +319,40 @@ int FileSystem::mkdir(const char* path)
  *      fail
  *
  */
-File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
+FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	// If file exists on FFS then open it and return
-	FileStat stat;
-	int res = ffs.stat(path, &stat);
+	int res = ffs->stat(path, nullptr);
 	if(res >= 0) {
-		return ffs.fopen(stat, flags);
+		return ffs->open(path, flags);
 	}
 
 	// OK, so no FFS file exists. Get the FW file.
-	File::Handle fwfile = fwfs.open(path, File::OpenFlag::Read);
+	FileHandle fwfile = fwfs->open(path, OpenFlag::Read);
 
 	// If we're only reading the file then return FW file directly
-	if(flags == File::OpenFlag::Read) {
+	if(flags == OpenFlag::Read) {
 		return fwfile;
 	}
 
 	// If we have a FW file, check the ReadOnly flag
 	if(fwfile >= 0) {
-		int err = fwfs.fstat(fwfile, &stat);
-		if(err >= 0 && stat.attr[File::Attribute::ReadOnly]) {
+		Stat stat;
+		int err = fwfs->fstat(fwfile, &stat);
+		if(err >= 0 && stat.attr[FileAttribute::ReadOnly]) {
 			err = Error::ReadOnly;
 		}
 		if(err < 0) {
-			fwfs.close(fwfile);
+			fwfs->close(fwfile);
 			return err;
 		}
 	}
 
 	// Now copy FW file to FFS
 	if(fwfile >= 0) {
-		flags |= File::OpenFlag::Create | File::OpenFlag::Read | File::OpenFlag::Write;
+		flags |= OpenFlag::Create | OpenFlag::Read | OpenFlag::Write;
 	}
-	File::Handle ffsfile = ffs.open(path, flags);
+	FileHandle ffsfile = ffs->open(path, flags);
 
 	// If there's no FW file, nothing further to do so return FFS result (success or failure)
 	if(fwfile < 0) {
@@ -331,75 +361,47 @@ File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
 
 	// If FFS file creation failed then fail
 	if(ffsfile < 0) {
-		fwfs.close(fwfile);
+		fwfs->close(fwfile);
 		return ffsfile;
 	}
 
 	// Copy metadata
-	if(fwfs.fstat(fwfile, &stat) >= 0) {
-		ffs.setacl(ffsfile, stat.acl);
-		ffs.setattr(ffsfile, stat.attr);
-		ffs.settime(ffsfile, stat.mtime);
+	Stat stat;
+	if(fwfs->fstat(fwfile, &stat) >= 0) {
+		ffs->fsetxattr(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
+		ffs->fsetxattr(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
 	}
 
 	// If not truncating then copy content into FFS file
-	if(!flags[File::OpenFlag::Truncate]) {
-		ffs.lseek(ffsfile, 0, SeekOrigin::Start);
+	if(!flags[OpenFlag::Truncate]) {
+		ffs->lseek(ffsfile, 0, SeekOrigin::Start);
 		uint8_t buffer[512];
-		while(fwfs.eof(fwfile) == 0) {
-			int len = fwfs.read(fwfile, buffer, sizeof(buffer));
+		while(fwfs->eof(fwfile) == 0) {
+			int len = fwfs->read(fwfile, buffer, sizeof(buffer));
 			//      debug_i("m_fw.read: %d", len);
 			if(len <= 0) {
 				break;
 			}
-			len = ffs.write(ffsfile, buffer, len);
-			//      debug_i("m_ffs.write: %d", len);
+			len = ffs->write(ffsfile, buffer, len);
 			if(len < 0) {
-				ffs.fremove(ffsfile);
-				ffs.close(ffsfile);
-				fwfs.close(fwfile);
+				ffs->fremove(ffsfile);
+				ffs->close(ffsfile);
+				fwfs->close(fwfile);
 				return len;
 			}
 		}
 		// Move back to beginning if we're not appending
-		if(!flags[File::OpenFlag::Append]) {
-			ffs.lseek(ffsfile, 0, SeekOrigin::Start);
+		if(!flags[OpenFlag::Append]) {
+			ffs->lseek(ffsfile, 0, SeekOrigin::Start);
 		}
 	}
 
-	fwfs.close(fwfile);
+	fwfs->close(fwfile);
 
 	return ffsfile;
 }
 
-/*
- * Problem: stat refers to a file in a sub-directory, and readdir() by design
- * only returns the file name, omitting the path. So we need to do a lower-level
- * SPIFS stat to get the real file path.
- */
-File::Handle FileSystem::fopen(const FileStat& stat, File::OpenFlags flags)
-{
-	if(stat.fs == nullptr) {
-		return Error::BadParam;
-	}
-
-	if(stat.fs == &ffs) {
-		return ffs.fopen(stat, flags);
-	}
-
-	// If we're only reading the file then return FW file directly
-	if(flags == File::OpenFlag::Read) {
-		return fwfs.fopen(stat, flags);
-	}
-
-	// Otherwise it'll involve some work...
-	char buf[SPIFFS_OBJ_NAME_LEN];
-	NameBuffer name(buf, sizeof(buf));
-	int res = fwfs.getFilePath(stat.id, name);
-	return res < 0 ? res : open(name.buffer, flags);
-}
-
-int FileSystem::close(File::Handle file)
+int FileSystem::close(FileHandle file)
 {
 	GET_FS(file)
 	return fs->close(file);
@@ -412,9 +414,9 @@ int FileSystem::close(File::Handle file)
  */
 int FileSystem::remove(const char* path)
 {
-	int res = ffs.remove(path);
+	int res = ffs->remove(path);
 	if(hideFWFile(path, false) == FS_OK) {
-		if(res == SPIFFS_ERR_NOT_FOUND) {
+		if(res < 0) {
 			res = Error::ReadOnly;
 		}
 	}
@@ -427,60 +429,75 @@ int FileSystem::format()
 	hiddenFwFiles.removeAllElements();
 #endif
 
-	return ffs.format();
+	return ffs->format();
 }
 
 int FileSystem::check()
 {
-	return ffs.check();
+	return ffs->check();
 }
 
-int FileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, Stat* stat)
 {
-	int res = ffs.stat(path, stat);
+	int res = ffs->stat(path, stat);
 	if(res < 0) {
-		res = fwfs.stat(path, stat);
+		res = fwfs->stat(path, stat);
 	}
 	return res;
 }
 
-int FileSystem::fstat(File::Handle file, FileStat* stat)
+int FileSystem::fstat(FileHandle file, Stat* stat)
 {
 	GET_FS(file)
 	return fs->fstat(file, stat);
 }
 
-int FileSystem::setacl(File::Handle file, const File::ACL& acl)
+int FileSystem::fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize)
 {
 	GET_FS(file)
-	return fs->setacl(file, acl);
+	return fs->fcontrol(file, code, buffer, bufSize);
 }
 
-int FileSystem::setattr(File::Handle file, File::Attributes attr)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
 	GET_FS(file)
-	return fs->setattr(file, attr);
+	return fs->fsetxattr(file, tag, data, size);
 }
 
-int FileSystem::settime(File::Handle file, time_t mtime)
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
 	GET_FS(file)
-	return fs->settime(file, mtime);
+	return fs->fgetxattr(file, tag, buffer, size);
 }
 
-int FileSystem::read(File::Handle file, void* data, size_t size)
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
+{
+	int res = ffs->setxattr(path, tag, data, size);
+	return (res == Error::NotFound) ? Error::ReadOnly : res;
+}
+
+int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
+{
+	int res = ffs->getxattr(path, tag, buffer, size);
+	if(res < 0) {
+		res = fwfs->getxattr(path, tag, buffer, size);
+	}
+	return res;
+}
+
+int FileSystem::read(FileHandle file, void* data, size_t size)
 {
 	GET_FS(file)
 	return fs->read(file, data, size);
 }
 
-int FileSystem::write(File::Handle file, const void* data, size_t size)
+int FileSystem::write(FileHandle file, const void* data, size_t size)
 {
 	GET_FS(file)
 	return fs->write(file, data, size);
 }
 
-int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
+int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 {
 	GET_FS(file)
 	int res = fs->lseek(file, offset, origin);
@@ -488,25 +505,25 @@ int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
 	return res;
 }
 
-int FileSystem::eof(File::Handle file)
+int FileSystem::eof(FileHandle file)
 {
 	GET_FS(file)
 	return fs->eof(file);
 }
 
-int32_t FileSystem::tell(File::Handle file)
+int32_t FileSystem::tell(FileHandle file)
 {
 	GET_FS(file)
 	return fs->tell(file);
 }
 
-int FileSystem::truncate(File::Handle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, size_t new_size)
 {
 	GET_FS(file)
-	return fs->truncate(file, new_size);
+	return fs->ftruncate(file, new_size);
 }
 
-int FileSystem::flush(File::Handle file)
+int FileSystem::flush(FileHandle file)
 {
 	GET_FS(file)
 	return fs->flush(file);
@@ -521,21 +538,21 @@ int FileSystem::flush(File::Handle file)
 int FileSystem::rename(const char* oldpath, const char* newpath)
 {
 	// Make sure file exists on FFS
-	auto file = open(oldpath, File::OpenFlag::Read | File::OpenFlag::Write);
+	auto file = open(oldpath, OpenFlag::Read | OpenFlag::Write);
 	if(file < 0) {
 		return file;
 	}
 
 	// Close the file and rename it
 	close(file);
-	return ffs.rename(oldpath, newpath);
+	return ffs->rename(oldpath, newpath);
 }
 
 /*
  * @note can only delete files with write permission, which means the
  * file is on FFS.
  */
-int FileSystem::fremove(File::Handle file)
+int FileSystem::fremove(FileHandle file)
 {
 	GET_FS(file)
 	return fs->fremove(file);

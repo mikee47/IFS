@@ -1,16 +1,28 @@
-/*
+/**
  * FileSystem.h
- *
- *  Created on: 1 December 2020
- *      Author: mikee47
- *
  * IFS wrapper for GDB syscall file access
  *
- */
+ * Created on: 1 December 2020
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #pragma once
 
-#include <IFS/FileSystem.h>
+#include "../IFileSystem.h"
 
 namespace IFS
 {
@@ -46,7 +58,7 @@ public:
 	{
 		return Error::NotSupported;
 	}
-	int readdir(DirHandle dir, FileStat& stat) override
+	int readdir(DirHandle dir, Stat& stat) override
 	{
 		return Error::NotSupported;
 	}
@@ -58,42 +70,42 @@ public:
 	{
 		return Error::NotSupported;
 	}
-	int stat(const char* path, FileStat* stat) override;
-	int fstat(File::Handle file, FileStat* stat) override;
-	int setacl(File::Handle file, const File::ACL& acl) override
+	int stat(const char* path, Stat* stat) override;
+	int fstat(FileHandle file, Stat* stat) override;
+	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int setattr(File::Handle file, File::Attributes attr) override
+	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int settime(File::Handle file, time_t mtime) override
+	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	File::Handle open(const char* path, File::OpenFlags flags) override;
-	File::Handle fopen(const FileStat& stat, File::OpenFlags flags) override
+	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override
 	{
 		return Error::NotSupported;
 	}
-	int close(File::Handle file) override;
-	int read(File::Handle file, void* data, size_t size) override;
-	int write(File::Handle file, const void* data, size_t size) override;
-	int lseek(File::Handle file, int offset, SeekOrigin origin) override;
-	int eof(File::Handle file) override;
-	int32_t tell(File::Handle file) override;
-	int truncate(File::Handle file, size_t new_size) override
+	FileHandle open(const char* path, OpenFlags flags) override;
+	int close(FileHandle file) override;
+	int read(FileHandle file, void* data, size_t size) override;
+	int write(FileHandle file, const void* data, size_t size) override;
+	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
+	int eof(FileHandle file) override;
+	int32_t tell(FileHandle file) override;
+	int ftruncate(FileHandle file, size_t new_size) override
 	{
 		return Error::NotSupported;
 	}
-	int flush(File::Handle file) override
+	int flush(FileHandle file) override
 	{
 		return Error::NotSupported;
 	}
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(File::Handle file) override
+	int fremove(FileHandle file) override
 	{
 		return Error::NotImplemented;
 	}
@@ -104,10 +116,6 @@ public:
 	int check() override
 	{
 		return FS_OK;
-	}
-	int isfile(File::Handle file) override
-	{
-		return file >= 0;
 	}
 };
 

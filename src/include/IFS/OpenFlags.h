@@ -1,17 +1,29 @@
-/*
+/**
  * OpenFlags.h
  *
- *  Created on: 31 Aug 2018
- *      Author: mikee47
- */
+ * Created on: 31 Aug 2018
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #pragma once
 
-#include "../Types.h"
+#include "Types.h"
 
 namespace IFS
-{
-namespace File
 {
 /** @brief File open flag
  *  @note These are filing-system independent flags based on SPIFFS 0.3.7, however they
@@ -19,7 +31,7 @@ namespace File
  *  A filing system must fail the call if any flags are not recognised.
  *  Flags are defined as bit values.
  */
-#define FILE_OPEN_FLAG_MAP(XX)                                                                                         \
+#define IFS_OPEN_FLAG_MAP(XX)                                                                                          \
 	XX(Append, "Append to file")                                                                                       \
 	XX(Truncate, "Create empty file")                                                                                  \
 	XX(Create, "Create new file if file doesn't exist")                                                                \
@@ -28,7 +40,7 @@ namespace File
 
 enum class OpenFlag {
 #define XX(_tag, _comment) _tag,
-	FILE_OPEN_FLAG_MAP(XX)
+	IFS_OPEN_FLAG_MAP(XX)
 #undef XX
 		MAX
 };
@@ -41,19 +53,9 @@ inline constexpr OpenFlags operator|(OpenFlag a, OpenFlag b)
 	return OpenFlags(a) | b;
 }
 
-// Common flag combinations
-constexpr OpenFlags ReadOnly{File::OpenFlag::Read};
-constexpr OpenFlags WriteOnly{File::OpenFlag::Write};
-constexpr OpenFlags ReadWrite{OpenFlag::Read | OpenFlag::Write};
-constexpr OpenFlags Create{OpenFlag::Create};
-constexpr OpenFlags Append{OpenFlag::Append};
-constexpr OpenFlags Truncate{OpenFlag::Truncate};
-constexpr OpenFlags CreateNewAlways{OpenFlag::Create | OpenFlag::Truncate};
-
-} // namespace File
 } // namespace IFS
 
 /**
  * @brief Get a descriptive string for a flag
  */
-String toString(IFS::File::OpenFlag flag);
+String toString(IFS::OpenFlag flag);

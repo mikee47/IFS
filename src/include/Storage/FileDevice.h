@@ -1,6 +1,21 @@
-/*
+/**
  * FileDevice.h
- */
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #include <Storage/CustomDevice.h>
 #include "../IFS/FileSystem.h"
@@ -14,14 +29,15 @@ namespace Storage
 class FileDevice : public CustomDevice
 {
 public:
-	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::File::Handle file, size_t size)
+	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, size_t size)
 		: name(name), size(size), fileSystem(fileSys), file(file)
 	{
 	}
 
-	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::File::Handle file)
-		: name(name), size(fileSys.getSize(file)), fileSystem(fileSys), file(file)
+	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file)
+		: name(name), fileSystem(fileSys), file(file)
 	{
+		size = IFS::FileSystem::cast(fileSys).getSize(file);
 	}
 
 	~FileDevice()
@@ -57,7 +73,7 @@ private:
 	CString name;
 	size_t size;
 	IFS::IFileSystem& fileSystem;
-	IFS::File::Handle file;
+	IFS::FileHandle file;
 };
 
 } // namespace Storage

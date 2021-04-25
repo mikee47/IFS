@@ -1,10 +1,23 @@
-/*
+/**
  * Object.h
+ * Basic definitions for FW file system structure.
  *
  *  Created on: 7 Aug 2018
- *      Author: mikee47
  *
- * Basic definitions for FW file system structure.
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
  *
  * A filesystem image is basically:
  *
@@ -60,8 +73,8 @@
 #pragma once
 
 #include "TimeStamp.h"
-#include "File/Attributes.h"
-#include "File/Compression.h"
+#include "FileAttributes.h"
+#include "Compression.h"
 #include "UserRole.h"
 
 namespace IFS
@@ -107,6 +120,7 @@ template <typename T> static T at_offset(void* current, int offset)
 	XX(5, ReadACE, "minimum UserRole for read access")                                                                 \
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
 	XX(7, ObjectStore, "Identifier for object store")                                                                  \
+	XX(8, Md5Hash, "MD5 Hash Value")                                                                                   \
 	XX(32, Data16, "Data, max 64K - 1")                                                                                \
 	XX(33, Volume, "Volume, top-level container object")                                                               \
 	XX(34, MountPoint, "Root for another filesystem")                                                                  \
@@ -132,8 +146,6 @@ struct Object {
 #define XX(value, tag, text) tag = value,
 		FWFS_OBJTYPE_MAP(XX)
 #undef XX
-		// Start of named objects
-		Named = 33
 	};
 
 	// Top bit of object type set to indicate a reference
@@ -170,7 +182,7 @@ struct Object {
 
 	bool isNamed() const
 	{
-		return type() >= Type::Named;
+		return type() >= Type::Volume && type() < Type::Data24;
 	}
 
 	bool isData() const
@@ -222,7 +234,7 @@ struct Object {
 
 				// Compression descriptor
 				struct {
-					File::Compression type;
+					Compression::Type type;
 					uint32_t originalSize;
 				} compression;
 

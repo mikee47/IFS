@@ -15,8 +15,23 @@ Overview
 IFS is written in C++ and has these core components:
 
 FileSystem API
-   This is the same Sming filesystem API we're all used to, with a few minor changes and a number of additions.
-   File systems are implemented using the IFileSystem virtual class.
+   File systems are implemented using the :cpp:class:`IFS::IFileSystem` virtual class.
+   This is, in essence, a single large 'function table' you will see in regular filesystem implementations.
+
+   Class methods are similar to SPIFFS (which is POSIX-like).
+
+   .. note::
+
+      A single :cpp:class:`Stat` structure is used both for reading directory entries and for regular :cpp:func:`fileStat` operations.
+
+      This differs from regular file APIs but is intended to simplify operation.
+
+   Applications will typically use :cpp:class:`IFS::FileSystem` instead, which adds additional methods and
+   overloads such as `String` parameter support. This used to implement the standard 'flat' Sming filesystem API,
+   with a few minor changes and a number of additions.
+
+   Two wrapper clases (:cpp:class:`IFS::File` and :cpp:class:`IFS::Directory`) are provided for applications
+   to manage access to files and folders.
 
 Firmware FileSystem (FWFS)
    Files, directories and metadata are all stored as objects in an Object Store, which can be SPIFFS or on a FWRO (Firmware, Read-Only) image.
@@ -80,12 +95,6 @@ Directories
 
 User metadata
    Supported for application use
-
-:cpp:class:`IFS::IFileSystem`
-   The virtual base class which all installable filesystems implement.
-   Class methods are very similar to SPIFFS (which is POSIX-like).
-   A single FileStat structure is used both for reading directory entries and for regular fileStat operations.
-   This differs from SPIFFS which uses different structures, however the IFS implementation conceals this.
 
 Filesystem API
    The Sming FileSystem functions are now wrappers around a single IFileSystem instance, which is provided by the application.

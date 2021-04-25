@@ -7,7 +7,6 @@
 
 import os, json, sys
 import util, FWFS, config
-from util import _BV
 from FWFS import FwObt
 from compress import CompressionType
 from rjsmin import jsmin
@@ -37,11 +36,11 @@ def addFile(parent, name, sourcePath):
     cmp = fileObj.findObject(FwObt.Compression)
     if not cmp is None:
         if cmp.compressionType() == CompressionType.gzip:
-#             print("compressing '" + f.path + '"')
+#             print("compressing '" + fileObj.path() + '"')
             dcmp = util.compress(dout)
             if len(dcmp) < len(dout):
+                cmp.setOriginalSize(len(dout))
                 dout = dcmp
-                cmp.setOriginalSize(len(din))
             else:
                 # File is bigger, leave uncompressed
                 fileObj.removeObject(cmp)
@@ -71,16 +70,18 @@ def createFsObject(parent, target, source):
     else:
         obj = addFile(parent, target, source)
 
-    il = obj.originalDataSize()
-    ol = obj.dataSize()
-    if il == 0:
-        pc = 0
-    else:
-        pc = round(100 * ol / il)
-
     if logfile:
+        il = obj.originalDataSize()
+        ol = obj.dataSize()
+        if il == 0:
+            pc = 0
+        else:
+            pc = round(100 * ol / il)
+
         # Put long filenames on their own line
         objpath = obj.path()
+        if obj.obt() == FwObt.Directory:
+            objpath += '/'
         if len(objpath) > 40:
             logfile.write(objpath)
             logfile.write('\n')
@@ -96,7 +97,8 @@ def addDirectory(parent, name, sourcePath):
         dirObj = img.root()
     else:
         dirObj = FWFS.Directory(parent, name)
-        cfg.applyRules(dirObj)
+
+    cfg.applyRules(dirObj)
 
 #        print("parsedir('{}', '{}')".format(target, source))
     for item in os.listdir(sourcePath):
@@ -156,11 +158,11 @@ if __name__ == "__main__":
         if logfile:
             logfile.write(">> '{}' -> '{}'\n".format(target, source))
         createFsObject(img.root(), target, os.path.expandvars(source))
-    
+
     # create mount point objects
     for target, store in cfg.mountPoints():
         img.root().appendMountPoint(target, store)
-    
+
     # Emit the image
     imgFilePath = util.ospath(args.output)
     if args.verbose:
@@ -176,7 +178,7 @@ if __name__ == "__main__":
     fileCount = img.root().fileCount(True)
     if logfile:
         logfile.write(fmtstr.format("--------", "", "", "--", "---", "------", "", "", "", ""))
-        logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", "", ""))
+        logfile.write(fmtstr.format(str(fileCount) + " files", "", "", totalOriginalDataSize, totalDataSize, totalOriginalDataSize - totalDataSize, pc, "", "", ""))
 
     print("Image '%s' contains %u objects, %u bytes in %u files (%u%% of source data size)" % (imgFilePath, img.objectCount(), totalDataSize, fileCount, pc))
 

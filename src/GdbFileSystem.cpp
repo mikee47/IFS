@@ -1,9 +1,23 @@
-/*
+/**
  * GdbFileSystem.cpp
  *
- *  Created on: 1 December 2020
- *      Author: Mike
- */
+ * Created on: 1 December 2020
+ *
+ * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ *
+ * This file is part of the IFS Library
+ *
+ * This library is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, version 3 or later.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this library.
+ * If not, see <https://www.gnu.org/licenses/>.
+ *
+ ****/
 
 #include "include/IFS/Gdb/FileSystem.h"
 #include <IFS/Host/Util.h>
@@ -15,12 +29,12 @@ namespace Gdb
 {
 namespace
 {
-void fillStat(IFileSystem* fs, const gdb_stat_t& s, FileStat& stat)
+void fillStat(IFileSystem* fs, const gdb_stat_t& s, Stat& stat)
 {
-	stat.clear();
+	stat = Stat{};
 	stat.fs = fs;
 	if(S_ISDIR(s.st_mode)) {
-		stat.attr |= File::Attribute::Directory;
+		stat.attr |= FileAttribute::Directory;
 	}
 	stat.id = s.st_ino;
 	stat.mtime = s.st_mtime;
@@ -38,7 +52,7 @@ String FileSystem::getErrorString(int err)
 	return IFS::Host::getErrorString(err);
 }
 
-int FileSystem::stat(const char* path, FileStat* stat)
+int FileSystem::stat(const char* path, Stat* stat)
 {
 	gdb_stat_t s;
 	int res = gdb_syscall_stat(path, &s);
@@ -55,7 +69,7 @@ int FileSystem::stat(const char* path, FileStat* stat)
 	return res;
 }
 
-int FileSystem::fstat(File::Handle file, FileStat* stat)
+int FileSystem::fstat(FileHandle file, Stat* stat)
 {
 	gdb_stat_t s;
 	int res = gdb_syscall_fstat(file, &s);
@@ -70,38 +84,38 @@ int FileSystem::fstat(File::Handle file, FileStat* stat)
 	return res;
 }
 
-File::Handle FileSystem::open(const char* path, File::OpenFlags flags)
+FileHandle FileSystem::open(const char* path, IFS::OpenFlags flags)
 {
 	int res = gdb_syscall_open(path, IFS::Host::mapFlags(flags), S_IRWXU);
-	assert(File::Handle(res) == res);
+	assert(FileHandle(res) == res);
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-int FileSystem::close(File::Handle file)
+int FileSystem::close(FileHandle file)
 {
 	int res = gdb_syscall_close(file);
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-int FileSystem::read(File::Handle file, void* data, size_t size)
+int FileSystem::read(FileHandle file, void* data, size_t size)
 {
 	int res = gdb_syscall_read(file, data, size);
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-int FileSystem::write(File::Handle file, const void* data, size_t size)
+int FileSystem::write(FileHandle file, const void* data, size_t size)
 {
 	int res = gdb_syscall_write(file, data, size);
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-int FileSystem::lseek(File::Handle file, int offset, SeekOrigin origin)
+int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 {
 	int res = gdb_syscall_lseek(file, offset, uint8_t(origin));
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-int FileSystem::eof(File::Handle file)
+int FileSystem::eof(FileHandle file)
 {
 	// POSIX doesn't appear to have eof()
 
@@ -119,7 +133,7 @@ int FileSystem::eof(File::Handle file)
 	return (uint32_t(pos) >= stat.st_size) ? 1 : 0;
 }
 
-int32_t FileSystem::tell(File::Handle file)
+int32_t FileSystem::tell(FileHandle file)
 {
 	return lseek(file, 0, SeekOrigin::Current);
 }

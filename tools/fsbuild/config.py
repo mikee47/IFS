@@ -8,22 +8,25 @@ import sys, os, json
 from fnmatch import fnmatch
 from FWFS import ObjectAttr
 from rjsmin import jsmin
-from jsonschema import Draft7Validator
 
 class Config:
     def __init__(self, filename):
         din = open(filename).read()
         self.data = json.loads(jsmin(din))
 
-        # Validate configuration against schema
-        schemaPath = os.path.dirname(__file__) + '/schema.json'
-        schema = json.load(open(schemaPath))
-        v = Draft7Validator(schema)
-        errors = sorted(v.iter_errors(self.data), key=lambda e: e.path)
-        if errors != []:
-            for e in errors:
-                sys.stderr.write("%s @ %s\n" % (e.message, e.path))
-            sys.exit(1)
+        try:
+            from jsonschema import Draft7Validator
+            # Validate configuration against schema
+            schemaPath = os.path.dirname(__file__) + '/schema.json'
+            schema = json.load(open(schemaPath))
+            v = Draft7Validator(schema)
+            errors = sorted(v.iter_errors(self.data), key=lambda e: e.path)
+            if errors != []:
+                for e in errors:
+                    sys.stderr.write("%s @ %s\n" % (e.message, e.path))
+                sys.exit(1)
+        except ImportError as err:
+            sys.stderr.write("\n** WARNING! %s: Cannot validate config '%s', please run `make python-requirements` **\n\n" % (str(err), filename))
 
     def sourceMap(self):
         """ Each entry consists of "{target}": "{source}", where
@@ -33,13 +36,14 @@ class Config:
 
     def mountPoints(self):
         """Mount points create a virtual folder which is redirected to another object store"""
-        return self.data["mountpoints"].items()
+        return self.data.get('mountpoints', {}).items()
 
     def volumeName(self):
         return self.data['name']
 
     def volumeID(self):
-        return int(self.data['id'], 0)
+        id = self.data.get('id', 0)
+        return eval(id) if type(id) is str else id
 
     # Apply rules to given IFS.File object
     def applyRules(self, f):
@@ -59,10 +63,13 @@ class Config:
                 # print("'%s' matches '%s'" % (f.name, mask))
                 return True
 
+            if mask == '/' and f.path() == '':
+                return True
+
             return False
 
 
-        for rule in self.data['rules']:
+        for rule in self.data.get('rules', []):
             if match(rule['mask']):
                 value = rule.get('readonly')
                 if value is not None:
