@@ -53,8 +53,7 @@ namespace Error
 	XX(NoFileSystem, "File system has not been set")                                                                   \
 	XX(NoPartition, "Partition not found / undefined")                                                                 \
 	XX(BadPartition, "Partition is not valid for this filesystem")                                                     \
-	XX(BadStore, "Store is invalid")                                                                                   \
-	XX(StoreNotMounted, "Store not mounted")                                                                           \
+	XX(BadVolumeIndex, "Volume index is invalid")                                                                      \
 	XX(NotMounted, "File system is not mounted")                                                                       \
 	XX(BadObject, "Malformed filesystem object")                                                                       \
 	XX(BadFileSystem, "File system corruption detected")                                                               \

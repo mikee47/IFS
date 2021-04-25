@@ -123,10 +123,10 @@ public:
 	 * @brief Basic information about filing system
 	 */
 	struct Info {
-		Type type{};		  ///< The filing system type identifier
-		Attributes attr{};	///< Attribute flags
-		size_t maxNameLength; ///< Maximum length of a single file name
-		size_t maxPathLength; ///< Maximum length of a full file path
+		Type type{};			   ///< The filing system type identifier
+		Attributes attr{};		   ///< Attribute flags
+		size_t maxNameLength{255}; ///< Maximum length of a single file name
+		size_t maxPathLength{255}; ///< Maximum length of a full file path
 		Storage::Partition partition;
 		uint32_t volumeID{0};   ///< Unique identifier for volume
 		NameBuffer name;		///< Buffer for name
@@ -201,6 +201,17 @@ public:
 	virtual String getErrorString(int err)
 	{
 		return Error::toString(err);
+	}
+
+	/**
+	 * @brief Set volume for mountpoint
+	 * @param index Volume index
+	 * @param fileSystem The filesystem to root at this mountpoint
+	 * @retval int error code
+	 */
+	virtual int setVolume(uint8_t index, IFileSystem* fileSystem)
+	{
+		return Error::NotSupported;
 	}
 
 	/**

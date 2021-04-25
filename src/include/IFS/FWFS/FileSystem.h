@@ -23,7 +23,11 @@
 #pragma once
 
 #include "../FileSystem.h"
-#include "../ObjectStore.h"
+#include "Object.h"
+
+#if FWFS_CACHE_SPACING
+#include "ObjRefCache.h"
+#endif
 
 namespace IFS
 {
@@ -48,36 +52,46 @@ namespace FWFS
 #define FWFS_HANDLE_MAX (FWFS_HANDLE_MIN + FWFS_MAX_FDS - 1)
 
 /**
- * @brief file descriptor attributes
- * @note these are bit values, combine using _BV()
- */
-enum class FWFileDescAttr {
-	allocated, ///< Descriptor in use
-};
-
-using FWFileDescAttributes = BitSet<uint8_t, FWFileDescAttr, 1>;
-
-/**
  * @brief FWFS File Descriptor
  */
 struct FWFileDesc {
-	FWObjDesc odFile;	 ///< File object
-	uint32_t dataSize{0}; ///< Total size of data
-	uint32_t cursor{0};   ///< Current read/write offset within file data
-	FWFileDescAttributes attr;
+	FWObjDesc odFile; ///< File object
+	union {
+		struct {
+			uint32_t dataSize; ///< Total size of data
+			uint32_t cursor;   ///< Current read/write offset within file data
+		};
+		// For MountPoint
+		struct {
+			IFileSystem* fileSystem;
+			union {
+				FileHandle file;
+				DirHandle dir;
+			};
+		};
+	};
+
+	bool isAllocated() const
+	{
+		return odFile.obj.typeData != 0;
+	}
+
+	bool isMountPoint() const
+	{
+		return odFile.obj.isMountPoint();
+	}
+
+	void reset()
+	{
+		*this = FWFileDesc{};
+	}
 };
 
 /**
- * @brief FWFS Volume definition - identifies object store and volume object after mounting
+ * @brief FWFS Volume definition for mount points
  */
 struct FWVolume {
-	IObjectStore* store{nullptr};
-	ObjRef ref; ///< Volume reference
-
-	bool isMounted()
-	{
-		return store ? store->isMounted() : false;
-	}
+	std::unique_ptr<IFileSystem> fileSystem;
 };
 
 /**
@@ -86,83 +100,39 @@ struct FWVolume {
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem()
+	FileSystem(Storage::Partition partition) : partition(partition)
 	{
 	}
-
-	FileSystem(IObjectStore* store)
-	{
-		setVolume(0, store);
-	}
-
-	~FileSystem()
-	{
-		for(auto& vol : volumes) {
-			delete vol.store;
-		}
-	}
-
-	/** @brief Set object stores
-	 *  @param num which store to set
-	 *  @param store the object store object
-	 *  @retval int error code
-	 */
-	int setVolume(uint8_t num, IObjectStore* store);
 
 	// IFileSystem methods
 	int mount() override;
 	int getinfo(Info& info) override;
+	String getErrorString(int err) override;
+	int setVolume(uint8_t index, IFileSystem* fileSystem) override;
 	int opendir(const char* path, DirHandle& dir) override;
 	int readdir(DirHandle dir, Stat& stat) override;
 	int rewinddir(DirHandle dir) override;
 	int closedir(DirHandle dir) override;
-	int mkdir(const char* path) override
-	{
-		return Error::ReadOnly;
-	}
+	int mkdir(const char* path) override;
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
-	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override;
 	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
-	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override;
 	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
 	int close(FileHandle file) override;
 	int read(FileHandle file, void* data, size_t size) override;
-	int write(FileHandle file, const void* data, size_t size) override
-	{
-		return Error::ReadOnly;
-	}
+	int write(FileHandle file, const void* data, size_t size) override;
 	int lseek(FileHandle file, int offset, SeekOrigin origin) override;
 	int eof(FileHandle file) override;
 	int32_t tell(FileHandle file) override;
-	int ftruncate(FileHandle file, size_t new_size) override
-	{
-		return Error::ReadOnly;
-	}
-	int flush(FileHandle file) override
-	{
-		return Error::ReadOnly;
-	}
-	int rename(const char* oldpath, const char* newpath) override
-	{
-		return Error::ReadOnly;
-	}
-	int remove(const char* path) override
-	{
-		return Error::ReadOnly;
-	}
-	int fremove(FileHandle file) override
-	{
-		return Error::ReadOnly;
-	}
+	int ftruncate(FileHandle file, size_t new_size) override;
+	int flush(FileHandle file) override;
+	int rename(const char* oldpath, const char* newpath) override;
+	int remove(const char* path) override;
+	int fremove(FileHandle file) override;
 	int format() override
 	{
 		return Error::ReadOnly;
@@ -175,135 +145,119 @@ public:
 		return Error::NotImplemented;
 	}
 
-	/** @brief get the full path of a file from its ID
-	 *  @param fileid
-	 *  @param path
-	 *  @retval int error code
-	 */
-	int getFilePath(FileID fileid, NameBuffer& path);
-
-	int getMd5Hash(FileHandle file, void* buffer, size_t bufSize);
-
 private:
-	int seekFilePath(FWObjDesc& parent, FileID fileid, NameBuffer& path);
+	int getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize);
 
-	/** @brief Mount the given volume, scanning its contents for verification
-	 *  @param volume IN: identifies object store, OUT: contains volume object reference
-	 *  @retval int error code
+	bool isMounted()
+	{
+		return flags[Flag::mounted];
+	}
+
+	/**
+	 * @brief read a root object header
+	 * @param od object descriptor, with offset and ID fields initialised
+	 * @retval error code
+	 * @note this method deals with top-level objects only
 	 */
-	int mountVolume(FWVolume& volume);
+	int readObjectHeader(FWObjDesc& od);
 
-	/** @brief Obtain the managing object store for an object reference
-	 *  @param ref .store field must be valid */
-	int getStore(const ObjRef& ref, IObjectStore*& store)
-	{
-		if(ref.storenum >= FWFS_MAX_VOLUMES) {
-			return Error::BadStore;
-		}
-		store = volumes[ref.storenum].store;
-		return store ? FS_OK : Error::NotMounted;
-	}
+	/**
+	 * @brief Get a descriptor for a child object
+	 * @param parent
+	 * @param child reference to child, relative to parent
+	 * @param od OUT: resolved object
+	 * @retval int error code
+	 */
+	int getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od);
 
-	int getStore(const FWObjDesc& od, IObjectStore*& store)
-	{
-		return getStore(od.ref, store);
-	}
+	/**
+	 * @brief fetch child object header
+	 * @param parent
+	 * @param child uninitialised child, returns result
+	 * @retval error code
+	 * @note references are not pursued; the caller must handle that
+	 * child.ref refers to position relative to parent
+	 */
+	int readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child);
 
-	int openRootObject(const FWVolume& volume, FWObjDesc& odRoot);
+	/**
+	 * @brief read object content
+	 * @param offset location to start reading, from start of object content
+	 * @param size bytes to read
+	 * @param buffer to store data
+	 * @retval number of bytes read, or error code
+	 * @note must fail if cannot read all requested bytes
+	 */
+	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer);
 
-	int openObject(FWObjDesc& od)
-	{
-		assert(od.ref.refCount == 0);
-
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		if(res >= 0) {
-			res = store->open(od);
-			if(res >= 0) {
-				++od.ref.refCount;
-			}
-		}
-
-		return res;
-	}
-
-	int openChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
-	{
-		assert(od.ref.refCount == 0);
-
-		IObjectStore* store;
-		int res = getStore(parent.ref, store);
-		if(res >= 0) {
-			res = store->openChild(parent, child, od);
-			if(res >= 0) {
-				++od.ref.refCount;
-			}
-		}
-
-		return res;
-	}
-
-	int closeObject(FWObjDesc& od)
-	{
-		assert(od.ref.refCount == 1);
-
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		if(res >= 0) {
-			res = store->close(od);
-			if(res >= 0) {
-				--od.ref.refCount;
-			}
-		}
-
-		return res;
-	}
-
-	int readObjectHeader(FWObjDesc& od)
-	{
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		return res < 0 ? res : store->readHeader(od);
-	}
-
-	int readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
-	{
-		assert(parent.obj.isNamed());
-		// Child must be in same store as parent
-		child.ref.storenum = parent.ref.storenum;
-		IObjectStore* store;
-		int res = getStore(parent.ref, store);
-		return res < 0 ? res : store->readChildHeader(parent, child);
-	}
-
-	int readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
-	{
-		IObjectStore* store;
-		int res = getStore(od.ref, store);
-		return res < 0 ? res : store->readContent(od, offset, size, buffer);
-	}
-
-	/** @brief Find an unused descriptor
-	 *  @retval int index of descriptor, or error code
+	/**
+	 * @brief Find an unused descriptor
+	 * @retval int index of descriptor, or error code
 	 */
 	int findUnusedDescriptor();
 
 	int findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId);
 	int findChildObject(const FWObjDesc& parent, FWObjDesc& child, const char* name, unsigned namelen);
-	int findObjectByPath(const char* path, FWObjDesc& od);
-	int resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved);
+	int findObject(Object::ID objId, FWObjDesc& od);
+
+	/**
+	 * @brief Parse a file path to locate the corresponding object
+	 * @param path Path to parse. If a mountpoint is located this returns remainder of path
+	 * @param od Located object
+	 * 
+	 * Parsing stops if a mountpoint is found.
+	 */
+	int findObjectByPath(const char*& path, FWObjDesc& od);
+
+	/**
+	 * @brief Resolve a mountpoint object to mounted filesystem
+	 * @param odMountPoint The mountpoint object to resolve
+	 * @param fileSystem OUT: the corresponding mounted filesystem
+	 * @retval int error code
+	 */
+	int resolveMountPoint(const FWObjDesc& odMountPoint, IFileSystem*& fileSystem);
+
+	/*
+	 * @brief Resolve path to mounted volume.
+	 * @param path Path to parse, consumes path to mount point
+	 * @param fileSystem Located filesystem
+	 * @retval int error code
+	 * 
+	 * Used for methods which require write access are read-only unless path corresponds to mounted volume.
+	 * If path is within this volume then Error::ReadOnly is returned.
+	 */
+	int findLinkedObject(const char*& path, IFileSystem*& fileSystem);
+
+	/**
+	 * @brief Get total size for all contained data objects
+	 * @param od A named object
+	 * @param dataSize The total size in bytes
+	 * @retval int error code
+	 */
+	int getObjectDataSize(FWObjDesc& od, size_t& dataSize);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
-	FileHandle allocateFileDescriptor(FWObjDesc& odFile);
 	int fillStat(Stat& stat, const FWObjDesc& entry);
 	int readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size);
 
-	void printObject(const FWObjDesc& od);
+	void printObject(const FWObjDesc& od, bool isChild);
 
 private:
-	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Store 0 contains the root filing system
-	ACL rootACL;
+	enum class Flag {
+		mounted,
+	};
+
+	Storage::Partition partition;
+	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
+	FWObjDesc odRoot; ///< Reference to root directory object
+#if FWFS_CACHE_SPACING
+	ObjRefCache cache;
+#endif
+	ObjRef lastFound; ///< Speeds up consective searches
+	Object::ID volume;
+	ACL rootACL;
+	BitSet<uint8_t, Flag> flags;
 };
 
 } // namespace FWFS

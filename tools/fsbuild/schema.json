@@ -37,10 +37,11 @@
           "title": "Maps image directory to another object store",
           "type": "object",
           "additionalProperties": {
-            "title": "Object store index",
-            "description": "Starts at 1, 0 is reserved for primary",
+            "title": "Volume index",
+            "description": "Value passed to IFileSystem::setVolume()",
             "type": "integer",
-            "minimum": 1
+            "minimum": 0,
+            "maximum": 255
           }
         },
         "rules": {

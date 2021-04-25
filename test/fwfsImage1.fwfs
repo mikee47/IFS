@@ -9,9 +9,9 @@
         "backup.fwfs.bin": "out/backup.fwfs.bin",
         "large-random.bin": "out/large-random.bin"
     },
-    // Directories to mount other object stores
+    // Directories to mount other filesystems
     "mountpoints": {
-        "config": 1
+        "spiffs": 0
     },
     // Rules for file metadata. All rules are evaluated in sequence for every file
     // The masks apply to the full target path

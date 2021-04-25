@@ -1,7 +1,7 @@
 /**
- * Object.cpp
+ * Util.cpp
  *
- * Created on: 26 Aug 2018
+ * Created on: 10 Sep 2018
  *
  * Copyright 2019 mikee47 <mike@sillyhouse.net>
  *
@@ -19,34 +19,31 @@
  *
  ****/
 
-#include "include/IFS/Object.h"
-#include <FlashString/Vector.hpp>
+#include "include/IFS/Util.h"
 
 namespace IFS
 {
-constexpr uint8_t Object::FWOBT_REF;
-}
-
-namespace
+bool isRootPath(const char*& path)
 {
-#define XX(value, tag, text) DEFINE_FSTR_LOCAL(str_##tag, #tag)
-FWFS_OBJTYPE_MAP(XX)
-#undef XX
-
-#define XX(value, tag, text) &str_##tag,
-DEFINE_FSTR_VECTOR_LOCAL(typeStrings, FSTR::String, FWFS_OBJTYPE_MAP(XX))
-#undef XX
-
-} // namespace
-
-String toString(IFS::Object::Type obt)
-{
-	String s = typeStrings[unsigned(obt)];
-	if(!s) {
-		// Custom object type?
-		s = '#';
-		s += unsigned(obt);
+	if(path == nullptr) {
+		return true;
 	}
-
-	return s;
+	if(*path == '/') {
+		++path;
+	}
+	if(*path == '\0') {
+		path = nullptr;
+		return true;
+	}
+	return false;
 }
+
+void checkStat(Stat& stat)
+{
+	stat.attr[FileAttribute::Compressed] = (stat.compression.type != Compression::Type::None);
+	if(!stat.attr[FileAttribute::Compressed]) {
+		stat.compression.originalSize = stat.size;
+	}
+}
+
+} // namespace IFS

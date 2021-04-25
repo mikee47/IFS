@@ -16,7 +16,10 @@ endif
 # Don't need network
 HOST_NETWORK_OPTIONS := --nonet
 
-COMPONENT_DEPENDS := SmingTest
+COMPONENT_DEPENDS := \
+	SmingTest \
+	Spiffs \
+	LittleFS
 
 # Time in milliseconds to pause after a test group has completed
 CONFIG_VARS += TEST_GROUP_INTERVAL

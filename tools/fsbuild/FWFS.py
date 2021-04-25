@@ -30,7 +30,7 @@ class FwObt(IntEnum):
     Compression = 4,
     ReadACE = 5,  # minimum UserRole for read access
     WriteACE = 6,  # minimum UserRole for write access
-    ObjectStore = 7, # Identifier for object store
+    VolumeIndex = 7, # Volume index number
     Md5Hash = 8, # MD5 Hash Value
     # 2-byte sized
     Data16 = 32,
@@ -73,7 +73,7 @@ def objectAttrFromChar(c):
 
 
 class Object(object):
-    def __init__(self, parent, obt, content = ''):
+    def __init__(self, parent, obt, content = b''):
         self.__parent = parent
         self.__obt = obt
         self.__offset = 0
@@ -257,10 +257,10 @@ class AceObject(Object8):
         return self.__role.name
 
 
-class ObjectStoreObject(Object8):
+class VolumeIndexObject(Object8):
     """Identifies an object store for a mount point"""
     def __init__(self, parent, store):
-        super().__init__(parent, FwObt.ObjectStore)
+        super().__init__(parent, FwObt.VolumeIndex)
         if isNumberType(store):
             self.__store = store
         else:
@@ -274,7 +274,7 @@ class ObjectStoreObject(Object8):
 
 
 class Md5Object(Object8):
-    """Maintains Md5 hash for named object"""
+    """Maintains Md5 hash for object content"""
     def __init__(self, parent):
         super().__init__(parent, FwObt.Md5Hash)
         self.__md5 = hashlib.md5()
@@ -315,7 +315,7 @@ class EndObject(Object8):
         return struct.pack("<L", self.__checksum)
 
     def checksum(self):
-        return self.__checsum
+        return self.__checksum
 
 
 
@@ -326,7 +326,6 @@ class NamedObject(Object16):
         self.name = name
         self.mtime = time.time()
         self.__dataSize = 0
-        self.__md5 = Md5Object(self)
 
     def pathsep(self):
         return ':'
@@ -361,7 +360,7 @@ class NamedObject(Object16):
             if obj.isRef:
                 size += 4
             else:
-                size += util.alignUp(obj.size())
+                size += obj.size()
         return size
 
     def childTable(self):
@@ -371,7 +370,7 @@ class NamedObject(Object16):
                 table += obj.refHeader()
             else:
                 # print("emit %s, %d" % (obj.obt(), obj.contentSize()))
-                table += util.pad(obj.header() + obj.content())
+                table += obj.header() + obj.content()
         cts = self.childTableSize()
         if len(table) != cts:
             print("len(table) = {}, cts = {}".format(len(table), cts))
@@ -380,14 +379,14 @@ class NamedObject(Object16):
 
     def contentSize(self):
         # temporary: children are all references
-        return 5 + util.alignUp(len(self.name)) + self.childTableSize()
+        return 5 + len(self.name) + self.childTableSize()
         
     # Fetch the content - must be called after object indices have been assigned
     def content(self):
         s = struct.pack("<BL", len(self.name), round(self.mtime))
-        s += util.pad(self.name.encode())
+        s += self.name.encode()
         s += self.childTable()
-        return s;
+        return s
 
     def appendObject(self, obj):
         self.__children.append(obj)
@@ -429,7 +428,7 @@ class NamedObject(Object16):
 
     def appendMountPoint(self, target, store):
         mp = MountPoint(self, target)
-        ObjectStoreObject(mp, store)
+        VolumeIndexObject(mp, store)
 
     def findInheritableObject(self, obt):
         obj = self.findObject(obt)
@@ -455,8 +454,6 @@ class NamedObject(Object16):
             print("Object data too large")
             exit(1)
         self.__dataSize += len(content)
-        self.__md5.update(content)
-
 
     def childCount(self):
         return len(self.__children)
@@ -559,6 +556,11 @@ class File(NamedObject):
 
     def __init__(self, parent, name):
         super().__init__(parent, FwObt.File, name)
+        self.__md5 = Md5Object(self)
+
+    def appendData(self, content):
+        super().appendData(content)
+        self.__md5.update(content)
 
 
 # Used to build a Firmware file image
@@ -597,7 +599,6 @@ class Image:
         self.__fout.write(header)
         self.__fout.write(content)
         size = len(header) + len(content)
-        self.__fout.write(b''.ljust(util.alignUp(size) - size, b'\0'))
         self.__objectCount += 1
         objID = self.__objectCount
         return objID

@@ -19,9 +19,13 @@
  *
  ****/
 
-#include "../include/IFS/FWFS/FileSystem.h"
-#include "../include/IFS/Object.h"
-#include "../include/IFS/Util.h"
+#include <IFS/FWFS/FileSystem.h>
+#include <IFS/FWFS/Object.h>
+#include <IFS/Util.h>
+
+#ifdef DEBUG_FWFS
+#include <Platform/Timers.h>
+#endif
 
 namespace IFS
 {
@@ -32,7 +36,7 @@ namespace FWFS
  */
 
 #define CHECK_MOUNTED()                                                                                                \
-	if(!volumes[0].isMounted()) {                                                                                      \
+	if(!isMounted()) {                                                                                                 \
 		return Error::NotMounted;                                                                                      \
 	}
 
@@ -42,14 +46,24 @@ namespace FWFS
 		return Error::InvalidHandle;                                                                                   \
 	}                                                                                                                  \
 	auto& fd = fileDescriptors[file - FWFS_HANDLE_MIN];                                                                \
-	if(!fd.attr[FWFileDescAttr::allocated]) {                                                                          \
+	if(!fd.isAllocated()) {                                                                                            \
 		return Error::FileNotOpen;                                                                                     \
 	}
 
-void FileSystem::printObject(const FWObjDesc& od)
+/**
+ * @brief Directories are enumerated using a regular file descriptor,
+ * except they're dynamically allocated to avoid running out of handles when
+ * parsing directory trees.
+ */
+using FileDir = FWFileDesc;
+
+void FileSystem::printObject(const FWObjDesc& od, bool isChild)
 {
+#if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
-	if(od.obj.isNamed()) {
+	if(od.obj.isRef()) {
+		m_snprintf(name, sizeof(name), " REF #%u", od.obj.data8.ref.id);
+	} else if(od.obj.isNamed()) {
 		name[0] = ' ';
 		name[1] = '"';
 		unsigned maxlen = sizeof(name) - 4;
@@ -65,15 +79,27 @@ void FileSystem::printObject(const FWObjDesc& od)
 	} else {
 		name[0] = '\0';
 	}
-	debug_d("@0x%08X #%u: id = 0x%02X, %u bytes - %s%s", od.ref.offset, od.ref.id, od.obj.typeData, od.obj.size(),
-			toString(od.obj.type()).c_str(), name);
-	//	if (od.obj.size() <= 4)
-	//		debug_hex(INFO, "OBJ", &od.obj, od.obj.size());
+	m_printf("%s@0x%08X #%u: %-5u bytes, type = 0x%02X %s, %s\r\n", isChild ? "    " : "", od.ref.offset, od.ref.id,
+			 od.obj.size(), od.obj.typeData, toString(od.obj.type()).c_str(), name);
+
+	if(isChild || !od.obj.isNamed()) {
+		return;
+	}
+
+	int res;
+	FWObjDesc child;
+	while((res = readChildObjectHeader(od, child)) >= 0) {
+		printObject(child, true);
+		child.next();
+	}
+
+#endif
 }
 
-/** @brief initialise Stat structure and copy information from directory entry
- *  @param stat
- *  @param entry
+/**
+ * @brief initialise Stat structure and copy information from directory entry
+ * @param stat
+ * @param entry
  */
 int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 {
@@ -81,7 +107,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 
 	stat = Stat{};
 	stat.fs = this;
-	stat.id = entry.ref.fileID();
+	stat.id = entry.ref.id;
 	stat.mtime = entry.obj.data16.named.mtime;
 	stat.acl = rootACL;
 
@@ -96,60 +122,58 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 		if(child.obj.isData()) {
 			if(child.obj.isRef()) {
 				FWObjDesc od;
-				res = openChildObject(entry, child, od);
+				res = getChildObject(entry, child, od);
 				if(res < 0) {
 					return res;
 				}
 				stat.size += od.obj.contentSize();
-				closeObject(od);
 			} else {
 				stat.size += child.obj.contentSize();
 			}
-		} else {
-			switch(child.obj.type()) {
-			case Object::Type::ObjAttr: {
-				Object::Attributes attr = child.obj.data8.objectAttributes.attr;
-				if(attr[Object::Attribute::ReadOnly]) {
-					stat.attr |= FileAttribute::ReadOnly;
-				}
-				if(attr[Object::Attribute::Archive]) {
-					stat.attr |= FileAttribute::Archive;
-				}
-				break;
-			}
-
-			case Object::Type::ObjectStore:
-				stat.attr |= FileAttribute::MountPoint + FileAttribute::Directory;
-				break;
-
-			case Object::Type::Compression:
-				stat.attr |= FileAttribute::Compressed;
-				stat.compression.type = child.obj.data8.compression.type;
-				stat.compression.originalSize = child.obj.data8.compression.originalSize;
-				break;
-
-			case Object::Type::ReadACE:
-				stat.acl.readAccess = child.obj.data8.ace.role;
-				break;
-
-			case Object::Type::WriteACE:
-				stat.acl.writeAccess = child.obj.data8.ace.role;
-				break;
-
-			default:; // Not interested
-			}
+			child.next();
+			continue;
 		}
 
+		switch(child.obj.type()) {
+		case Object::Type::ObjAttr: {
+			Object::Attributes attr = child.obj.data8.objectAttributes.attr;
+			if(attr[Object::Attribute::ReadOnly]) {
+				stat.attr |= FileAttribute::ReadOnly;
+			}
+			if(attr[Object::Attribute::Archive]) {
+				stat.attr |= FileAttribute::Archive;
+			}
+			break;
+		}
+
+		case Object::Type::Compression:
+			stat.compression = child.obj.data8.compression;
+			break;
+
+		case Object::Type::ReadACE:
+			stat.acl.readAccess = child.obj.data8.ace.role;
+			break;
+
+		case Object::Type::WriteACE:
+			stat.acl.writeAccess = child.obj.data8.ace.role;
+			break;
+
+		default:; // Not interested
+		}
 		child.next();
 	}
 
-	if(entry.obj.type() == Object::Type::Directory) {
+	switch(entry.obj.type()) {
+	case Object::Type::Directory:
 		stat.attr |= FileAttribute::Directory;
+		break;
+	case Object::Type::MountPoint:
+		stat.attr |= FileAttribute::Directory + FileAttribute::MountPoint;
+		break;
+	default:;
 	}
 
-	if(!stat.attr[FileAttribute::Compressed]) {
-		stat.compression.originalSize = stat.size;
-	}
+	checkStat(stat);
 
 	return readObjectName(entry, stat.name);
 }
@@ -157,7 +181,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 int FileSystem::findUnusedDescriptor()
 {
 	for(int i = 0; i < FWFS_MAX_FDS; ++i) {
-		if(!fileDescriptors[i].attr[FWFileDescAttr::allocated]) {
+		if(!fileDescriptors[i].isAllocated()) {
 			return i;
 		}
 	}
@@ -168,6 +192,10 @@ int FileSystem::findUnusedDescriptor()
 int FileSystem::read(FileHandle file, void* data, size_t size)
 {
 	GET_FD();
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->read(fd.file, data, size);
+	}
 
 	uint32_t readTotal = 0;
 	// Offset from start of data content
@@ -181,7 +209,7 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 	while((res = readChildObjectHeader(fd.odFile, child)) >= 0) {
 		if(child.obj.isData()) {
 			FWObjDesc odData;
-			res = openChildObject(fd.odFile, child, odData);
+			res = getChildObject(fd.odFile, child, odData);
 			if(res < 0) {
 				return res;
 			}
@@ -200,9 +228,8 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 
 			ext.start += ext.length;
 
-			closeObject(odData);
-
-			if(res < 0 || readTotal == size) {
+			if(res < 0 || readTotal == size || fd.cursor >= fd.dataSize) {
+				// if(res < 0 || readTotal == size) {
 				break;
 			}
 		}
@@ -210,23 +237,38 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 		child.next();
 	}
 
+	debug_d("readCount = %u", fd.odFile.ref.readCount);
+
 	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
+}
+
+int FileSystem::write(FileHandle file, const void* data, size_t size)
+{
+	GET_FD();
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->write(fd.file, data, size);
+	}
+
+	return Error::ReadOnly;
 }
 
 int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 {
 	GET_FD();
 
-	int newOffset = offset;
-	if(origin == SeekOrigin::Current) {
-		newOffset += (int)fd.cursor;
-	} else if(origin == SeekOrigin::End) {
-		newOffset += (int)fd.dataSize;
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->lseek(fd.file, offset, origin);
 	}
 
-	//	debug_d("lseek(%d, %d, %d): %d", file, offset, origin, newOffset);
+	int newOffset = offset;
+	if(origin == SeekOrigin::Current) {
+		newOffset += int(fd.cursor);
+	} else if(origin == SeekOrigin::End) {
+		newOffset += int(fd.dataSize);
+	}
 
-	if((uint32_t)newOffset > fd.dataSize) {
+	if(uint32_t(newOffset) > fd.dataSize) {
 		return Error::SeekBounds;
 	}
 
@@ -234,63 +276,65 @@ int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 	return newOffset;
 }
 
-int FileSystem::setVolume(uint8_t num, IObjectStore* store)
+String FileSystem::getErrorString(int err)
 {
-	if(num >= FWFS_MAX_VOLUMES) {
-		return Error::BadStore;
+	if(Error::isSystem(err)) {
+		for(unsigned i = 0; i < FWFS_MAX_VOLUMES; ++i) {
+			auto& fs = volumes[i].fileSystem;
+			if(!fs) {
+				continue;
+			}
+			String s = fs->getErrorString(err);
+			if(s) {
+				return s;
+			}
+		}
+	}
+	return Error::toString(err);
+}
+
+int FileSystem::setVolume(uint8_t index, IFileSystem* fileSystem)
+{
+	if(index >= FWFS_MAX_VOLUMES || fileSystem == this) {
+		return Error::BadVolumeIndex;
 	}
 
-	auto& vol = volumes[num];
-	delete vol.store;
-	vol.store = store;
-	vol.ref.storenum = num;
+	volumes[index].fileSystem.reset(fileSystem);
 	return FS_OK;
 }
 
 int FileSystem::mount()
 {
-	// Store #0 is mandatory
-	auto& vol = volumes[0];
-	int res = mountVolume(vol);
-	if(res < 0) {
-		return res;
+	if(!partition) {
+		return Error::NoPartition;
 	}
 
-	FWObjDesc odRoot;
-	res = openRootObject(vol, odRoot);
-	if(res < 0) {
-		return res;
-	}
-	Stat stat;
-	fillStat(stat, odRoot);
-	rootACL = stat.acl;
-	closeObject(odRoot);
-
-	// Other volumes are mounted as required
-
-	return FS_OK;
-}
-
-int FileSystem::mountVolume(FWVolume& volume)
-{
-	if(volume.store == nullptr) {
-		return Error::StoreNotMounted;
+	if(!partition.verify(Storage::Partition::SubType::Data::fwfs)) {
+		return Error::BadPartition;
 	}
 
-	int res = volume.store->initialise();
-	if(res < 0) {
-		return res;
+	uint32_t marker;
+	if(!partition.read(0, marker)) {
+		return Error::ReadFailure;
+	}
+
+	if(marker != FWFILESYS_START_MARKER) {
+		debug_e("Filesys start marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_START_MARKER);
+		return Error::BadFileSystem;
 	}
 
 	unsigned objectCount = 0;
+	FWObjDesc odVolume{};
 	FWObjDesc od;
-	od.ref = volume.ref;
+	int res;
 	while((res = readObjectHeader(od)) >= 0) {
 		++objectCount;
-		//		printObject(od);
+		printObject(od, false);
 
 		if(od.obj.type() == Object::Type::Volume) {
-			volume.ref = od.ref;
+			odVolume = od;
+		} else if(od.obj.type() == Object::Type::Directory) {
+			odRoot = od;
 		} else if(od.obj.type() == Object::Type::End) {
 			// @todo verify checksum
 			// od.obj.end.checksum
@@ -301,65 +345,76 @@ int FileSystem::mountVolume(FWVolume& volume)
 	}
 
 	debug_d("Ended @ 0x%08X (#%u), %u objects, volume @ 0x%08X, od @ 0x%08X", od.ref.offset, od.ref.offset, od.ref.id,
-			objectCount, volume.ref.offset);
+			objectCount, odVolume.ref.offset);
 
 	if(res < 0) {
 		return res;
 	}
 
-	//	if(!_rootDirectory.isValid()) {
-	//		debug_e("root directory missing");
-	//		return Error::BadFileSystem;
-	//	}
+	if(odVolume.ref.offset == 0) {
+		debug_e("Volume object missing");
+		return Error::BadFileSystem;
+	}
 
-	// Having scanned all the objects, let the store know where the end is
-	res = volume.store->mounted(od);
+	volume = odVolume.ref.id;
+	FWObjDesc child;
+	res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
+	if(res < 0) {
+		debug_e("Root directory reference missing");
+		return Error::BadFileSystem;
+	}
+	if(child.obj.data8.ref.id != odRoot.ref.id) {
+		debug_e("Root directory is not last");
+		return Error::BadFileSystem;
+	}
 
-	return res;
-}
+	// Having scanned all the objects, check the end marker
+	auto offset = od.nextOffset();
+	if(!partition.read(offset, marker) || marker != FWFILESYS_END_MARKER) {
+		debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
+		return Error::BadFileSystem;
+	}
 
-int FileSystem::openRootObject(const FWVolume& volume, FWObjDesc& odRoot)
-{
-	FWObjDesc odVolume(volume.ref);
-	int res = readObjectHeader(odVolume);
-	if(res >= 0) {
-		FWObjDesc child;
-		res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
-		if(res >= 0) {
-			res = openChildObject(odVolume, child, odRoot);
+#if FWFS_CACHE_SPACING
+	cache.initialise(od.ref.id + 1);
+	od = FWObjDesc{};
+	while((res = readObjectHeader(od)) >= 0) {
+		cache.update(od.ref);
+		od.next();
+		if(od.obj.type() == Object::Type::End) {
+			break;
 		}
 	}
+#endif
 
-	if(res < 0) {
-		debug_e("Problem reading root directory %d", res);
-	}
+	Stat stat;
+	fillStat(stat, odRoot);
+	rootACL = stat.acl;
 
-	return res;
+	flags[Flag::mounted] = true;
+
+	return FS_OK;
 }
 
 int FileSystem::getinfo(Info& info)
 {
-	int res = FS_OK;
-
-	auto& volume = volumes[0];
+	int res{FS_OK};
 
 	info.clear();
 	info.type = Type::FWFS;
 	info.maxNameLength = INT16_MAX;
 	info.maxPathLength = INT16_MAX;
 	info.attr = Attribute::ReadOnly;
-	if(volume.store) {
-		info.partition = volume.store->getPartition();
-		info.volumeSize = info.partition.size();
-	}
+	info.partition = partition;
+	info.volumeSize = partition.size();
 
-	if(volume.isMounted()) {
-		FWObjDesc odVolume(volume.ref);
-		res = readObjectHeader(odVolume);
+	if(isMounted()) {
+		FWObjDesc odVolume;
+		res = findObject(volume, odVolume);
 		if(res >= 0) {
 			readObjectName(odVolume, info.name);
 			FWObjDesc od;
-			if(findChildObjectHeader(odVolume, od, Object::Type::ID32)) {
+			if(findChildObjectHeader(odVolume, od, Object::Type::ID32) == FS_OK) {
 				info.volumeID = od.obj.data8.id32.value;
 			}
 		}
@@ -367,6 +422,97 @@ int FileSystem::getinfo(Info& info)
 	}
 
 	return res;
+}
+
+int FileSystem::readObjectHeader(FWObjDesc& od)
+{
+	++od.ref.readCount;
+
+	// First object ID is 1
+	if(od.ref.offset == 0) {
+		od.ref.id = 1;
+		od.ref.offset = FWFS_BASE_OFFSET;
+	}
+	int res = partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
+
+	debug_d("read #%-3u @ 0x%08x - %s", od.ref.id, od.ref.offset, toString(od.obj.type()).c_str());
+
+	return res;
+}
+
+int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
+{
+	if(child.obj.isRef()) {
+		int res = findObject(child.obj.data8.ref.id, od);
+		if(res == FS_OK && od.obj.type() != child.obj.type()) {
+			// Reference must point to object of same type
+			return Error::BadObject;
+		}
+		return res;
+	}
+
+	od = child;
+	od.ref.offset += parent.childTableOffset();
+	return FS_OK;
+}
+
+int FileSystem::findObject(Object::ID objId, FWObjDesc& od)
+{
+	if(objId > lastFound.id) {
+		od.ref = lastFound;
+	} else {
+		od.ref.offset = FWFS_BASE_OFFSET;
+		od.ref.id = 1; // We don't use id #0
+	}
+
+#if FWFS_CACHE_SPACING
+	cache.improve(od.ref, objId);
+#endif
+
+	for(;;) {
+		int res = readObjectHeader(od);
+		if(res < 0) {
+			return (res == Error::NoMoreFiles) ? Error::NotFound : res;
+		}
+		if(od.ref.id > objId) {
+			return Error::NotFound;
+		}
+		if(od.ref.id == objId) {
+			break;
+		}
+		od.next();
+	}
+
+	lastFound = od.ref;
+
+	if(od.obj.isRef()) {
+		// Reference must point to an actual object, not another reference
+		return Error::BadObject;
+	}
+
+	return FS_OK;
+}
+
+int FileSystem::readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
+{
+	assert(parent.obj.isNamed());
+
+	if(child.ref.offset >= parent.obj.childTableSize()) {
+		return Error::EndOfObjects;
+	}
+
+	// Get the absolute offset for the child object
+	uint32_t tableOffset = parent.childTableOffset();
+	child.ref.offset += tableOffset;
+	int res = readObjectHeader(child);
+	child.ref.offset -= tableOffset;
+	return res;
+}
+
+int FileSystem::readObjectContent(const FWObjDesc& od, uint32_t offset, uint32_t size, void* buffer)
+{
+	offset += od.contentOffset();
+	return partition.read(offset, buffer, size) ? FS_OK : Error::ReadFailure;
 }
 
 int FileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child, Object::Type objId)
@@ -384,33 +530,45 @@ int FileSystem::findChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child,
 	return res == Error::EndOfObjects ? Error::NotFound : res;
 }
 
-int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, FWObjDesc& odResolved)
+int FileSystem::resolveMountPoint(const FWObjDesc& odMountPoint, IFileSystem*& fileSystem)
 {
 	assert(odMountPoint.obj.isMountPoint());
 
-	FWObjDesc odStore;
-	int res = findChildObjectHeader(odMountPoint, odStore, Object::Type::ObjectStore);
+	FWObjDesc odVolumeIndex;
+	int res = findChildObjectHeader(odMountPoint, odVolumeIndex, Object::Type::VolumeIndex);
 	if(res < 0) {
-		debug_e("Mount point missing object store");
+		debug_e("Mount point missing volume index");
 		return res;
 	}
 
-	// Volume #0 is the primary and already mounted, also avoid circular references
-	auto storenum = odStore.obj.data8.objectStore.storenum;
-	if(storenum == 0 || storenum == odMountPoint.ref.storenum || storenum >= FWFS_MAX_VOLUMES) {
-		return Error::BadStore;
+	auto index = odVolumeIndex.obj.data8.volumeIndex.index;
+	if(index >= FWFS_MAX_VOLUMES) {
+		return Error::BadVolumeIndex;
+	}
+	fileSystem = volumes[index].fileSystem.get();
+	if(fileSystem == nullptr) {
+		return Error::NotMounted;
 	}
 
-	auto& vol = volumes[storenum];
-	if(!vol.isMounted()) {
-		res = mountVolume(vol);
-		if(res < 0) {
-			return res;
-		}
+	return FS_OK;
+}
+
+int FileSystem::findLinkedObject(const char*& path, IFileSystem*& fileSystem)
+{
+	CHECK_MOUNTED();
+
+	FWObjDesc od;
+	int res = findObjectByPath(path, od);
+
+	if(res < 0) {
+		return res;
 	}
 
-	// Locate the root directory
-	return openRootObject(vol, odResolved);
+	if(!od.obj.isMountPoint() || isRootPath(path)) {
+		return Error::ReadOnly;
+	}
+
+	return resolveMountPoint(od, fileSystem);
 }
 
 /** @brief find object by name
@@ -425,12 +583,12 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 {
 	assert(parent.obj.isNamed());
 
-	char buf[ALIGNUP4(namelen)];
+	char buf[namelen];
 	int res;
 	FWObjDesc od;
 	while((res = readChildObjectHeader(parent, od)) >= 0) {
 		if(od.obj.isNamed()) {
-			res = openChildObject(parent, od, child);
+			res = getChildObject(parent, od, child);
 			if(res < 0) {
 				break;
 			}
@@ -440,7 +598,7 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 				if(namelen == 0) {
 					break;
 				}
-				res = readObjectContent(child, objNamed.nameOffset(), ALIGNUP4(namelen), buf);
+				res = readObjectContent(child, objNamed.nameOffset(), namelen, buf);
 				if(res < 0) {
 					break;
 				}
@@ -450,8 +608,6 @@ int FileSystem::findChildObject(const FWObjDesc& parent, FWObjDesc& child, const
 					break;
 				}
 			}
-
-			closeObject(child);
 		}
 
 		od.next();
@@ -482,68 +638,35 @@ int FileSystem::readObjectName(const FWObjDesc& od, NameBuffer& name)
 	return res;
 }
 
-/** @brief We have a file object, now get the other details to complete the descriptor
- *  @param od the file object descriptor
- *  @retval FileHandle file handle, or error code
- */
-FileHandle FileSystem::allocateFileDescriptor(FWObjDesc& odFile)
-{
-	int descriptorIndex = findUnusedDescriptor();
-	if(descriptorIndex < 0) {
-		return descriptorIndex;
-	}
-
-	auto& fd = fileDescriptors[descriptorIndex];
-
-	// Default to empty file (i.e. no data object)
-	fd.odFile = odFile;
-	fd.dataSize = 0;
-	fd.cursor = 0;
-
-	int res;
-	FWObjDesc child;
-	while((res = readChildObjectHeader(fd.odFile, child)) >= 0) {
-		if(child.obj.isData()) {
-			FWObjDesc odData;
-			res = openChildObject(fd.odFile, child, odData);
-			if(res < 0) {
-				return res;
-			}
-
-			fd.dataSize += odData.obj.contentSize();
-
-			closeObject(odData);
-		}
-
-		child.next();
-	}
-
-	// We now own the descriptor
-	odFile.ref.refCount = 0;
-
-	debug_d("Descriptor #%u allocated", descriptorIndex);
-
-	fd.attr[FWFileDescAttr::allocated] = true;
-	return FWFS_HANDLE_MIN + descriptorIndex;
-}
-
 int FileSystem::opendir(const char* path, DirHandle& dir)
 {
 	CHECK_MOUNTED();
 
+	FS_CHECK_PATH(path)
+
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		FileHandle handle = allocateFileDescriptor(od);
-		if(handle < 0) {
-			res = handle;
-			closeObject(od);
-		} else {
-			dir = reinterpret_cast<DirHandle>(handle);
+	if(res < 0) {
+		return res;
+	}
+
+	auto fd = new FileDir{od};
+
+	if(od.obj.isMountPoint()) {
+		res = resolveMountPoint(od, fd->fileSystem);
+		if(res < 0) {
+			delete fd;
+			return res;
+		}
+		res = fd->fileSystem->opendir(path, fd->dir);
+		if(res < 0) {
+			delete fd;
+			return res;
 		}
 	}
 
-	return res;
+	dir = DirHandle(fd);
+	return FS_OK;
 }
 
 /* Reading a directory simply gets details about any child named objects.
@@ -552,32 +675,29 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
  */
 int FileSystem::readdir(DirHandle dir, Stat& stat)
 {
-	CHECK_MOUNTED();
+	GET_FILEDIR()
+	auto& fd = *d;
 
-	auto file = reinterpret_cast<int>(dir);
-	GET_FD();
-
-	int res;
-	FWObjDesc odDir;
-	if(fd.odFile.obj.isMountPoint()) {
-		res = resolveMountPoint(fd.odFile, odDir);
-		if(res < 0)
-			return res;
-	} else {
-		odDir = fd.odFile;
-		odDir.ref.refCount = 0;
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->readdir(fd.dir, stat);
 	}
+
+	FWObjDesc odDir = fd.odFile;
+	odDir = fd.odFile;
 
 	ObjRef ref;
 	ref.offset = fd.cursor;
 	FWObjDesc od(ref);
+	int res;
 	while((res = readChildObjectHeader(odDir, od)) >= 0) {
 		if(od.obj.isNamed()) {
 			FWObjDesc child;
-			res = openChildObject(odDir, od, child);
+			res = getChildObject(odDir, od, child);
 			if(res >= 0) {
 				res = fillStat(stat, child);
-				closeObject(child);
+			}
+			if(od.obj.isMountPoint()) {
+				stat.attr += FileAttribute::MountPoint + FileAttribute::Directory;
 			}
 			od.next();
 			break;
@@ -588,21 +708,17 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 
 	fd.cursor = od.ref.offset;
 
-	if(fd.odFile.obj.isMountPoint()) {
-		closeObject(odDir);
-	}
-
-	//	debug_d("readdir(), res = %d, od.seekCount = %u", res, od.ref.readCount);
-
 	return res == Error::EndOfObjects ? Error::NoMoreFiles : res;
 }
 
 int FileSystem::rewinddir(DirHandle dir)
 {
-	CHECK_MOUNTED();
+	GET_FILEDIR()
+	auto& fd = *d;
 
-	auto file = reinterpret_cast<int>(dir);
-	GET_FD();
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->rewinddir(fd.dir);
+	}
 
 	fd.cursor = 0;
 	return 0;
@@ -610,89 +726,155 @@ int FileSystem::rewinddir(DirHandle dir)
 
 int FileSystem::closedir(DirHandle dir)
 {
-	return close(reinterpret_cast<int>(dir));
+	GET_FILEDIR()
+	auto fd = d;
+
+	int res{FS_OK};
+	if(fd->isMountPoint()) {
+		res = fd->fileSystem->closedir(fd->dir);
+	}
+	delete fd;
+	return res;
+}
+
+int FileSystem::mkdir(const char* path)
+{
+	IFileSystem* fs;
+	int res = findLinkedObject(path, fs);
+	if(res < 0) {
+		return res;
+	}
+	if(*path == '\0') {
+		return FS_OK;
+	}
+	return fs->mkdir(path);
 }
 
 /** @brief find object by path
- *  @param path full path for object
+ *  @param path full path for object, OUT: If a link is encountered the path tail will be returned.
  *  @param od descriptor for located object
  *  @retval error code
  *  @note specifying an empty string or nullptr for path will fetch the root directory object
  *  Called by open, opendir and stat methods.
  *  @todo track ACEs during path traversal and store resultant ACL in file descriptor.
  */
-int FileSystem::findObjectByPath(const char* path, FWObjDesc& od)
+int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 {
-#ifdef DEBUG_FWFS
-	ElapseTimer timer;
-#endif
-
 	// Start with the root directory object
-	int res = openRootObject(volumes[0], od);
-	if(res < 0) {
-		return res;
-	}
+	od = odRoot;
 
 	// Empty paths indicate root directory
-	FS_CHECK_PATH(path);
-	if(path == nullptr) {
+	const char* tail = path;
+	FS_CHECK_PATH(tail);
+	if(tail == nullptr) {
 		return FS_OK;
 	}
 
-	const char* tail = path;
+	int res{FS_OK};
 	const char* sep;
 	do {
 		sep = strchr(tail, '/');
-		size_t namelen = (sep != nullptr) ? sep - tail : strlen(tail);
+		size_t namelen;
+		if(sep == nullptr) {
+			namelen = strlen(tail);
+		} else {
+			namelen = sep - tail;
+			++path;
+		}
+		path += namelen;
 
 		FWObjDesc parent = od;
-		od.ref.refCount = 0;
 		res = findChildObject(parent, od, tail, namelen);
-		closeObject(parent);
 
 		if(res < 0) {
 			break;
 		}
 
-		tail += namelen + 1;
-	} while(sep);
-
-#ifdef DEBUG_FWFS
-	debug_d(_F("findObjectByPath('%s'), res = %d, od.seekCount = %u, time = %u us\n"), path, res, od.ref.readCount,
-			timer.elapsed());
-#endif
+		tail = path;
+	} while(sep != nullptr && !od.obj.isMountPoint());
 
 	return res;
+}
+
+int FileSystem::getObjectDataSize(FWObjDesc& od, size_t& dataSize)
+{
+	dataSize = 0;
+	int res;
+	FWObjDesc child;
+	while((res = readChildObjectHeader(od, child)) >= 0) {
+		if(child.obj.isData()) {
+			FWObjDesc odData;
+			res = getChildObject(od, child, odData);
+			if(res < 0) {
+				return res;
+			}
+
+			dataSize += odData.obj.contentSize();
+		}
+
+		child.next();
+	}
+
+	return FS_OK;
 }
 
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	CHECK_MOUNTED();
 
-	debug_d("open('%s', 0x%02X)", path, flags);
+	debug_d("open('%s', %s)", path, toString(flags).c_str());
+
+	FS_CHECK_PATH(path)
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		res = allocateFileDescriptor(od);
-		if(res < 0) {
-			closeObject(od);
-		}
+	if(res < 0) {
+		return res;
 	}
 
-	return res;
+	debug_d("Found '%s', readCount = %u", path, od.ref.readCount);
+
+	int descriptorIndex = findUnusedDescriptor();
+	if(descriptorIndex < 0) {
+		return descriptorIndex;
+	}
+
+	auto& fd = fileDescriptors[descriptorIndex];
+	fd = FWFileDesc{od};
+
+	if(od.obj.isMountPoint()) {
+		res = resolveMountPoint(od, fd.fileSystem);
+		if(res == FS_OK) {
+			res = fd.file = fd.fileSystem->open(path, flags);
+		}
+	} else if(flags[OpenFlag::Write]) {
+		res = Error::ReadOnly;
+	} else {
+		res = getObjectDataSize(fd.odFile, fd.dataSize);
+	}
+
+	if(res < 0) {
+		fd.reset();
+		return res;
+	}
+
+	debug_d("Descriptor #%u allocated, readCount = %u", descriptorIndex, fd.odFile.ref.readCount);
+	return FWFS_HANDLE_MIN + descriptorIndex;
 }
 
 int FileSystem::close(FileHandle file)
 {
 	GET_FD();
 
-	debug_d("descriptor #%u close, refCount = %u", file - FWFS_HANDLE_MIN, fd.odFile.ref.refCount);
-	assert(fd.odFile.ref.refCount == 1);
+	debug_d("descriptor #%u close", file - FWFS_HANDLE_MIN);
 
-	closeObject(fd.odFile);
-	fd.attr = 0;
-	return FS_OK;
+	int res{FS_OK};
+	if(fd.isMountPoint()) {
+		res = fd.fileSystem->close(fd.file);
+	}
+
+	fd.reset();
+	return res;
 }
 
 int FileSystem::stat(const char* path, Stat* stat)
@@ -701,12 +883,21 @@ int FileSystem::stat(const char* path, Stat* stat)
 
 	FWObjDesc od;
 	int res = findObjectByPath(path, od);
-	if(res >= 0) {
-		if(stat) {
-			res = fillStat(*stat, od);
-		}
-		closeObject(od);
+
+	if(res < 0) {
+		return res;
 	}
+
+	if(od.obj.isMountPoint() && !isRootPath(path)) {
+		IFileSystem* fs;
+		res = resolveMountPoint(od, fs);
+		return (res < 0) ? res : fs->stat(path, stat);
+	}
+
+	if(stat) {
+		res = fillStat(*stat, od);
+	}
+
 	return res;
 }
 
@@ -714,14 +905,28 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 {
 	GET_FD();
 
-	return stat ? fillStat(*stat, fd.odFile) : Error::BadParam;
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fstat(fd.file, stat);
+	}
+
+	if(stat == nullptr) {
+		return Error::BadParam;
+	}
+
+	return fillStat(*stat, fd.odFile);
 }
 
 int FileSystem::fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize)
 {
+	GET_FD()
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fcontrol(fd.file, code, buffer, bufSize);
+	}
+
 	switch(code) {
 	case FCNTL_GET_MD5_HASH:
-		return getMd5Hash(file, buffer, bufSize);
+		return getMd5Hash(fd, buffer, bufSize);
 	default:
 		return Error::NotSupported;
 	}
@@ -731,6 +936,10 @@ int FileSystem::eof(FileHandle file)
 {
 	GET_FD();
 
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->eof(fd.file);
+	}
+
 	// 0 - not EOF, > 0 - at EOF, < 0 - error
 	return fd.cursor >= fd.dataSize ? 1 : 0;
 }
@@ -739,130 +948,19 @@ int32_t FileSystem::tell(FileHandle file)
 {
 	GET_FD();
 
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->tell(fd.file);
+	}
+
 	return fd.cursor;
 }
 
-/*
- * fileid identifies the object store and object identifier, but it doesn't implicitly tell
- * us the path. Whilst we can have aliases and such, we're interested in the 'true' path of the
- * file object. So, we start at the root and iterate through every single object on the system
- * searching for the file. Not pretty, but then the only reason this method is provided is
- * for the hybrid filesystem, which needs to match full file paths across filesystems.
- */
-int FileSystem::getFilePath(FileID fileid, NameBuffer& path)
-{
-	int res = FS_OK;
-
-	auto& vol = volumes[0];
-
-	// Could be the root directory object itself
-	if(vol.ref.fileID() == fileid) {
-		path.length = 0;
-	} else {
-		// Start searching from root directory
-		FWObjDesc parent;
-		res = openRootObject(vol, parent);
-		if(res >= 0) {
-			res = seekFilePath(parent, fileid, path);
-		}
-	}
-	path.terminate();
-
-	if(res >= 0 && path.overflow()) {
-		res = Error::BufferTooSmall;
-	}
-
-	debug_d("getFilePath(%u) returned %d, '%s'", fileid, res, path.buffer);
-
-	return res;
-}
-
-/*
- * @param parent this object is closed before returning
- * @param fileid
- * @param path
- * @retval error code
- * @note name buffer overrun does not return an error; we check for this in getFilePath()
- */
-int FileSystem::seekFilePath(FWObjDesc& parent, FileID fileid, NameBuffer& path)
-{
-	auto addPathSeg = [&](FWObjDesc& child) {
-		path.addSep();
-		NameBuffer name(path.endptr(), path.space());
-		int res = readObjectName(child, name);
-		path.length += name.length;
-		return res;
-	};
-
-	FWObjDesc child;
-	int res;
-	while((res = readChildObjectHeader(parent, child)) >= 0) {
-		if(!child.obj.isNamed()) {
-			child.next();
-			continue;
-		}
-
-		FWObjDesc od;
-		res = openChildObject(parent, child, od);
-		child.next();
-
-		if(res < 0) {
-			continue;
-		}
-
-		//		debug_d("obj #%u, type = %u, namelen = %u", od.ref.id, od.obj.type(), od.obj.data16.named.namelen);
-
-		if(od.ref.fileID() == fileid) {
-			// Success!
-			res = addPathSeg(od);
-			closeObject(od);
-			break;
-		}
-
-		if(!od.obj.isDir() && !od.obj.isMountPoint()) {
-			closeObject(od);
-			continue;
-		}
-
-		auto pathlen = path.length;
-		res = addPathSeg(od);
-		if(res < 0) {
-			closeObject(od);
-			break;
-		}
-
-		if(od.obj.isMountPoint()) {
-			FWObjDesc mp;
-			res = resolveMountPoint(od, mp);
-			if(res >= 0) {
-				closeObject(od);
-				res = seekFilePath(mp, fileid, path);
-			}
-		} else {
-			res = seekFilePath(od, fileid, path);
-		}
-
-		if(res == FS_OK) {
-			break; // Success!
-		}
-
-		// Not found in this directory, keep looking
-		path.length = pathlen;
-	}
-
-	closeObject(parent);
-
-	return res == Error::EndOfObjects ? Error::NotFound : res;
-}
-
-int FileSystem::getMd5Hash(FileHandle file, void* buffer, size_t bufSize)
+int FileSystem::getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize)
 {
 	constexpr size_t md5HashSize{16};
 	if(bufSize < md5HashSize) {
 		return Error::BadParam;
 	}
-
-	GET_FD();
 
 	FWObjDesc child;
 	int res = findChildObjectHeader(fd.odFile, child, Object::Type::Md5Hash);
@@ -874,9 +972,8 @@ int FileSystem::getMd5Hash(FileHandle file, void* buffer, size_t bufSize)
 		return Error::BadObject;
 	}
 	FWObjDesc od;
-	openChildObject(fd.odFile, child, od);
+	getChildObject(fd.odFile, child, od);
 	readObjectContent(od, 0, md5HashSize, buffer);
-	closeObject(od);
 
 	return md5HashSize;
 }
@@ -921,28 +1018,117 @@ int FileSystem::readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t
 	}
 }
 
-int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
-	Stat s{};
-	int res = fstat(file, &s);
-	if(res < 0) {
-		return res;
+	GET_FD();
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fsetxattr(fd.file, tag, data, size);
 	}
 
+	return Error::ReadOnly;
+}
+
+int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
+{
+	GET_FD()
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fgetxattr(fd.file, tag, buffer, size);
+	}
+
+	Stat s{};
+	fillStat(s, fd.odFile);
 	return readAttribute(s, tag, buffer, size);
+}
+
+int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
+{
+	IFileSystem* fs;
+	int res = findLinkedObject(path, fs);
+	return (res < 0) ? res : fs->setxattr(path, tag, data, size);
 }
 
 int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
-	Stat s{};
-	int res = stat(path, &s);
+	CHECK_MOUNTED();
+
+	FWObjDesc od;
+	int res = findObjectByPath(path, od);
+
 	if(res < 0) {
 		return res;
 	}
 
+	if(od.obj.isMountPoint() && !isRootPath(path)) {
+		IFileSystem* fs;
+		res = resolveMountPoint(od, fs);
+		return (res < 0) ? res : fs->getxattr(path, tag, buffer, size);
+	}
+
+	Stat s{};
+	fillStat(s, od);
 	return readAttribute(s, tag, buffer, size);
 }
 
-} // namespace FWFS
+int FileSystem::ftruncate(FileHandle file, size_t new_size)
+{
+	GET_FD();
 
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->ftruncate(fd.file, new_size);
+	}
+
+	return Error::ReadOnly;
+}
+
+int FileSystem::flush(FileHandle file)
+{
+	GET_FD();
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->flush(fd.file);
+	}
+
+	return Error::ReadOnly;
+}
+
+int FileSystem::rename(const char* oldpath, const char* newpath)
+{
+	IFileSystem* fsOld;
+	int res = findLinkedObject(oldpath, fsOld);
+	if(res < 0) {
+		return res;
+	}
+	IFileSystem* fsNew;
+	res = findLinkedObject(newpath, fsNew);
+	if(res < 0) {
+		return res;
+	}
+	// Cross-volume renaming not supported
+	if(fsOld != fsNew) {
+		return Error::NotSupported;
+	}
+	return fsOld->rename(oldpath, newpath);
+}
+
+int FileSystem::remove(const char* path)
+{
+	IFileSystem* fs;
+	int res = findLinkedObject(path, fs);
+	return (res < 0) ? res : fs->remove(path);
+}
+
+int FileSystem::fremove(FileHandle file)
+{
+	GET_FD();
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fremove(fd.file);
+	}
+
+	return Error::ReadOnly;
+}
+
+} // namespace FWFS
 } // namespace IFS

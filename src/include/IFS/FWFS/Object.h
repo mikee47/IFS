@@ -72,12 +72,14 @@
 
 #pragma once
 
-#include "TimeStamp.h"
-#include "FileAttributes.h"
-#include "Compression.h"
-#include "UserRole.h"
+#include "../TimeStamp.h"
+#include "../FileAttributes.h"
+#include "../Compression.h"
+#include "../UserRole.h"
 
 namespace IFS
+{
+namespace FWFS
 {
 /*
  * Helper template function to get the next object pointer at (current + offset)
@@ -95,11 +97,14 @@ template <typename T> static T at_offset(void* current, int offset)
 	return reinterpret_cast<T>(p);
 }
 
+// First object located immediately after start marker in image
+constexpr size_t FWFS_BASE_OFFSET{sizeof(uint32_t)};
+
 // Images start with a single word to identify this as a Firmware Filesystem image
-#define FWFILESYS_START_MARKER 0x53465746 // "FWFS"
+constexpr uint32_t FWFILESYS_START_MARKER{0x53465746}; // "FWFS"
 
 // Image end marker (reverse of magic)
-#define FWFILESYS_END_MARKER 0x46574653 // "SFWF"
+constexpr uint32_t FWFILESYS_END_MARKER{0x46574653}; // "SFWF"
 
 // Everything in this header must be portable (at least, with other little-endian systems) so byte-align and pack it
 #pragma pack(1)
@@ -119,7 +124,7 @@ template <typename T> static T at_offset(void* current, int offset)
 	XX(4, Compression, "Compression descriptor")                                                                       \
 	XX(5, ReadACE, "minimum UserRole for read access")                                                                 \
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
-	XX(7, ObjectStore, "Identifier for object store")                                                                  \
+	XX(7, VolumeIndex, "Volume index number")                                                                          \
 	XX(8, Md5Hash, "MD5 Hash Value")                                                                                   \
 	XX(32, Data16, "Data, max 64K - 1")                                                                                \
 	XX(33, Volume, "Volume, top-level container object")                                                               \
@@ -233,20 +238,17 @@ struct Object {
 				} objectAttributes;
 
 				// Compression descriptor
-				struct {
-					Compression::Type type;
-					uint32_t originalSize;
-				} compression;
+				Compression compression;
 
 				// ReadACE, WriteACE
 				struct {
 					UserRole role;
 				} ace;
 
-				// Identifies an object store, contained in a mount point
+				// Identifies a volume index, contained in a mount point
 				struct {
-					uint8_t storenum;
-				} objectStore;
+					uint8_t index;
+				} volumeIndex;
 
 				// END - immediately followed by end marker
 				struct {
@@ -281,13 +283,12 @@ struct Object {
 				 *
 				 * child objects can be contained or referenced (flag in _id)
 				 * object attributes are optional so can be another object/attribute
-				 * objects are word aligned
 				 */
 				struct {
 					uint8_t namelen; ///< Length of object name
 					TimeStamp mtime; // Object modification time
 					// char name[namelen];
-					// Object children[];	// __aligned
+					// Object children[];
 
 					// Offset to object name relative to content start
 					unsigned nameOffset() const
@@ -298,7 +299,7 @@ struct Object {
 					// Offset to start of child object table
 					unsigned childTableOffset() const
 					{
-						return nameOffset() + ALIGNUP4(namelen);
+						return nameOffset() + namelen;
 					}
 
 				} named;
@@ -371,21 +372,16 @@ struct Object {
 	uint32_t childTableSize() const
 	{
 		assert(isNamed());
-		return data16.contentSize() - data16.named.childTableOffset();
+		int size = data16.contentSize() - data16.named.childTableOffset();
+		return (size <= 0) ? 0 : size;
 	}
 
 	/** @brief total size this object occupies in the image
 	 *  @retval size or error code
-	 *  @note objects are word-aligned but this method returns only the used size
 	 */
 	uint32_t size() const
 	{
 		return contentOffset() + contentSize();
-	}
-
-	uint32_t sizeAligned() const
-	{
-		return ALIGNUP4(size());
 	}
 };
 
@@ -393,9 +389,65 @@ static_assert(sizeof(Object) == 8, "Object alignment wrong!");
 
 #pragma pack()
 
+/**
+ * @brief gives the identity and location of an FWFS object
+ */
+struct ObjRef {
+	uint32_t offset{0}; ///< Offset from start of image
+	Object::ID id{0};
+	uint8_t readCount{0}; ///< For profiling
+
+	ObjRef(Object::ID objID = 0) : id(objID)
+	{
+	}
+};
+
+/**
+ * @brief FWFS Object Descriptor
+ */
+struct FWObjDesc {
+	Object obj{}; ///< The object structure
+	ObjRef ref;   ///< location
+
+	FWObjDesc()
+	{
+	}
+
+	FWObjDesc(const ObjRef& objRef) : ref(objRef)
+	{
+	}
+
+	FWObjDesc(uint32_t objId) : ref(objId)
+	{
+	}
+
+	uint32_t nextOffset() const
+	{
+		return ref.offset + obj.size();
+	}
+
+	// Move to next object location
+	void next()
+	{
+		ref.offset = nextOffset();
+		++ref.id;
+	}
+
+	uint32_t contentOffset() const
+	{
+		return ref.offset + obj.contentOffset();
+	}
+
+	uint32_t childTableOffset() const
+	{
+		return ref.offset + obj.childTableOffset();
+	}
+};
+
+} // namespace FWFS
 } // namespace IFS
 
 /**
  * @brief Get descriptive String for an object type
  */
-String toString(IFS::Object::Type obt);
+String toString(IFS::FWFS::Object::Type obt);

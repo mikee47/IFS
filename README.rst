@@ -34,9 +34,9 @@ FileSystem API
    to manage access to files and folders.
 
 Firmware FileSystem (FWFS)
-   Files, directories and metadata are all stored as objects in an Object Store, which can be SPIFFS or on a FWRO (Firmware, Read-Only) image.
-   FWRO images are compact, fast and use less RAM than SPIFFS.
-   To support read/write data SPIFFS can be mounted in a sub-directory.
+   Files, directories and metadata are all stored as objects in read-only image.
+   FWFS images are compact, fast and use less RAM than SPIFFS.
+   To support read/write data a writeable filesystem can be mounted in a sub-directory.
 
    A python tool ``fsbuild`` is used to build an FWFS image from user files. See :doc:`tools/fsbuild/README`.
 
@@ -149,37 +149,18 @@ Internally, FWFS uses handles to access any named object.
 Handles are allocated from a static pool to avoid excessive dynamic (heap) allocation.
 Users can attach their own data to any named object using custom object types.
 
-Object stores
-~~~~~~~~~~~~~
-
-FWFS uses a mid-level layer to deal with reading and writing objects.
-It is at a slightly higher level than media, which allows efficient use of flash storage for direct read-only access,
-or SPIFFS as a read/write layer. Each object store provides access to a single volume.
-
-When implemented on SPIFFS, a named object is stored as a file. So a directory is just another file.
-If the directory contains large files, then the corresponding data objects will be stored separately as other SPIFFS files.
-Names are not required on the SPIFFS volume as Object IDs are used exclusively.
-
-Be aware, therefore, that any change to an object will involve rewriting the underlying file.
-The SPIFFS object store can probably be improved.
-For example, as FWFS doesn't require file content to be in a single object, appending to a file can be done by creating
-new data objects and appending them to the file object.
-SPIFFS will do this sort of thing anyway, so there should be a way to combine the two.
-
 Redirection
 ~~~~~~~~~~~
 
 FWFS incorporates a redirector. This works by creating a mount point (a named object), which looks like a directory.
-When accessed, this get redirected to the root of another object store.
-The maximum number of mount points is fixed at compile time, but stores can be mounted and dismounted at any time.
+When accessed, this get redirected to the root of another filesystem.
+The maximum number of mount points is fixed at compile time, but file systems can be mounted and dismounted at any time.
 
 Archival
 ~~~~~~~~
 
 One possible application for FWFS images is for archiving.
 Multiple filesystem images could be stored on a web server and pulled into memory as required.
-
-Images can be generated 'on the fly' as a backup archive using a archive object store; this would support writing only.
 
 Access Control
 --------------
@@ -282,6 +263,21 @@ Macros
       -  Complicated
       -  Prone to bugs
       -  Not C++
+
+
+Configuration variables
+-----------------------
+
+
+.. envvar:: FWFS_CACHE_SPACING
+
+   default: 8
+
+   Without a cache, objects are located by searching from the start of the filesystem image.
+   Caching the location of every n'th object speeds things up.
+   Higher values use less RAM, lower values improve search speed.
+
+   Set to 0 to disable cache for minimum RAM usage.
 
 
 API

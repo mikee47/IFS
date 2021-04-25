@@ -20,7 +20,6 @@
  ****/
 
 #include "include/IFS/Helpers.h"
-#include "include/IFS/FWFS/ObjectStore.h"
 #include "include/IFS/FWFS/FileSystem.h"
 #include "include/IFS/HYFS/FileSystem.h"
 #include <Storage.h>
@@ -36,16 +35,7 @@ time_t fsGetTimeUTC()
 
 FileSystem* createFirmwareFilesystem(Storage::Partition partition)
 {
-	auto store = new FWFS::ObjectStore(partition);
-	if(store == nullptr) {
-		return nullptr;
-	}
-
-	auto fs = new FWFS::FileSystem(store);
-	if(fs == nullptr) {
-		delete store;
-	}
-
+	auto fs = new FWFS::FileSystem(partition);
 	return FileSystem::cast(fs);
 }
 

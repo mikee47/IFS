@@ -8,9 +8,9 @@
         "/": "files",
         "README.rst": "${SMING_HOME}/Components/IFS/README.rst"
     },
-    // Directories to mount other object stores: "{target directory}": {mountpoint index}
+    // Directories to mount other filesystems: "{target directory}": {mountpoint index}
     "mountpoints": {
-        "config": 1
+        "config": 0
     },
     // Rules for file metadata. All rules are evaluated in sequence for every file.
     // The masks apply to the full target path
