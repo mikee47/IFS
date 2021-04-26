@@ -94,7 +94,7 @@ public:
 
 	size_t count() const
 	{
-		return size_t(currentIndex + 1);
+		return size_t(maxIndex + 1);
 	}
 
 	bool isValid() const
@@ -119,6 +119,7 @@ private:
 	DirHandle dir{};
 	NameStat dirStat;
 	int currentIndex{-1};
+	int maxIndex{-1};
 	size_t totalSize{0};
 };
 

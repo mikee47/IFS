@@ -57,6 +57,7 @@ bool Directory::rewind()
 	GET_FS(false)
 
 	int err = fs->rewinddir(dir);
+	currentIndex = -1;
 	return err == FS_OK;
 }
 
@@ -89,8 +90,11 @@ bool Directory::next()
 
 	int err = fs->readdir(dir, dirStat);
 	if(check(err)) {
-		totalSize += dirStat.size;
 		++currentIndex;
+		if(currentIndex > maxIndex) {
+			totalSize += dirStat.size;
+			maxIndex = currentIndex;
+		}
 		return true;
 	}
 
