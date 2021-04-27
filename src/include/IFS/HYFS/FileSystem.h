@@ -80,6 +80,7 @@ public:
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
 	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override;
 	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
+	int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) override;
 	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override;
 	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;

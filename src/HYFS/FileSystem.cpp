@@ -398,10 +398,18 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 	// Copy metadata
-	Stat stat;
-	if(fwfs->fstat(fwfile, &stat) >= 0) {
-		ffs->fsetxattr(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
-		ffs->fsetxattr(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
+	auto callback = [&](IFS::AttributeEnum& e) -> bool {
+		// Ignore errors here as destination file system doesn't necessarily support all attributes
+		int err = ffs->fsetxattr(ffsfile, e.tag, e.buffer, e.size);
+		if(err < 0) {
+			debug_w("[HYFS] fsetxattr(%s): %s", toString(e.tag).c_str(), ffs->getErrorString(err).c_str());
+		}
+		return true;
+	};
+	char buffer[1024];
+	res = fwfs->fenumxattr(fwfile, callback, buffer, sizeof(buffer));
+	if(res < 0) {
+		debug_w("[HYFS] fenumxattr(): %s", fwfs->getErrorString(res).c_str());
 	}
 
 	// If not truncating then copy content into FFS file
@@ -515,6 +523,12 @@ int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_
 {
 	GET_FS(file)
 	return fs->fgetxattr(file, tag, buffer, size);
+}
+
+int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize)
+{
+	GET_FS(file)
+	return fs->fenumxattr(file, callback, buffer, bufsize);
 }
 
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
