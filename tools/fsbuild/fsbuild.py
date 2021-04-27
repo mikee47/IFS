@@ -15,8 +15,12 @@ import argparse
 
 # Create a file object, add it to the parent
 def addFile(parent, name, sourcePath):
-#    print("'{}' -> '{}'".format(targetPath, sourcePath))
+#    print("'{}' -> '{}'".format(name, sourcePath))
     
+    fileObj = parent.findChild(name)
+    if fileObj is not None:
+        raise KeyError("Directory '%s' already contains file '%s'" % (parent.path(), name))
+
     fileObj = FWFS.File(parent, name)
     cfg.applyRules(fileObj)
     fileObj.mtime = os.path.getmtime(sourcePath)
@@ -65,6 +69,17 @@ def addFile(parent, name, sourcePath):
 
 # Create a filing system object, add it to the parent
 def createFsObject(parent, target, source):
+    # Resolve target path to single name
+    while '/' in target and len(target) > 1:
+        name, target = target.split('/', 1)
+        dirObj = parent.findChild(name)
+        if dirObj is None:
+            dirObj = FWFS.Directory(parent, name)
+        parent = dirObj
+
+    if parent.findChild(target) is not None:
+        raise KeyError("Error: Directory '%s' already contains '%s'" % (parent.name, target))
+
     if os.path.isdir(source):
         obj = addDirectory(parent, target, source)
     else:

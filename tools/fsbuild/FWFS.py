@@ -345,6 +345,12 @@ class NamedObject(Object16):
         s = self.parent().path() + self.parent().pathsep() + self.name
         return s
    
+    def findChild(self, name):
+        for obj in self.__children:
+            if obj.isNamed() and obj.name == name:
+                return obj
+        return None
+
     def setAttr(self, attr, state):
         obj = self.findObject(FwObt.ObjAttr)
         if obj is None:
