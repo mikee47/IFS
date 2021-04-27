@@ -33,6 +33,7 @@ public:
 		DEFINE_FSTR_LOCAL(content, "This is some test content");
 
 		auto fs = getFileSystem();
+		CHECK(fs != nullptr);
 		listdir(fs, nullptr);
 
 		// If our test file already exists, make sure it's not read-only
@@ -114,6 +115,7 @@ public:
 		DEFINE_FSTR_LOCAL(coolDonkeys, "cool donkeys")
 
 		auto fs = getFileSystem();
+		CHECK(fs != nullptr);
 		fs->setContent(filename, "empty");
 		int err = fs->setUserAttribute(filename, 0, coolDonkeys);
 		REQUIRE_EQ(err, FS_OK);
@@ -161,13 +163,34 @@ public:
 	void hostAttributeTest()
 	{
 		auto& hostfs = IFS::Host::getFileSystem();
-		auto f = hostfs.open("attrtest1.txt", File::Create | File::ReadWrite);
-		CHECK(f >= 0);
-		hostfs.write(f, "Hello", 5);
-		hostfs.setacl(f, {IFS::UserRole::Guest, IFS::UserRole::Manager});
-		hostfs.close(f);
 
-		listdir(&hostfs, nullptr, Flag::recurse);
+		TEST_CASE("Host attributes")
+		{
+			IFS::File f(&hostfs);
+			f.open("attrtest1.txt", File::Create | File::ReadWrite);
+			CHECK(f);
+			f.write("Hello", 5);
+			f.setacl({IFS::UserRole::Guest, IFS::UserRole::Manager});
+			f.setUserAttribute(0, "I am a user");
+			f.setUserAttribute(10, "I am not a user");
+		}
+
+		TEST_CASE("Directory listing")
+		{
+			listdir(&hostfs, nullptr, 0); //Flag::recurse);
+		}
+
+		TEST_CASE("Attribute enumeration")
+		{
+			IFS::File f(&hostfs);
+			f.open("attrtest1.txt");
+			auto callback = [](IFS::AttributeEnum& e) -> bool {
+				m_printHex(toString(e.tag).c_str(), e.buffer, e.size);
+				return true;
+			};
+			char buffer[256];
+			f.enumAttributes(callback, buffer, sizeof(buffer));
+		}
 	}
 #endif
 };
