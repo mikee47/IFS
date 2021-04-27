@@ -82,6 +82,7 @@
 
 #include "../include/IFS/HYFS/FileSystem.h"
 #include "../include/IFS/FWFS/FileSystem.h"
+#include "../include/IFS/FileSystem.h"
 #include "../include/IFS/Util.h"
 
 #define CHECK_MOUNTED()                                                                                                \
@@ -125,6 +126,14 @@ int FileSystem::mount()
 		return Error::NoFileSystem;
 	}
 
+	Info info;
+	ffs->getinfo(info);
+	debug_i("[HYFS] Mounting with %s", toString(info.type).c_str());
+	if(info.attr[Attribute::ReadOnly]) {
+		debug_e("[HYFS] Provided filesystem is read-only");
+		return Error::ReadOnly;
+	}
+
 	int res = fwfs->mount();
 	if(res < 0) {
 		return res;
@@ -134,6 +143,22 @@ int FileSystem::mount()
 	if(res < 0) {
 		return res;
 	}
+
+	// Copy defaullt root ACL from fwfs -> ffs
+	Stat stat{};
+	fwfs->stat(nullptr, &stat);
+	auto rootAcl = stat.acl;
+	ffs->stat(nullptr, &stat);
+
+	auto checkAce = [&](AttributeTag tag, UserRole src, UserRole dst) {
+		if(src != dst) {
+			int err = ffs->setxattr(nullptr, tag, &src, sizeof(src));
+			debug_i("[HYFS] Root %s -> %s (%s)", toString(tag).c_str(), toString(src).c_str(),
+					ffs->getErrorString(err).c_str());
+		}
+	};
+	checkAce(AttributeTag::ReadAce, rootAcl.readAccess, stat.acl.readAccess);
+	checkAce(AttributeTag::WriteAce, rootAcl.writeAccess, stat.acl.writeAccess);
 
 	mounted = true;
 
@@ -381,6 +406,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 	// Now copy FW file to FFS
+	IFS::FileSystem::cast(ffs)->makedirs(path);
 	if(fwfile >= 0) {
 		flags |= OpenFlag::Create | OpenFlag::Read | OpenFlag::Write;
 	}
