@@ -257,7 +257,7 @@ private:
 #endif
 	ObjRef lastFound; ///< Speeds up consective searches
 	Object::ID volume;
-	ACL rootACL;
+	ACL rootACL{};
 	BitSet<uint8_t, Flag> flags;
 };
 
