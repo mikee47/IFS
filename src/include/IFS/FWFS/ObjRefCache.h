@@ -63,7 +63,9 @@ public:
 		if(po == nullptr) {
 			return;
 		}
+#if FWFS_DEBUG
 		debug_d("Caching #%u @ 0x%08X", ref.id, ref.offset);
+#endif
 		*po = ref.offset;
 	}
 
@@ -87,7 +89,9 @@ public:
 
 		auto offsetPtr = getOffsetPtr(cachedId);
 		if(offsetPtr != nullptr) {
+#if FWFS_DEBUG
 			debug_d("Cache hit #%u @ 0x%08X (for #%u)", cachedId, *offsetPtr, objID);
+#endif
 			ref.id = cachedId;
 			ref.offset = *offsetPtr;
 		}

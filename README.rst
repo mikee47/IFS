@@ -280,6 +280,13 @@ Configuration variables
    Set to 0 to disable cache for minimum RAM usage.
 
 
+.. envvar:: FWFS_DEBUG
+
+   default: 0
+
+   Set to 1 to enable more detailed debugging information.
+
+
 API
 ---
 

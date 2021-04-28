@@ -232,7 +232,9 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 		child.next();
 	}
 
+#if FWFS_DEBUG
 	debug_d("readCount = %u", fd.odFile.ref.readCount);
+#endif
 
 	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
 }
@@ -431,7 +433,9 @@ int FileSystem::readObjectHeader(FWObjDesc& od)
 	}
 	int res = partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
 
+#if FWFS_DEBUG
 	debug_d("read #%-3u @ 0x%08x - %s", od.ref.id, od.ref.offset, toString(od.obj.type()).c_str());
+#endif
 
 	return res;
 }
@@ -818,7 +822,9 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
 	CHECK_MOUNTED();
 
+#if FWFS_DEBUG
 	debug_d("open('%s', %s)", path, toString(flags).c_str());
+#endif
 
 	FS_CHECK_PATH(path)
 
@@ -828,7 +834,9 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 		return res;
 	}
 
+#if FWFS_DEBUG
 	debug_d("Found '%s', readCount = %u", path, od.ref.readCount);
+#endif
 
 	int descriptorIndex = findUnusedDescriptor();
 	if(descriptorIndex < 0) {
@@ -863,7 +871,10 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 		return res;
 	}
 
+#if FWFS_DEBUG
 	debug_d("Descriptor #%u allocated, readCount = %u", descriptorIndex, fd.odFile.ref.readCount);
+#endif
+
 	return FWFS_HANDLE_MIN + descriptorIndex;
 }
 
@@ -871,7 +882,9 @@ int FileSystem::close(FileHandle file)
 {
 	GET_FD();
 
+#if FWFS_DEBUG
 	debug_d("descriptor #%u close", file - FWFS_HANDLE_MIN);
+#endif
 
 	int res{FS_OK};
 	if(fd.isMountPoint()) {
