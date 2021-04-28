@@ -170,6 +170,13 @@ struct Object {
 		 *  @note Object has been changed on disk. Typically used by backup applications
 		 */
 		Archive,
+		/**
+		 * @brief Object data is encrypted
+		 * 
+		 * This is just a hint. Applications will typically provide additional user metadata
+		 * to provide any additional information required for decryption.
+		 */
+		Encrypted,
 		//
 		MAX
 	};

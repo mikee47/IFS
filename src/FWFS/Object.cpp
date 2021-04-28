@@ -34,6 +34,7 @@ FileAttributes getFileAttributes(Object::Attributes objattr)
 	FileAttributes fileAttr{};
 	fileAttr[FileAttribute::ReadOnly] = objattr[ObjAttr::ReadOnly];
 	fileAttr[FileAttribute::Archive] = objattr[ObjAttr::Archive];
+	fileAttr[FileAttribute::Encrypted] = objattr[ObjAttr::Encrypted];
 	return fileAttr;
 }
 
@@ -43,6 +44,7 @@ Object::Attributes getObjectAttributes(FileAttributes fileAttr)
 	Object::Attributes objattr{};
 	objattr[ObjAttr::ReadOnly] = fileAttr[FileAttribute::ReadOnly];
 	objattr[ObjAttr::Archive] = fileAttr[FileAttribute::Archive];
+	objattr[ObjAttr::Encrypted] = fileAttr[FileAttribute::Encrypted];
 	return objattr;
 }
 
