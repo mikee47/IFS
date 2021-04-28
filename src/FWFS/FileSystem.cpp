@@ -1077,6 +1077,18 @@ int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void
 		case Object::Type::Data24:
 			break; // ignore
 
+		case Object::Type::UserAttribute: {
+			FWObjDesc od;
+			getChildObject(fd.odFile, child, od);
+			e.tag = AttributeTag(unsigned(AttributeTag::User) + od.obj.data8.userAttribute.tagValue);
+			e.attrsize = od.obj.data8.contentSize() - 1;
+			e.size = std::min(e.attrsize, e.bufsize);
+			readObjectContent(od, 1, e.size, e.buffer);
+			++count;
+			cont = callback(e);
+			break;
+		}
+
 		default:
 			if(!child.obj.isNamed()) {
 				debug_w("[FWFS] Ignoring unknown object %u (%u bytes)", child.obj.type(), child.obj.size());
