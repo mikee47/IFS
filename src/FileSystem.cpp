@@ -183,7 +183,7 @@ int FileSystem::makedirs(const char* path)
 		s[i++] = '/';
 	}
 
-	return mkdir(path);
+	return FS_OK;
 }
 
 } // namespace IFS
