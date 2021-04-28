@@ -282,13 +282,20 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 		res = ffs->readdir(d->ffs, s);
 		if(res >= 0) {
 			stat = s;
-			char* path = s.name.buffer;
 			auto pathlen = d->path.length();
+			auto newpathlen = pathlen + s.name.length;
 			if(pathlen != 0) {
-				memmove(path + pathlen + 1, path, s.name.length);
-				path[pathlen] = '/';
+				++newpathlen; // Separator
 			}
-			memcpy(path, d->path.c_str(), pathlen);
+			if(newpathlen >= s.name.size) {
+				return Error::NameTooLong;
+			}
+			char* path = s.name.buffer;
+			if(pathlen != 0) {
+				memmove(path + pathlen + 1, s.name.buffer, s.name.length + 1);
+				path[pathlen] = '/';
+				memcpy(path, d->path.c_str(), pathlen);
+			}
 			hideFWFile(path, true);
 			return res;
 		}
