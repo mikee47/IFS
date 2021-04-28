@@ -399,7 +399,7 @@ int FileSystem::getinfo(Info& info)
 
 	info.clear();
 	info.type = Type::FWFS;
-	info.maxNameLength = INT16_MAX;
+	info.maxNameLength = 255;
 	info.maxPathLength = INT16_MAX;
 	info.attr = Attribute::ReadOnly;
 	info.partition = partition;
