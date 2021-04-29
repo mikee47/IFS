@@ -19,11 +19,6 @@ endif
 COMPONENT_DOCFILES := tools/fsbuild/README.rst
 COMPONENT_DOXYGEN_INPUT := src
 
-# For best performance pick a power of 2 (0 to disable)
-COMPONENT_RELINK_VARS += FWFS_CACHE_SPACING
-FWFS_CACHE_SPACING ?= 8
-COMPONENT_CXXFLAGS += -DFWFS_CACHE_SPACING=$(FWFS_CACHE_SPACING)
-
 # Extended debug information level
 COMPONENT_RELINK_VARS += FWFS_DEBUG
 FWFS_DEBUG ?= 0

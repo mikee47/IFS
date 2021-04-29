@@ -25,10 +25,6 @@
 #include "../IFileSystem.h"
 #include "Object.h"
 
-#if FWFS_CACHE_SPACING
-#include "ObjRefCache.h"
-#endif
-
 namespace IFS
 {
 namespace FWFS
@@ -252,10 +248,6 @@ private:
 	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 	FWObjDesc odRoot; ///< Reference to root directory object
-#if FWFS_CACHE_SPACING
-	ObjRefCache cache;
-#endif
-	ObjRef lastFound; ///< Speeds up consective searches
 	Object::ID volume;
 	ACL rootACL{};
 	BitSet<uint8_t, Flag> flags;

@@ -62,7 +62,7 @@ void FileSystem::printObject(const FWObjDesc& od, bool isChild)
 #if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
 	if(od.obj.isRef()) {
-		m_snprintf(name, sizeof(name), " REF #%u", od.obj.data8.ref.id);
+		m_snprintf(name, sizeof(name), " REF #0x%08x", od.obj.data8.ref.id);
 	} else if(od.obj.isNamed()) {
 		name[0] = ' ';
 		name[1] = '"';
@@ -79,8 +79,8 @@ void FileSystem::printObject(const FWObjDesc& od, bool isChild)
 	} else {
 		name[0] = '\0';
 	}
-	m_printf("%s@0x%08X #%u: %-5u bytes, type = 0x%02X %s, %s\r\n", isChild ? "    " : "", od.ref.offset, od.ref.id,
-			 od.obj.size(), od.obj.typeData, toString(od.obj.type()).c_str(), name);
+	m_printf("%s #0x%08X: %-5u bytes, type = 0x%02X %s, %s\r\n", isChild ? "    " : "", od.id, od.obj.size(),
+			 od.obj.typeData, toString(od.obj.type()).c_str(), name);
 
 	if(isChild || !od.obj.isNamed()) {
 		return;
@@ -107,7 +107,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 
 	stat = Stat{};
 	stat.fs = this;
-	stat.id = entry.ref.id;
+	stat.id = entry.id;
 	stat.mtime = entry.obj.data16.named.mtime;
 	stat.acl = rootACL;
 
@@ -232,10 +232,6 @@ int FileSystem::read(FileHandle file, void* data, size_t size)
 		child.next();
 	}
 
-#if FWFS_DEBUG
-	debug_d("readCount = %u", fd.odFile.ref.readCount);
-#endif
-
 	return (res == FS_OK) || (res == Error::EndOfObjects) ? readTotal : res;
 }
 
@@ -322,7 +318,7 @@ int FileSystem::mount()
 
 	unsigned objectCount = 0;
 	FWObjDesc odVolume{};
-	FWObjDesc od;
+	FWObjDesc od{FWFS_BASE_OFFSET};
 	int res;
 	while((res = readObjectHeader(od)) >= 0) {
 		++objectCount;
@@ -341,26 +337,25 @@ int FileSystem::mount()
 		od.next();
 	}
 
-	debug_d("Ended @ 0x%08X (#%u), %u objects, volume @ 0x%08X, od @ 0x%08X", od.ref.offset, od.ref.offset, od.ref.id,
-			objectCount, odVolume.ref.offset);
+	volume = odVolume.id;
+	debug_d("Ended @ 0x%08X, %u objects, volume @ 0x%08X", od.id, objectCount, volume);
 
 	if(res < 0) {
 		return res;
 	}
 
-	if(odVolume.ref.offset == 0) {
+	if(volume == 0) {
 		debug_e("Volume object missing");
 		return Error::BadFileSystem;
 	}
 
-	volume = odVolume.ref.id;
 	FWObjDesc child;
 	res = findChildObjectHeader(odVolume, child, Object::Type::Directory);
 	if(res < 0) {
 		debug_e("Root directory reference missing");
 		return Error::BadFileSystem;
 	}
-	if(child.obj.data8.ref.id != odRoot.ref.id) {
+	if(child.obj.data8.ref.id != odRoot.id) {
 		debug_e("Root directory is not last");
 		return Error::BadFileSystem;
 	}
@@ -371,18 +366,6 @@ int FileSystem::mount()
 		debug_e("Filesys end marker invalid: found 0x%08x, expected 0x%08x", marker, FWFILESYS_END_MARKER);
 		return Error::BadFileSystem;
 	}
-
-#if FWFS_CACHE_SPACING
-	cache.initialise(od.ref.id + 1);
-	od = FWObjDesc{};
-	while((res = readObjectHeader(od)) >= 0) {
-		cache.update(od.ref);
-		od.next();
-		if(od.obj.type() == Object::Type::End) {
-			break;
-		}
-	}
-#endif
 
 	Stat stat;
 	fillStat(stat, odRoot);
@@ -424,17 +407,10 @@ int FileSystem::getinfo(Info& info)
 
 int FileSystem::readObjectHeader(FWObjDesc& od)
 {
-	++od.ref.readCount;
-
-	// First object ID is 1
-	if(od.ref.offset == 0) {
-		od.ref.id = 1;
-		od.ref.offset = FWFS_BASE_OFFSET;
-	}
-	int res = partition.read(od.ref.offset, od.obj) ? FS_OK : Error::ReadFailure;
+	int res = partition.read(od.offset(), od.obj) ? FS_OK : Error::ReadFailure;
 
 #if FWFS_DEBUG
-	debug_d("read #%-3u @ 0x%08x - %s", od.ref.id, od.ref.offset, toString(od.obj.type()).c_str());
+	debug_d("read #0x%08x - %s", od.ref, toString(od.obj.type()).c_str());
 #endif
 
 	return res;
@@ -452,44 +428,21 @@ int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, 
 	}
 
 	od = child;
-	od.ref.offset += parent.childTableOffset();
+	od.id += parent.childTableOffset();
 	return FS_OK;
 }
 
-int FileSystem::findObject(Object::ID objId, FWObjDesc& od)
+int FileSystem::findObject(Object::ID id, FWObjDesc& od)
 {
-	if(objId > lastFound.id) {
-		od.ref = lastFound;
-	} else {
-		od.ref.offset = FWFS_BASE_OFFSET;
-		od.ref.id = 1; // We don't use id #0
+	od.id = id;
+	int res = readObjectHeader(od);
+	if(res < 0) {
+		return res;
 	}
-
-#if FWFS_CACHE_SPACING
-	cache.improve(od.ref, objId);
-#endif
-
-	for(;;) {
-		int res = readObjectHeader(od);
-		if(res < 0) {
-			return (res == Error::NoMoreFiles) ? Error::NotFound : res;
-		}
-		if(od.ref.id > objId) {
-			return Error::NotFound;
-		}
-		if(od.ref.id == objId) {
-			break;
-		}
-		od.next();
-	}
-
-	lastFound = od.ref;
-
 	if(od.obj.isRef()) {
 		// Reference must point to an actual object, not another reference
 		return Error::BadObject;
 	}
-
 	return FS_OK;
 }
 
@@ -497,15 +450,15 @@ int FileSystem::readChildObjectHeader(const FWObjDesc& parent, FWObjDesc& child)
 {
 	assert(parent.obj.isNamed());
 
-	if(child.ref.offset >= parent.obj.childTableSize()) {
+	if(child.id >= parent.obj.childTableSize()) {
 		return Error::EndOfObjects;
 	}
 
 	// Get the absolute offset for the child object
 	uint32_t tableOffset = parent.childTableOffset();
-	child.ref.offset += tableOffset;
+	child.id += tableOffset;
 	int res = readObjectHeader(child);
-	child.ref.offset -= tableOffset;
+	child.id -= tableOffset;
 	return res;
 }
 
@@ -685,9 +638,7 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 	FWObjDesc odDir = fd.odFile;
 	odDir = fd.odFile;
 
-	ObjRef ref;
-	ref.offset = fd.cursor;
-	FWObjDesc od(ref);
+	FWObjDesc od{fd.cursor};
 	int res;
 	while((res = readChildObjectHeader(odDir, od)) >= 0) {
 		if(od.obj.isNamed()) {
@@ -706,7 +657,7 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 		od.next();
 	}
 
-	fd.cursor = od.ref.offset;
+	fd.cursor = od.offset();
 
 	return res == Error::EndOfObjects ? Error::NoMoreFiles : res;
 }
@@ -835,7 +786,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 #if FWFS_DEBUG
-	debug_d("Found '%s', readCount = %u", path, od.ref.readCount);
+	debug_d("Found '%s' @ 0x%08x", path, od.ref);
 #endif
 
 	int descriptorIndex = findUnusedDescriptor();
@@ -872,7 +823,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 #if FWFS_DEBUG
-	debug_d("Descriptor #%u allocated, readCount = %u", descriptorIndex, fd.odFile.ref.readCount);
+	debug_d("Descriptor #%u allocated", descriptorIndex);
 #endif
 
 	return FWFS_HANDLE_MIN + descriptorIndex;

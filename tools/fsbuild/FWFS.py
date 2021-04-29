@@ -110,7 +110,7 @@ class Object(object):
 
     def refHeader(self):
         assert(self.__id is not None)
-        return struct.pack("<BBH", self.__obt | FWOBT_REF, 2, self.__id)
+        return struct.pack("<BBL", self.__obt | FWOBT_REF, 4, self.__id)
 
     def contentSize(self):
         return len(self.content())
@@ -358,7 +358,7 @@ class NamedObject(Object16):
         size = 0
         for obj in self.__children:
             if obj.isRef:
-                size += 4
+                size += 6
             else:
                 size += obj.size()
         return size
@@ -594,12 +594,11 @@ class Image:
     def offset(self):
         return self.__fout.tell()
 
-    # Return object ID (1-based)
+    # Return object ID (offset from start of image)
     def writeObject(self, header, content):
+        objID = self.__fout.tell()
         self.__fout.write(header)
         self.__fout.write(content)
-        size = len(header) + len(content)
         self.__objectCount += 1
-        objID = self.__objectCount
         return objID
 

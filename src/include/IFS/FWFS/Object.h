@@ -143,9 +143,9 @@ struct Object {
 	uint8_t typeData; ///< Stored type plus flag
 
 	/**
-	 * @brief Object identifier
+	 * @brief Object identifier (offset from start of image)
 	 */
-	using ID = uint16_t;
+	using ID = uint32_t;
 
 	enum class Type {
 #define XX(value, tag, text) tag = value,
@@ -390,57 +390,40 @@ static_assert(sizeof(Object) == 8, "Object alignment wrong!");
 #pragma pack()
 
 /**
- * @brief gives the identity and location of an FWFS object
- */
-struct ObjRef {
-	uint32_t offset{0}; ///< Offset from start of image
-	Object::ID id{0};
-	uint8_t readCount{0}; ///< For profiling
-
-	ObjRef(Object::ID objID = 0) : id(objID)
-	{
-	}
-};
-
-/**
  * @brief FWFS Object Descriptor
  */
 struct FWObjDesc {
-	Object obj{}; ///< The object structure
-	ObjRef ref;   ///< location
+	Object::ID id; ///< location
+	Object obj{};  ///< The object structure
 
-	FWObjDesc()
+	FWObjDesc(Object::ID objId = 0) : id(objId)
 	{
 	}
 
-	FWObjDesc(const ObjRef& objRef) : ref(objRef)
+	uint32_t offset() const
 	{
-	}
-
-	FWObjDesc(uint32_t objId) : ref(objId)
-	{
+		return id;
 	}
 
 	uint32_t nextOffset() const
 	{
-		return ref.offset + obj.size();
+		return offset() + obj.size();
 	}
 
 	// Move to next object location
 	void next()
 	{
-		ref.offset = nextOffset();
-		++ref.id;
+		id = nextOffset();
 	}
 
 	uint32_t contentOffset() const
 	{
-		return ref.offset + obj.contentOffset();
+		return offset() + obj.contentOffset();
 	}
 
 	uint32_t childTableOffset() const
 	{
-		return ref.offset + obj.childTableOffset();
+		return offset() + obj.childTableOffset();
 	}
 };
 

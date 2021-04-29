@@ -268,18 +268,6 @@ Macros
 Configuration variables
 -----------------------
 
-
-.. envvar:: FWFS_CACHE_SPACING
-
-   default: 8
-
-   Without a cache, objects are located by searching from the start of the filesystem image.
-   Caching the location of every n'th object speeds things up.
-   Higher values use less RAM, lower values improve search speed.
-
-   Set to 0 to disable cache for minimum RAM usage.
-
-
 .. envvar:: FWFS_DEBUG
 
    default: 0
