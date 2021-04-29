@@ -185,6 +185,16 @@ struct Object {
 		return (typeData & FWOBT_REF) != 0;
 	}
 
+	uint32_t getRef() const
+	{
+		if(!isRef()) {
+			return 0;
+		}
+		uint32_t id{0};
+		memcpy(&id, &data8.ref.packedOffset, data8.contentSize());
+		return id;
+	}
+
 	bool isNamed() const
 	{
 		return type() >= Type::Volume && type() < Type::Data24;
@@ -224,7 +234,7 @@ struct Object {
 			union {
 				// An object reference: the contents are stored externally (on the same volume)
 				struct {
-					ID id;
+					uint32_t packedOffset; // 1-4 byte offset
 				} ref;
 
 				// ID32

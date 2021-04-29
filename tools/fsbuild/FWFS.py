@@ -108,9 +108,20 @@ class Object(object):
         """Get the size bytes (8, 16 or 32) - everything else is content"""
         return struct.pack("<B", self.__obt)
 
+    def refSize(self):
+        if self.__id <= 0xff:
+            return 1
+        if self.__id <= 0xffff:
+            return 2
+        if self.__id <= 0xffffff:
+            return 3
+        return 4
+
     def refHeader(self):
         assert(self.__id is not None)
-        return struct.pack("<BBL", self.__obt | FWOBT_REF, 4, self.__id)
+        id = struct.pack("L", self.__id)
+        len = self.refSize()
+        return struct.pack("<BB", self.__obt | FWOBT_REF, len) + id[0:len]
 
     def contentSize(self):
         return len(self.content())
@@ -358,7 +369,7 @@ class NamedObject(Object16):
         size = 0
         for obj in self.__children:
             if obj.isRef:
-                size += 6
+                size += 2 + obj.refSize()
             else:
                 size += obj.size()
         return size

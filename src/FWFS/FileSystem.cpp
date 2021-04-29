@@ -62,7 +62,7 @@ void FileSystem::printObject(const FWObjDesc& od, bool isChild)
 #if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
 	if(od.obj.isRef()) {
-		m_snprintf(name, sizeof(name), " REF #0x%08x", od.obj.data8.ref.id);
+		m_snprintf(name, sizeof(name), " REF #0x%08x", od.obj.getRef());
 	} else if(od.obj.isNamed()) {
 		name[0] = ' ';
 		name[1] = '"';
@@ -355,7 +355,7 @@ int FileSystem::mount()
 		debug_e("Root directory reference missing");
 		return Error::BadFileSystem;
 	}
-	if(child.obj.data8.ref.id != odRoot.id) {
+	if(child.obj.getRef() != odRoot.id) {
 		debug_e("Root directory is not last");
 		return Error::BadFileSystem;
 	}
@@ -419,7 +419,7 @@ int FileSystem::readObjectHeader(FWObjDesc& od)
 int FileSystem::getChildObject(const FWObjDesc& parent, const FWObjDesc& child, FWObjDesc& od)
 {
 	if(child.obj.isRef()) {
-		int res = findObject(child.obj.data8.ref.id, od);
+		int res = findObject(child.obj.getRef(), od);
 		if(res == FS_OK && od.obj.type() != child.obj.type()) {
 			// Reference must point to object of same type
 			return Error::BadObject;
