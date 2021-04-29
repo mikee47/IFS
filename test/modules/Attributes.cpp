@@ -6,6 +6,8 @@
  */
 
 #include <FsTest.h>
+#include <Spiffs.h>
+#include <LittleFS.h>
 
 #ifdef ARCH_HOST
 #include <IFS/Host/FileSystem.h>
@@ -20,8 +22,20 @@ public:
 
 	void execute() override
 	{
-		attributeTest();
-		userAttributeTest();
+		TEST_CASE("LittleFS tests")
+		{
+			lfs_mount();
+			attributeTest();
+			userAttributeTest();
+		}
+
+		TEST_CASE("SPIFFS tests")
+		{
+			spiffs_mount();
+			attributeTest();
+			userAttributeTest();
+		}
+
 #ifdef ARCH_HOST
 		hostAttributeTest();
 #endif
@@ -113,6 +127,7 @@ public:
 	{
 		DEFINE_FSTR_LOCAL(filename, "usertest.txt")
 		DEFINE_FSTR_LOCAL(coolDonkeys, "cool donkeys")
+		DEFINE_FSTR_LOCAL(comment, "Donkeys are cool")
 
 		auto fs = getFileSystem();
 		CHECK(fs != nullptr);
@@ -121,6 +136,17 @@ public:
 		REQUIRE_EQ(err, FS_OK);
 		String s = fs->getUserAttribute(filename, 0);
 		REQUIRE_EQ(s, coolDonkeys);
+
+		TEST_CASE("Set comment")
+		{
+			int err = fs->setAttribute(filename, IFS::AttributeTag::Comment, comment);
+			if(err == FS_OK) {
+				String s = fs->getAttribute(filename, IFS::AttributeTag::Comment);
+				REQUIRE_EQ(s, comment);
+			} else {
+				REQUIRE_EQ(err, IFS::Error::NotSupported);
+			}
+		}
 
 		TEST_CASE("Set user attributes")
 		{
