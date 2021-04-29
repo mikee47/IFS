@@ -1032,6 +1032,21 @@ int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void
 		return count;
 	}
 
+	auto sendObject = [&](AttributeTag tag, FWObjDesc child, unsigned offset) -> bool {
+		FWObjDesc od;
+		getChildObject(fd.odFile, child, od);
+		e.tag = tag;
+		if(od.obj.data8.contentSize() < offset) {
+			e.attrsize = 0;
+		} else {
+			e.attrsize = od.obj.data8.contentSize() - offset;
+		}
+		e.size = std::min(e.attrsize, e.bufsize);
+		readObjectContent(od, offset, e.size, e.buffer);
+		++count;
+		return callback(e);
+	};
+
 	int res;
 	FWObjDesc child;
 	bool cont{true};
@@ -1060,34 +1075,23 @@ int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void
 			cont = send(AttributeTag::VolumeIndex, &child.obj.data8.volumeIndex, sizeof(uint8_t));
 			break;
 
-		case Object::Type::Md5Hash: {
-			e.attrsize = 16;
-			FWObjDesc od;
-			getChildObject(fd.odFile, child, od);
-			e.tag = AttributeTag::Md5Hash;
-			e.size = std::min(e.attrsize, e.bufsize);
-			readObjectContent(od, 0, e.size, e.buffer);
-			++count;
-			cont = callback(e);
+		case Object::Type::Md5Hash:
+			cont = sendObject(AttributeTag::Md5Hash, child, 0);
 			break;
-		}
 
 		case Object::Type::Data8:
 		case Object::Type::Data16:
 		case Object::Type::Data24:
 			break; // ignore
 
-		case Object::Type::UserAttribute: {
-			FWObjDesc od;
-			getChildObject(fd.odFile, child, od);
-			e.tag = AttributeTag(unsigned(AttributeTag::User) + od.obj.data8.userAttribute.tagValue);
-			e.attrsize = od.obj.data8.contentSize() - 1;
-			e.size = std::min(e.attrsize, e.bufsize);
-			readObjectContent(od, 1, e.size, e.buffer);
-			++count;
-			cont = callback(e);
+		case Object::Type::Comment:
+			cont = sendObject(AttributeTag::Comment, child, 0);
 			break;
-		}
+
+		case Object::Type::UserAttribute:
+			cont = sendObject(AttributeTag(unsigned(AttributeTag::User) + child.obj.data8.userAttribute.tagValue),
+							  child, 1);
+			break;
 
 		default:
 			if(!child.obj.isNamed()) {

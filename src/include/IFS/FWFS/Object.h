@@ -126,7 +126,8 @@ constexpr uint32_t FWFILESYS_END_MARKER{0x46574653}; // "SFWF"
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
 	XX(7, VolumeIndex, "Volume index number")                                                                          \
 	XX(8, Md5Hash, "MD5 Hash Value")                                                                                   \
-	XX(9, UserAttribute, "User Attribute")                                                                             \
+	XX(9, Comment, "Comment")                                                                                          \
+	XX(10, UserAttribute, "User Attribute")                                                                            \
 	XX(32, Data16, "Data, max 64K - 1")                                                                                \
 	XX(33, Volume, "Volume, top-level container object")                                                               \
 	XX(34, MountPoint, "Root for another filesystem")                                                                  \
