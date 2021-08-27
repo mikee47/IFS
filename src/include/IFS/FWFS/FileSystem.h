@@ -231,7 +231,7 @@ private:
 	 * @param dataSize The total size in bytes
 	 * @retval int error code
 	 */
-	int getObjectDataSize(FWObjDesc& od, size_t& dataSize);
+	int getObjectDataSize(FWObjDesc& od, uint32_t& dataSize);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
 	int fillStat(Stat& stat, const FWObjDesc& entry);

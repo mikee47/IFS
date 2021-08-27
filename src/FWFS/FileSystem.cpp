@@ -747,7 +747,7 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 	return res;
 }
 
-int FileSystem::getObjectDataSize(FWObjDesc& od, size_t& dataSize)
+int FileSystem::getObjectDataSize(FWObjDesc& od, uint32_t& dataSize)
 {
 	dataSize = 0;
 	int res;
