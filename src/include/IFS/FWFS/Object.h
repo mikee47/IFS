@@ -207,9 +207,8 @@ struct Object {
 		if(!isRef()) {
 			return 0;
 		}
-		uint32_t id{0};
-		memcpy(&id, &data8.ref.packedOffset, data8.contentSize());
-		return id;
+		uint32_t mask = 0xffffffff >> ((4 - data8.contentSize()) * 8);
+		return data8.ref.packedOffset & mask;
 	}
 
 	bool isNamed() const
