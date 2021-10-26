@@ -1,4 +1,4 @@
-/**
+/****
  * xattr.h
  * Extended Attributes
  *

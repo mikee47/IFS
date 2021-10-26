@@ -1,4 +1,4 @@
-/**
+/****
  * FileSystem.h
  * FWFS - Firmware File System
  *
@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License along with this library.
  * If not, see <https://www.gnu.org/licenses/>.
  *
- */
+ ****/
 
 #pragma once
 

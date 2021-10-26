@@ -1,4 +1,4 @@
-/**
+/****
  * Object.h
  * Basic definitions for FW file system structure.
  *
@@ -68,7 +68,7 @@
  * just an array of 32-bit image offsets so that an object can be located instantly on
  * large volumes. This will be optional as it can consume significant space.
  *
- */
+ ****/
 
 #pragma once
 

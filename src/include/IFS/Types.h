@@ -1,4 +1,4 @@
-/**
+/****
  * Types.h
  * Platform-specific defininitions
  *

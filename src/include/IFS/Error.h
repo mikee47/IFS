@@ -1,4 +1,4 @@
-/**
+/****
  * Error.h
  * IFS Error codes and related stuff
  *

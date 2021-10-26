@@ -1,4 +1,4 @@
-/**
+/****
  * IFileSystem.h
  * Abstract interface definitions for filesystem implementators
  *
