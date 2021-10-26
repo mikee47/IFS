@@ -11,8 +11,11 @@ from rjsmin import jsmin
 
 class Config:
     def __init__(self, filename):
-        din = open(filename).read()
-        self.data = json.loads(jsmin(din))
+        if filename.startswith('{'):
+            self.data = json.loads(filename)
+        else:
+            din = open(filename).read()
+            self.data = json.loads(jsmin(din))
 
         try:
             from jsonschema import Draft7Validator

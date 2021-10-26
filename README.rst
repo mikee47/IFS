@@ -61,6 +61,21 @@ Firmware FileSystem (FWFS)
 
    Sming provides the :sample:`Basic_IFS` sample application which gives a worked example of this.
 
+   Simple filesystem definitions can be defined in-situ, rather than using external file:
+
+   .. code-block:: json
+
+      "build": {
+            "target": "fwfs-build",   // To build a FWFS image
+            "config": {
+               "name": "Simple filesystem",
+               "source": {
+                  "/": "files"
+               }
+            }
+      }
+
+
 
 The following basic IFS implementations are provided in this library:
 

@@ -37,10 +37,9 @@ ifneq (,$(filter fwfs-build,$(MAKECMDGOALS)))
 PART_TARGET := $(PARTITION_$(PART)_FILENAME)
 ifneq (,$(PART_TARGET))
 $(eval PART_CONFIG := $(call HwExpr,part.build['config']))
-# PART_CONFIG := $(call AbsoluteSourcePath,$(PROJECT_DIR),$(PART_CONFIG))
 .PHONY: fwfs-build
 fwfs-build:
 	@echo "Creating FWFS image '$(PART_TARGET)'"
-	$(Q) $(FSBUILD) -i $(PART_CONFIG) -o $(PART_TARGET)
+	$(Q) $(FSBUILD) -i "$(subst ",\",$(PART_CONFIG))" -o $(PART_TARGET)
 endif
 endif

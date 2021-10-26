@@ -141,11 +141,7 @@ if __name__ == "__main__":
     
     # Parse the configuration file
     cfg = config.Config(configFile)
-    
-    # Non-absolute file paths are relative to location of config file
-    if configDir != "":
-        os.chdir(configDir)
-    
+
     img = FWFS.Image(cfg.volumeName(), cfg.volumeID())
     
     outFilePath = args.files
