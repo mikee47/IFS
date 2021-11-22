@@ -136,11 +136,8 @@ if __name__ == "__main__":
     if args.verbose:
         print("Python version: ", sys.version, ", version info: ", sys.version_info)
 
-    configFile = os.path.expandvars(util.ospath(args.input))
-    configDir = os.path.dirname(configFile)
-    
-    # Parse the configuration file
-    cfg = config.Config(configFile)
+    # Parse the configuration file or input JSON
+    cfg = config.Config(args.input)
 
     img = FWFS.Image(cfg.volumeName(), cfg.volumeID())
     
