@@ -186,13 +186,13 @@ public:
 
 		int err = dstFile.getLastError();
 		if(err < 0) {
-			debug_e("Copy: write '%s' faile: %s", stat.name.buffer, dstFile.getLastErrorString().c_str());
+			debug_e("Copy: write '%s' failed: %s", stat.name.buffer, dstFile.getLastErrorString().c_str());
 			return err;
 		}
 
 		err = srcFile.getLastError();
 		if(err < 0) {
-			debug_e("Copy: read '%s' faile: %s", stat.name.buffer, srcFile.getLastErrorString().c_str());
+			debug_e("Copy: read '%s' failed: %s", stat.name.buffer, srcFile.getLastErrorString().c_str());
 			return err;
 		}
 

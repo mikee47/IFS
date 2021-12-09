@@ -1,6 +1,6 @@
 /****
  * IFileSystem.h
- * Abstract interface definitions for filesystem implementators
+ * Abstract filesystem interface definitions
  *
  * Created: August 2018
  *

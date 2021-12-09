@@ -144,7 +144,7 @@ int FileSystem::mount()
 		return res;
 	}
 
-	// Copy defaullt root ACL from fwfs -> ffs
+	// Copy default root ACL from fwfs -> ffs
 	Stat stat{};
 	fwfs->stat(nullptr, &stat);
 	auto rootAcl = stat.acl;
