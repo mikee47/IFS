@@ -261,7 +261,7 @@ or :IFS::FileSystem::`enumAttributes`.
 .. note::
 
    The ESP-IDF has a mechanism for flash-based configuration space via the ``NVS`` component.
-   It is robust and flexible but uses a signficant amount of RAM for buffering which may preclude
+   It is robust and flexible but uses a significant amount of RAM for buffering which may preclude
    its use with the ESP8266.
 
 
