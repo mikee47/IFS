@@ -1,4 +1,4 @@
-/**
+/****
  * FileAttributes.h
  *
  * Created on: 31 Aug 2018
@@ -40,7 +40,8 @@ namespace IFS
 	XX(Archive, A, "File modified flag")                                                                               \
 	XX(ReadOnly, R, "File may not be modified or deleted")                                                             \
 	XX(Directory, D, "Object is a directory entry")                                                                    \
-	XX(MountPoint, M, "Directs to another object store")
+	XX(MountPoint, M, "Directs to another object store")                                                               \
+	XX(Encrypted, E, "File is encrypted")
 
 enum class FileAttribute {
 #define XX(_tag, _char, _comment) _tag,

@@ -65,17 +65,7 @@ namespace
 
 FileSystem hostFileSystem;
 
-const char* extendedAttributeName{"user.sming.ifs"};
-
-/**
- * @brief Stored with file
- */
-struct ExtendedAttributes {
-	uint32_t size; ///< Size of this structure
-	ACL acl;
-	FileAttributes attr;
-	IFS::Compression compression;
-};
+const char* extendedAttributePrefix{"user.ifs."};
 
 int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 {
@@ -85,13 +75,6 @@ int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 	int res = ::fsetxattr(file, name, value, size, 0);
 #endif
 	return (res == 0) ? FS_OK : syserr();
-}
-
-int setExtendedAttributes(FileHandle file, const ExtendedAttributes& ea)
-{
-	ExtendedAttributes buf{ea};
-	buf.size = sizeof(ea);
-	return setXAttr(file, extendedAttributeName, &buf, sizeof(buf));
 }
 
 int getXAttr(FileHandle file, const char* name, void* value, size_t size)
@@ -104,57 +87,79 @@ int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 	return (len >= 0) ? len : syserr();
 }
 
-int getExtendedAttributes(FileHandle file, ExtendedAttributes& ea)
+int listXAttr(FileHandle file, char* namebuf, size_t size)
 {
-	auto len = getXAttr(file, extendedAttributeName, &ea, sizeof(ea));
-	if(len < 0) {
-		return len;
-	}
-	if(len != sizeof(ea) || ea.size != sizeof(ea)) {
-		return Error::ReadFailure;
-	}
-	return FS_OK;
+#if defined(__MACOS)
+	auto len = ::flistxattr(file, namebuf, size, 0);
+#else
+	auto len = ::flistxattr(file, namebuf, size);
+#endif
+	return (len >= 0) ? len : syserr();
 }
 
-int getUserAttributes(FileHandle file, Stat& stat)
+int getExtendedAttribute(FileHandle file, AttributeTag tag, void* buffer, size_t bufsize)
 {
-	ExtendedAttributes ea{};
+	String tagString = toString(tag);
+	if(!tagString) {
+		return Error::BadParam;
+	}
+	String name = extendedAttributePrefix + tagString;
+	name.toLowerCase();
+	auto len = getXAttr(file, name.c_str(), buffer, bufsize);
+	if(len >= 0) {
+		return len;
+	}
 
 #ifdef __WIN32
-	uint32_t attr{0};
-	if(fgetattr(file, attr) == 0) {
-		stat.attr[FileAttribute::ReadOnly] = (attr & _A_RDONLY);
-		stat.attr[FileAttribute::Archive] = (attr & _A_ARCH);
+	if(tag == AttributeTag::FileAttributes) {
+		uint32_t attr{0};
+		if(fgetattr(file, attr) == 0) {
+			FileAttributes fileAttr{};
+			fileAttr[FileAttribute::ReadOnly] = (attr & _A_RDONLY);
+			fileAttr[FileAttribute::Archive] = (attr & _A_ARCH);
+			len = sizeof(fileAttr);
+			memcpy(buffer, &fileAttr, std::min(size_t(len), bufsize));
+		}
 	}
 #endif
 
-	int res = getExtendedAttributes(file, ea);
-	if(res < 0) {
-		return res;
-	}
-
-	stat.acl = ea.acl;
-	stat.compression = ea.compression;
-	stat.attr = ea.attr;
-	checkStat(stat);
-
-	return FS_OK;
+	return len;
 }
 
-int getUserAttributes(const char* path, Stat& stat)
+template <typename T> int getExtendedAttribute(FileHandle file, AttributeTag tag, T& data)
+{
+	return getExtendedAttribute(file, tag, &data, sizeof(data));
+}
+
+int setExtendedAttribute(FileHandle file, AttributeTag tag, const void* data, size_t size)
+{
+	String tagString = toString(tag);
+	if(!tagString) {
+		return Error::BadParam;
+	}
+	String name = extendedAttributePrefix + tagString;
+	name.toLowerCase();
+	return setXAttr(file, name.c_str(), data, size);
+}
+
+void getExtendedAttributes(FileHandle file, Stat& stat)
+{
+	getExtendedAttribute(file, AttributeTag::ReadAce, stat.acl.readAccess);
+	getExtendedAttribute(file, AttributeTag::WriteAce, stat.acl.writeAccess);
+	getExtendedAttribute(file, AttributeTag::FileAttributes, stat.attr);
+	getExtendedAttribute(file, AttributeTag::Compression, stat.compression);
+	checkStat(stat);
+}
+
+bool getExtendedAttributes(const char* path, Stat& stat)
 {
 	auto f = hostFileSystem.open(path, OpenFlag::Read);
 	if(f < 0) {
-		return f;
+		return false;
 	}
-
-	int res = getUserAttributes(f, stat);
-	if(!stat.attr[FileAttribute::Compressed]) {
-		stat.compression.originalSize = stat.size;
-	}
-
+	getExtendedAttributes(f, stat);
 	hostFileSystem.close(f);
-	return res;
+	return true;
 }
 
 int settime(FileHandle file, TimeStamp mtime)
@@ -305,7 +310,7 @@ int FileSystem::stat(const char* path, Stat* stat)
 		fillStat(s, *stat);
 		const char* lastSep = strrchr(path, '/');
 		stat->name.copy(lastSep ? lastSep + 1 : path);
-		getUserAttributes(path, *stat);
+		getExtendedAttributes(path, *stat);
 	}
 
 	return FS_OK;
@@ -321,7 +326,7 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 
 	if(stat != nullptr) {
 		fillStat(s, *stat);
-		getUserAttributes(file, *stat);
+		getExtendedAttributes(file, *stat);
 	}
 
 	return res;
@@ -329,83 +334,81 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 
 int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
-	if(tag >= AttributeTag::User) {
-		char name[16];
-		m_snprintf(name, sizeof(name), "__user_%02x", tag);
-		return setXAttr(file, name, data, size);
-	}
-
-	auto attrSize = getAttributeSize(tag);
-	if(attrSize == 0) {
-		return Error::BadParam;
-	}
-	if(size != attrSize) {
-		return Error::BadParam;
-	}
-	if(tag == AttributeTag::ModifiedTime) {
-		TimeStamp mtime;
-		memcpy(&mtime, data, size);
-		return settime(file, mtime);
-	}
-
-	ExtendedAttributes ea{};
-
-	auto update = [&](void* value) {
-		int err = getExtendedAttributes(file, ea);
-		if(err < 0) {
-			return err;
+	if(tag < AttributeTag::User) {
+		auto attrSize = getAttributeSize(tag);
+		if(attrSize != 0 && size != attrSize) {
+			return Error::BadParam;
 		}
-		memcpy(value, data, attrSize);
-		return setExtendedAttributes(file, ea);
-	};
+		if(tag == AttributeTag::ModifiedTime) {
+			TimeStamp mtime;
+			memcpy(&mtime, data, size);
+			return settime(file, mtime);
+		}
+	}
 
-	switch(tag) {
-	case AttributeTag::Acl:
-		return update(&ea.acl);
-	case AttributeTag::Compression:
-		return update(&ea.compression);
-	case AttributeTag::FileAttributes: {
-		return update(&ea.attr);
-	}
-	default:
-		return Error::BadParam;
-	}
+	return setExtendedAttribute(file, tag, data, size);
 }
 
 int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
-	if(tag >= AttributeTag::User) {
-		char name[16];
-		m_snprintf(name, sizeof(name), "__user_%02x", tag);
-		return getXAttr(file, name, buffer, size);
+	if(tag == AttributeTag::ModifiedTime) {
+		struct ::stat s {
+		};
+		::fstat(file, &s);
+		TimeStamp mtime;
+		mtime = s.st_mtime;
+		auto attrsize = sizeof(mtime);
+		memcpy(buffer, &mtime, std::min(attrsize, size));
+		return attrsize;
 	}
 
-	Stat stat{};
+	return getExtendedAttribute(file, tag, buffer, size);
+}
 
-	auto copy = [&](const void* value, size_t len) {
-		int err = fstat(file, &stat);
-		if(err < 0) {
-			return err;
-		}
-		if(size < len) {
-			size = len;
-		}
-		memcpy(buffer, value, size);
-		return int(len);
+int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize)
+{
+	unsigned count{0};
+	AttributeEnum e{buffer, bufsize};
+
+	struct ::stat s {
 	};
-
-	switch(tag) {
-	case AttributeTag::ModifiedTime:
-		return copy(&stat.mtime, sizeof(stat.mtime));
-	case AttributeTag::Acl:
-		return copy(&stat.acl, sizeof(stat.acl));
-	case AttributeTag::Compression:
-		return copy(&stat.compression, sizeof(stat.compression));
-	case AttributeTag::FileAttributes:
-		return copy(&stat.attr, sizeof(stat.attr));
-	default:
-		return Error::BadParam;
+	::fstat(file, &s);
+	TimeStamp mtime;
+	mtime = s.st_mtime;
+	++count;
+	e.set(AttributeTag::ModifiedTime, mtime);
+	if(!callback(e)) {
+		return count;
 	}
+
+	char names[4096];
+	int listlen = listXAttr(file, names, sizeof(names));
+	if(listlen < 0) {
+		return count;
+	}
+	for(unsigned offset = 0; offset < unsigned(listlen);) {
+		auto name = &names[offset];
+		offset += strlen(name) + 1;
+		auto prefixLen = strlen(extendedAttributePrefix);
+		if(memicmp(name, extendedAttributePrefix, prefixLen) != 0) {
+			continue;
+		}
+		if(!fromString(name + prefixLen, e.tag)) {
+			continue;
+		}
+		int attrsize = getXAttr(file, name, e.buffer, e.bufsize);
+		if(attrsize < 0) {
+			// TODO: Report to user... zero size?
+			continue;
+		}
+		e.attrsize = attrsize;
+		e.size = std::min(size_t(attrsize), bufsize);
+		if(!callback(e)) {
+			return count;
+		}
+	}
+
+	return count;
 }
 
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)

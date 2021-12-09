@@ -82,6 +82,7 @@
 
 #include "../include/IFS/HYFS/FileSystem.h"
 #include "../include/IFS/FWFS/FileSystem.h"
+#include "../include/IFS/FileSystem.h"
 #include "../include/IFS/Util.h"
 
 #define CHECK_MOUNTED()                                                                                                \
@@ -125,6 +126,14 @@ int FileSystem::mount()
 		return Error::NoFileSystem;
 	}
 
+	Info info;
+	ffs->getinfo(info);
+	debug_i("[HYFS] Mounting with %s", toString(info.type).c_str());
+	if(info.attr[Attribute::ReadOnly]) {
+		debug_e("[HYFS] Provided filesystem is read-only");
+		return Error::ReadOnly;
+	}
+
 	int res = fwfs->mount();
 	if(res < 0) {
 		return res;
@@ -134,6 +143,22 @@ int FileSystem::mount()
 	if(res < 0) {
 		return res;
 	}
+
+	// Copy default root ACL from fwfs -> ffs
+	Stat stat{};
+	fwfs->stat(nullptr, &stat);
+	auto rootAcl = stat.acl;
+	ffs->stat(nullptr, &stat);
+
+	auto checkAce = [&](AttributeTag tag, UserRole src, UserRole dst) {
+		if(src != dst) {
+			int err = ffs->setxattr(nullptr, tag, &src, sizeof(src));
+			debug_i("[HYFS] Root %s -> %s (%s)", toString(tag).c_str(), toString(src).c_str(),
+					ffs->getErrorString(err).c_str());
+		}
+	};
+	checkAce(AttributeTag::ReadAce, rootAcl.readAccess, stat.acl.readAccess);
+	checkAce(AttributeTag::WriteAce, rootAcl.writeAccess, stat.acl.writeAccess);
 
 	mounted = true;
 
@@ -257,13 +282,20 @@ int FileSystem::readdir(DirHandle dir, Stat& stat)
 		res = ffs->readdir(d->ffs, s);
 		if(res >= 0) {
 			stat = s;
-			char* path = s.name.buffer;
 			auto pathlen = d->path.length();
+			auto newpathlen = pathlen + s.name.length;
 			if(pathlen != 0) {
-				memmove(path + pathlen + 1, path, s.name.length);
-				path[pathlen] = '/';
+				++newpathlen; // Separator
 			}
-			memcpy(path, d->path.c_str(), pathlen);
+			if(newpathlen >= s.name.size) {
+				return Error::NameTooLong;
+			}
+			char* path = s.name.buffer;
+			if(pathlen != 0) {
+				memmove(path + pathlen + 1, s.name.buffer, s.name.length + 1);
+				path[pathlen] = '/';
+				memcpy(path, d->path.c_str(), pathlen);
+			}
 			hideFWFile(path, true);
 			return res;
 		}
@@ -381,6 +413,7 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 	// Now copy FW file to FFS
+	IFS::FileSystem::cast(ffs)->makedirs(path);
 	if(fwfile >= 0) {
 		flags |= OpenFlag::Create | OpenFlag::Read | OpenFlag::Write;
 	}
@@ -398,10 +431,18 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 	}
 
 	// Copy metadata
-	Stat stat;
-	if(fwfs->fstat(fwfile, &stat) >= 0) {
-		ffs->fsetxattr(ffsfile, AttributeTag::Acl, &stat.acl, sizeof(stat.acl));
-		ffs->fsetxattr(ffsfile, AttributeTag::Compression, &stat.compression, sizeof(stat.compression));
+	auto callback = [&](IFS::AttributeEnum& e) -> bool {
+		// Ignore errors here as destination file system doesn't necessarily support all attributes
+		int err = ffs->fsetxattr(ffsfile, e.tag, e.buffer, e.size);
+		if(err < 0) {
+			debug_w("[HYFS] fsetxattr(%s): %s", toString(e.tag).c_str(), ffs->getErrorString(err).c_str());
+		}
+		return true;
+	};
+	char buffer[1024];
+	res = fwfs->fenumxattr(fwfile, callback, buffer, sizeof(buffer));
+	if(res < 0) {
+		debug_w("[HYFS] fenumxattr(): %s", fwfs->getErrorString(res).c_str());
 	}
 
 	// If not truncating then copy content into FFS file
@@ -515,6 +556,12 @@ int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_
 {
 	GET_FS(file)
 	return fs->fgetxattr(file, tag, buffer, size);
+}
+
+int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize)
+{
+	GET_FS(file)
+	return fs->fenumxattr(file, callback, buffer, bufsize);
 }
 
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)

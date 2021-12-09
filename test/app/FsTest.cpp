@@ -42,7 +42,7 @@ void printFsInfo(FileSystem* fs)
 	debug_i("maxPathLength: %u", info.maxPathLength);
 	debug_i("attr:          %s", toString(info.attr).c_str());
 	debug_i("volumeID:      0x%08X", info.volumeID);
-	debug_i("name:          %s", info.name.buffer);
+	debug_i("name:          %s", info.name.c_str());
 	debug_i("volumeSize:    %u", info.volumeSize);
 	debug_i("freeSpace:     %u", info.freeSpace);
 }
@@ -51,9 +51,26 @@ void printFileInfo(const IFS::Stat& stat)
 {
 	FileSystem::Info info;
 	stat.fs->getinfo(info);
-	debug_i("%-50s %8u %s #0x%08x %s %s [%s] {%s, %u}", stat.name.buffer, stat.size, toString(info.type).c_str(),
+	debug_i("%-50s %8u %s #0x%08x %s %s [%s] {%s, %u}", stat.name.c_str(), stat.size, toString(info.type).c_str(),
 			stat.id, timeToStr(stat.mtime, " ").c_str(), toString(stat.acl).c_str(), toString(stat.attr).c_str(),
 			toString(stat.compression.type).c_str(), stat.compression.originalSize);
+}
+
+void printAttrInfo(IFS::FileSystem* fs, const String& filename)
+{
+	IFS::File f(fs);
+	if(!f.open(filename)) {
+		return;
+	}
+	auto callback = [](IFS::AttributeEnum& e) -> bool {
+		debug_i("  attr 0x%04x %s, %u bytes", unsigned(e.tag), toString(e.tag).c_str(), e.attrsize);
+		debug_hex(INFO, "  ATTR", e.buffer, e.size);
+		return true;
+	};
+	char buffer[64];
+	int res = f.enumAttributes(callback, buffer, sizeof(buffer));
+	(void)res;
+	debug_d("enumAttributes: %d", res);
 }
 
 // Displays as local time
@@ -64,19 +81,36 @@ String timeToStr(time_t t, const char* dtsep)
 		return nullptr;
 	}
 	char buffer[64];
-	m_snprintf(buffer, sizeof(buffer), "%02u/%02u/%04u%s%02u:%02u:%02u", tm->tm_mday, tm->tm_mon + 1,
+	m_snprintf(buffer, sizeof(buffer), _F("%02u/%02u/%04u%s%02u:%02u:%02u"), tm->tm_mday, tm->tm_mon + 1,
 			   1900 + tm->tm_year, dtsep, tm->tm_hour, tm->tm_min, tm->tm_sec);
 	return buffer;
 }
 
 int listdir(IFS::FileSystem* fs, const String& path, Flags flags)
 {
-	debug_i("$ ls %s", path.c_str());
+	m_printf(_F("$ ls %s\r\n"), path.c_str());
+
+	FileNameStat stat;
+	int err = fs->stat(path, &stat);
+	if(err < 0) {
+		debug_w("stat('%s'): %s", path.c_str(), fs->getErrorString(err).c_str());
+	} else {
+		printFileInfo(stat);
+		if(flags[Flag::attributes]) {
+			printAttrInfo(fs, path);
+		}
+	}
 
 	IFS::Directory dir(fs);
 	if(dir.open(path)) {
 		while(dir.next()) {
 			printFileInfo(dir.stat());
+			String filename = path;
+			filename += '/';
+			filename += dir.stat().name.c_str();
+			if(flags[Flag::attributes]) {
+				printAttrInfo(fs, filename);
+			}
 		}
 
 		if(flags[Flag::recurse]) {

@@ -1,4 +1,4 @@
-/**
+/****
  * Object.h
  * Basic definitions for FW file system structure.
  *
@@ -68,7 +68,7 @@
  * just an array of 32-bit image offsets so that an object can be located instantly on
  * large volumes. This will be optional as it can consume significant space.
  *
- */
+ ****/
 
 #pragma once
 
@@ -126,6 +126,8 @@ constexpr uint32_t FWFILESYS_END_MARKER{0x46574653}; // "SFWF"
 	XX(6, WriteACE, "minimum UserRole for write access")                                                               \
 	XX(7, VolumeIndex, "Volume index number")                                                                          \
 	XX(8, Md5Hash, "MD5 Hash Value")                                                                                   \
+	XX(9, Comment, "Comment")                                                                                          \
+	XX(10, UserAttribute, "User Attribute")                                                                            \
 	XX(32, Data16, "Data, max 64K - 1")                                                                                \
 	XX(33, Volume, "Volume, top-level container object")                                                               \
 	XX(34, MountPoint, "Root for another filesystem")                                                                  \
@@ -143,9 +145,9 @@ struct Object {
 	uint8_t typeData; ///< Stored type plus flag
 
 	/**
-	 * @brief Object identifier
+	 * @brief Object identifier (offset from start of image)
 	 */
-	using ID = uint16_t;
+	using ID = uint32_t;
 
 	enum class Type {
 #define XX(value, tag, text) tag = value,
@@ -169,6 +171,13 @@ struct Object {
 		 *  @note Object has been changed on disk. Typically used by backup applications
 		 */
 		Archive,
+		/**
+		 * @brief Object data is encrypted
+		 * 
+		 * This is just a hint. Applications will typically provide additional user metadata
+		 * to provide any additional information required for decryption.
+		 */
+		Encrypted,
 		//
 		MAX
 	};
@@ -180,9 +189,26 @@ struct Object {
 		return static_cast<Type>(typeData & 0x7f);
 	}
 
+	void setType(Type type, bool isRef = false)
+	{
+		typeData = unsigned(type);
+		if(isRef) {
+			typeData |= FWOBT_REF;
+		}
+	}
+
 	bool isRef() const
 	{
 		return (typeData & FWOBT_REF) != 0;
+	}
+
+	uint32_t getRef() const
+	{
+		if(!isRef()) {
+			return 0;
+		}
+		uint32_t mask = 0xffffffff >> ((4 - data8.contentSize()) * 8);
+		return data8.ref.packedOffset & mask;
 	}
 
 	bool isNamed() const
@@ -221,10 +247,15 @@ struct Object {
 				return _contentSize;
 			}
 
+			void setContentSize(uint32_t value)
+			{
+				_contentSize = value;
+			}
+
 			union {
 				// An object reference: the contents are stored externally (on the same volume)
 				struct {
-					ID id;
+					uint32_t packedOffset; // 1-4 byte offset
 				} ref;
 
 				// ID32
@@ -250,6 +281,12 @@ struct Object {
 					uint8_t index;
 				} volumeIndex;
 
+				// User attribute
+				struct {
+					uint8_t tagValue;
+					// uint8_t[] data;
+				} userAttribute;
+
 				// END - immediately followed by end marker
 				struct {
 					uint32_t checksum;
@@ -270,6 +307,11 @@ struct Object {
 			uint32_t contentSize() const
 			{
 				return _contentSize;
+			}
+
+			void setContentSize(uint32_t value)
+			{
+				_contentSize = value;
 			}
 
 			uint32_t size() const
@@ -363,6 +405,17 @@ struct Object {
 		}
 	}
 
+	void setContentSize(size_t size)
+	{
+		if(isRef() || type() < Type::Data16) {
+			data8.setContentSize(size);
+		} else if(type() < Type::Data24) {
+			data16.setContentSize(size);
+		} else {
+			data24.setContentSize(size);
+		}
+	}
+
 	uint32_t childTableOffset() const
 	{
 		assert(isNamed());
@@ -390,59 +443,45 @@ static_assert(sizeof(Object) == 8, "Object alignment wrong!");
 #pragma pack()
 
 /**
- * @brief gives the identity and location of an FWFS object
- */
-struct ObjRef {
-	uint32_t offset{0}; ///< Offset from start of image
-	Object::ID id{0};
-	uint8_t readCount{0}; ///< For profiling
-
-	ObjRef(Object::ID objID = 0) : id(objID)
-	{
-	}
-};
-
-/**
  * @brief FWFS Object Descriptor
  */
 struct FWObjDesc {
-	Object obj{}; ///< The object structure
-	ObjRef ref;   ///< location
+	Object::ID id; ///< location
+	Object obj{};  ///< The object structure
 
-	FWObjDesc()
+	FWObjDesc(Object::ID objId = 0) : id(objId)
 	{
 	}
 
-	FWObjDesc(const ObjRef& objRef) : ref(objRef)
+	uint32_t offset() const
 	{
-	}
-
-	FWObjDesc(uint32_t objId) : ref(objId)
-	{
+		return id;
 	}
 
 	uint32_t nextOffset() const
 	{
-		return ref.offset + obj.size();
+		return offset() + obj.size();
 	}
 
 	// Move to next object location
 	void next()
 	{
-		ref.offset = nextOffset();
-		++ref.id;
+		id = nextOffset();
 	}
 
 	uint32_t contentOffset() const
 	{
-		return ref.offset + obj.contentOffset();
+		return offset() + obj.contentOffset();
 	}
 
 	uint32_t childTableOffset() const
 	{
-		return ref.offset + obj.childTableOffset();
+		return offset() + obj.childTableOffset();
 	}
 };
+
+FileAttributes getFileAttributes(Object::Attributes objattr);
+Object::Attributes getObjectAttributes(FileAttributes fileAttr);
 
 } // namespace FWFS
 } // namespace IFS

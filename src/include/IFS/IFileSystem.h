@@ -1,6 +1,6 @@
-/**
+/****
  * IFileSystem.h
- * Abstract interface definitions for filesystem implementators
+ * Abstract filesystem interface definitions
  *
  * Created: August 2018
  *
@@ -33,6 +33,7 @@
 #include "Error.h"
 #include "Control.h"
 #include "Profiler.h"
+#include "Attribute.h"
 #include <Data/Stream/SeekOrigin.h>
 
 /**
@@ -65,14 +66,6 @@ class IFileSystem;
  * Opaque structure for directory reading
  */
 using DirHandle = struct ImplFileDir*;
-
-/**
- * @brief Get current timestamp in UTC
- * @retval time_t
- * @note Filing systems must store timestamps in UTC
- * Use this function; makes porting easier.
- */
-time_t fsGetTimeUTC();
 
 #if DEBUG_BUILD
 #define debug_ifserr(err, func, ...)                                                                                   \
@@ -132,6 +125,7 @@ public:
 		NameBuffer name;		///< Buffer for name
 		uint32_t volumeSize{0}; ///< Size of volume, in bytes
 		uint32_t freeSpace{0};  ///< Available space, in bytes
+		TimeStamp creationTime{};
 
 		Info()
 		{
@@ -162,6 +156,19 @@ public:
 		{
 			*this = Info{};
 		}
+	};
+
+	/**
+	 * @brief Filing system information with buffer for name
+	 */
+	struct NameInfo : public Info {
+	public:
+		NameInfo() : Info(buffer, sizeof(buffer))
+		{
+		}
+
+	private:
+		char buffer[256];
 	};
 
 	/**
@@ -383,6 +390,16 @@ public:
      * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
 	virtual int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) = 0;
+
+	/**
+	 * @brief Enumerate attributes
+     * @param file handle to open file
+	 * @param callback Callback function to invoke for each attribute found
+	 * @param buffer Buffer to use for reading attribute data. Use nullptr if only tags are required
+	 * @param bufsize Size of buffer
+     * @retval int error code, on success returns number of attributes read
+     */
+	virtual int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) = 0;
 
 	/**
 	 * @brief Set an extended attribute for a file given its path

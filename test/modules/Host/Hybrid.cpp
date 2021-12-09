@@ -14,17 +14,24 @@
 #include <Storage/FileDevice.h>
 #include <Storage/ProgMem.h>
 #include <Crypto/Md5.h>
+#include <Spiffs.h>
+#include <LittleFS.h>
+
+using SubType = Storage::Partition::SubType::Data;
 
 namespace
 {
-// We mount SPIFFS on a file so we can inspect if necessary
+// We mount SPIFFS/LittleFS on a file so we can inspect if necessary
 DEFINE_FSTR(SPIFFS_IMGFILE, "out/spiffs.bin")
+DEFINE_FSTR(LFS_IMGFILE, "out/lfs.bin")
 
 // Partition names
 DEFINE_FSTR(FS_PART_FWFS1, "fwfs1")
 DEFINE_FSTR(FS_PART_FWFS2, "fwfs2")
 
 IMPORT_FSTR(fwfsImage1, PROJECT_DIR "/out/fwfsImage1.bin")
+
+DEFINE_FSTR(BACKUP_FWFS, "backup.fwfs.bin")
 
 // Flash Filesystem parameters
 #define FFS_FLASH_SIZE (2 * 1024 * 1024)
@@ -48,40 +55,55 @@ public:
 		Serial.println();
 
 		auto part = createFwfsPartition(fwfsImage1);
-		fwfsRef = initFWFS(part, 0);
-		auto fs = initFWFS(part, Flag::hybrid);
-		CHECK(fs != nullptr);
-		if(fs != nullptr) {
-			fstest(fs, Flag::recurse | Flag::readFileTest | Flag::writeThroughTest);
+		fwfsRef = initFWFS(part, SubType::fwfs);
 
-			auto backup_fwfs{"backup.fwfs.bin"};
-
-			Serial.println();
-			auto fs2 = initFWFSOnFile(*fs, backup_fwfs, 0);
-			if(fs2 != nullptr) {
-				fstest(fs2, Flag::recurse | Flag::readFileTest);
-				delete fs2;
-			}
-
-			destroyStorageDevice(backup_fwfs);
-			delete fs;
+		TEST_CASE("Verify Hybrid SPIFFS")
+		{
+			verify(part, SubType::spiffs);
+			destroyStorageDevice(SPIFFS_IMGFILE);
 		}
 
-		Serial.println();
-		fs = initSpiffs(SPIFFS_IMGFILE, FFS_FLASH_SIZE);
-		if(fs != nullptr) {
-			fstest(fs, Flag::recurse | Flag::readFileTest);
-			delete fs;
+		TEST_CASE("Verify Hybrid LittleFS")
+		{
+			verify(part, SubType::littlefs);
+			destroyStorageDevice(LFS_IMGFILE);
 		}
-		destroyStorageDevice(SPIFFS_IMGFILE);
 
 		listPartitions();
 		listDevices();
 	}
 
-	Storage::Partition createSpiffsPartition(const String& imgfile, size_t size)
+	void verify(Storage::Partition fwfsPart, SubType subtype)
 	{
-		auto part = Storage::findPartition(F("spiffs"));
+		auto fs = initFWFS(fwfsPart, subtype);
+		CHECK(fs != nullptr);
+		if(fs != nullptr) {
+			fstest(fs, Flag::recurse | Flag::readFileTest | Flag::writeThroughTest);
+
+			Serial.println();
+
+			auto part = createFwfsPartition(*fs, BACKUP_FWFS);
+			auto fs2 = initFWFS(part, SubType::fwfs);
+			if(fs2 != nullptr) {
+				fstest(fs2, Flag::recurse | Flag::readFileTest);
+				delete fs2;
+			}
+
+			destroyStorageDevice(BACKUP_FWFS);
+			delete fs;
+		}
+
+		Serial.println();
+		fs = initVolume(subtype);
+		if(fs != nullptr) {
+			fstest(fs, Flag::recurse | Flag::readFileTest);
+			delete fs;
+		}
+	}
+
+	Storage::Partition createPartition(const String& imgfile, size_t size, const String& name, SubType subtype)
+	{
+		auto part = Storage::findPartition(name);
 		if(part) {
 			return part;
 		}
@@ -96,21 +118,26 @@ public:
 		}
 
 		size_t curSize = hostfs.getSize(file);
-		if(curSize < FFS_FLASH_SIZE) {
-			hostfs.ftruncate(file, FFS_FLASH_SIZE);
+		if(curSize < size) {
+			hostfs.ftruncate(file, size);
 		}
 		auto dev = new Storage::FileDevice(imgfile, hostfs, file);
 		Storage::registerDevice(dev);
-		if(curSize < FFS_FLASH_SIZE) {
-			dev->erase_range(curSize, FFS_FLASH_SIZE - curSize);
+		if(curSize < size) {
+			dev->erase_range(curSize, size - curSize);
 		}
-		part = dev->createPartition("spiffs", Storage::Partition::SubType::Data::spiffs, 0, FFS_FLASH_SIZE);
+		part = dev->createPartition(name, subtype, 0, size);
 		return part;
+	}
+
+	Storage::Partition createSpiffsPartition(const String& imgfile, size_t size)
+	{
+		return createPartition(imgfile, size, F("spiffs"), SubType::spiffs);
 	}
 
 	Storage::Partition createFwfsPartition(const FlashString& image)
 	{
-		return Storage::progMem.createPartition(FS_PART_FWFS1, image, Storage::Partition::SubType::Data::fwfs);
+		return Storage::progMem.createPartition(FS_PART_FWFS1, image, SubType::fwfs);
 	}
 
 	Storage::Partition createFwfsPartition(FileSystem& fileSys, const String& imgfile)
@@ -125,7 +152,7 @@ public:
 			auto dev = new Storage::FileDevice(imgfile, fileSys, file);
 			Storage::registerDevice(dev);
 
-			part = dev->createPartition(FS_PART_FWFS1, Storage::Partition::SubType::Data::fwfs, 0, dev->getSize(),
+			part = dev->createPartition(FS_PART_FWFS1, SubType::fwfs, 0, dev->getSize(),
 										Storage::Partition::Flag::readOnly);
 		}
 
@@ -159,13 +186,29 @@ public:
 
 		int err = dstFile.getLastError();
 		if(err < 0) {
-			debug_e("Copy: write '%s' faile: %s", stat.name.buffer, dstFile.getLastErrorString().c_str());
+			debug_e("Copy: write '%s' failed: %s", stat.name.buffer, dstFile.getLastErrorString().c_str());
 			return err;
 		}
 
 		err = srcFile.getLastError();
 		if(err < 0) {
-			debug_e("Copy: read '%s' faile: %s", stat.name.buffer, srcFile.getLastErrorString().c_str());
+			debug_e("Copy: read '%s' failed: %s", stat.name.buffer, srcFile.getLastErrorString().c_str());
+			return err;
+		}
+
+		// Copy metadata
+		auto callback = [&](IFS::AttributeEnum& e) -> bool {
+			// Ignore errors here as destination file system doesn't necessarily support all attributes
+			int err = dstFile.setAttribute(e.tag, e.buffer, e.size);
+			if(err < 0) {
+				debug_w("fsetxattr(%s): %s", toString(e.tag).c_str(), dstFile.getLastErrorString().c_str());
+			}
+			return true;
+		};
+		char buffer[1024];
+		err = srcFile.enumAttributes(callback, buffer, sizeof(buffer));
+		if(err < 0) {
+			debug_w("fenumxattr(): %s", srcFile.getLastErrorString().c_str());
 			return err;
 		}
 
@@ -173,16 +216,13 @@ public:
 		return FS_OK;
 	}
 
-	FileSystem* initSpiffs(const String& imgfile, size_t imgsize)
+	FileSystem* initVolume(SubType subtype)
 	{
-		auto part = createSpiffsPartition(imgfile, imgsize);
-		if(!part) {
-			return nullptr;
-		}
-		auto ffs = IFS::createSpiffsFilesystem(part);
+		auto ffs = createFilesystem(subtype);
+		TEST_ASSERT(ffs != nullptr);
 
 		int err = ffs->mount();
-		debug_ifs(ffs, err, "mount('%s')", imgfile.c_str());
+		debug_ifs(ffs, err, "mount('%s')", toString(subtype).c_str());
 		if(err < 0) {
 			delete ffs;
 			TEST_ASSERT(false);
@@ -203,10 +243,10 @@ public:
 			return ffs;
 		}
 
-		debug_i("SPIFFS is empty, copy some stuff from FWFS");
+		debug_i("Filesystem is empty, copy some stuff from FWFS");
 
 		// Mount source data image
-		part = Storage::progMem.createPartition(FS_PART_FWFS2, fwfsImage1, Storage::Partition::SubType::Data::fwfs);
+		auto part = Storage::progMem.createPartition(FS_PART_FWFS2, fwfsImage1, SubType::fwfs);
 		auto fwfs = IFS::createFirmwareFilesystem(part);
 		int res = fwfs->mount();
 		if(res < 0) {
@@ -229,42 +269,46 @@ public:
 		return ffs;
 	}
 
-	FileSystem* initFWFS(Storage::Partition part, Flags flags)
+	FileSystem* createFilesystem(SubType subtype)
 	{
-		FileSystem* fs;
-		if(flags[Flag::hybrid]) {
-			auto spiffsPart = createSpiffsPartition(SPIFFS_IMGFILE, FFS_FLASH_SIZE);
-			if(!spiffsPart) {
-				return nullptr;
-			}
-			auto ffs = IFS::createSpiffsFilesystem(spiffsPart);
-			fs = IFS::createHybridFilesystem(part, ffs);
-		} else {
-			fs = IFS::createFirmwareFilesystem(part);
+		switch(subtype) {
+		case SubType::spiffs: {
+			auto part = createSpiffsPartition(SPIFFS_IMGFILE, FFS_FLASH_SIZE);
+			return IFS::createSpiffsFilesystem(part);
 		}
 
+		case SubType::littlefs: {
+			auto part = createPartition(LFS_IMGFILE, FFS_FLASH_SIZE, F("lfs"), SubType::littlefs);
+			return IFS::createLfsFilesystem(part);
+		}
+
+		default:
+			return nullptr;
+		}
+	}
+
+	FileSystem* initFWFS(Storage::Partition fwfsPart, SubType subtype)
+	{
+		FileSystem* fs;
+		if(subtype == SubType::fwfs) {
+			fs = IFS::createFirmwareFilesystem(fwfsPart);
+		} else {
+			auto ffs = createFilesystem(subtype);
+			fs = ffs ? IFS::createHybridFilesystem(fwfsPart, ffs) : nullptr;
+		}
+		CHECK(fs != nullptr);
 		if(fs == nullptr) {
 			return nullptr;
 		}
 
 		int err = fs->mount();
 		if(err < 0) {
-			debug_e("HFS mount failed: %s", getErrorString(fs, err).c_str());
+			debug_e("Mount failed: %s", getErrorString(fs, err).c_str());
 			delete fs;
 			return nullptr;
 		}
 
 		return fs;
-	}
-
-	FileSystem* initFWFSOnFile(FileSystem& fileSys, const String& imgfile, Flags flags)
-	{
-		auto part = createFwfsPartition(fileSys, imgfile);
-		if(!part) {
-			return nullptr;
-		}
-
-		return initFWFS(part, flags);
 	}
 
 	void readFileTest(FileSystem* fs, const String& filename, const IFS::Stat& stat)
@@ -311,8 +355,8 @@ public:
 	{
 		IFS::FileSystem::Info info;
 		CHECK(stat.fs->getinfo(info) >= 0);
-		if(info.type == IFS::FileSystem::Type::SPIFFS) {
-			return; // Already in SPIFFS
+		if(info.type != IFS::FileSystem::Type::FWFS) {
+			return; // Already writeable
 		}
 
 		auto originalStat = stat;
@@ -353,9 +397,27 @@ public:
 		CHECK(copyStat.size == originalStat.size);
 		CHECK(copyStat.attr == originalStat.attr);
 		CHECK(copyStat.compression == originalStat.compression);
-		CHECK(copyStat.acl == originalStat.acl);
 		auto now = IFS::fsGetTimeUTC();
 		CHECK(abs(copyStat.mtime - now) < 3);
+
+		if(copyStat.acl != originalStat.acl) {
+			/*
+			 * Don't throw an error here. FWFS behaviour is to inherit the root directory ACL,
+			 * so there may not be
+			 */
+			debug_w("Warning: ACL mismatch");
+
+			/*
+			 * ACLs are optional attributes on files. If not provided, they should default to the
+			 * root directory ACL. SPIFFS doesn't have full directory support (it's currently emulated)
+			 * so this isn't current possible to handle. But for other filesystems (LittleFS) confirm this.
+			 */
+			IFS::FileSystem::Info fsinfo;
+			copyStat.fs->getinfo(fsinfo);
+			if(fsinfo.type != IFS::FileSystem::Type::SPIFFS) {
+				TEST_ASSERT(false);
+			}
+		}
 
 		auto copyContent = fs->getContent(filename);
 		REQUIRE(copyContent == originalContent);

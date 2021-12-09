@@ -11,4 +11,5 @@
 	XX(Attributes)                                                                                                     \
 	XX(Links)                                                                                                          \
 	XX(Performance)                                                                                                    \
+	XX(Archive)                                                                                                        \
 	HOST_TEST_MAP(XX)

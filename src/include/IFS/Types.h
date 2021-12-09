@@ -1,6 +1,6 @@
-/**
+/****
  * Types.h
- * Platform-specific defininitions
+ * Platform-specific definitions
  *
  * Created on: 26 Aug 2018
  *

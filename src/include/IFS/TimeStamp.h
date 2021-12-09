@@ -1,4 +1,4 @@
-/**
+/****
  * TimeStamp.h
  *
  * Copyright 2019 mikee47 <mike@sillyhouse.net>
@@ -46,5 +46,13 @@ struct TimeStamp {
 		return *this;
 	}
 };
+
+/**
+ * @brief Get current timestamp in UTC
+ * @retval time_t
+ * @note Filing systems must store timestamps in UTC
+ * Use this function; makes porting easier.
+ */
+time_t fsGetTimeUTC();
 
 } // namespace IFS

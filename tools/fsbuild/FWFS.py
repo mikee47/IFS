@@ -108,9 +108,20 @@ class Object(object):
         """Get the size bytes (8, 16 or 32) - everything else is content"""
         return struct.pack("<B", self.__obt)
 
+    def refSize(self):
+        if self.__id <= 0xff:
+            return 1
+        if self.__id <= 0xffff:
+            return 2
+        if self.__id <= 0xffffff:
+            return 3
+        return 4
+
     def refHeader(self):
         assert(self.__id is not None)
-        return struct.pack("<BBH", self.__obt | FWOBT_REF, 2, self.__id)
+        id = struct.pack("L", self.__id)
+        len = self.refSize()
+        return struct.pack("<BB", self.__obt | FWOBT_REF, len) + id[0:len]
 
     def contentSize(self):
         return len(self.content())
@@ -334,6 +345,12 @@ class NamedObject(Object16):
         s = self.parent().path() + self.parent().pathsep() + self.name
         return s
    
+    def findChild(self, name):
+        for obj in self.__children:
+            if obj.isNamed() and obj.name == name:
+                return obj
+        return None
+
     def setAttr(self, attr, state):
         obj = self.findObject(FwObt.ObjAttr)
         if obj is None:
@@ -358,7 +375,7 @@ class NamedObject(Object16):
         size = 0
         for obj in self.__children:
             if obj.isRef:
-                size += 4
+                size += 2 + obj.refSize()
             else:
                 size += obj.size()
         return size
@@ -594,12 +611,11 @@ class Image:
     def offset(self):
         return self.__fout.tell()
 
-    # Return object ID (1-based)
+    # Return object ID (offset from start of image)
     def writeObject(self, header, content):
+        objID = self.__fout.tell()
         self.__fout.write(header)
         self.__fout.write(content)
-        size = len(header) + len(content)
         self.__objectCount += 1
-        objID = self.__objectCount
         return objID
 

@@ -43,11 +43,11 @@ Environment variables are specified using ``${VARNAME}`` syntax.
 
 File modification time is read from the file itself.
 
-Path mappings are specified in ``"{source}": "{target}"`` pairs, for example:
+Path mappings are specified in ``"{source}": "{target}"`` pairs, for example::
 
 	"/": "files"
 	
-Copies the contents of the ``files`` directory into the root of the image. All sub-directories are included.
+Copies the contents of the ``files`` directory into the root of the image. All sub-directories are included::
 
 	"ifs-readme.rst": "${SMING_HOME}/Components/IFS/README.rst"
 

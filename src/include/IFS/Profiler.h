@@ -1,4 +1,4 @@
-/**
+/****
  * IProfiler.h - Abstract interface to implement filesystem profiling
  *
  * Copyright 2021 mikee47 <mike@sillyhouse.net>

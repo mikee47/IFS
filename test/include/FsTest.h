@@ -20,10 +20,10 @@
 using FileSystem = IFS::FileSystem;
 
 #define FLAG_MAP(XX)                                                                                                   \
-	XX(hybrid, "Use hybrid filesystem, enabling write tests")                                                          \
 	XX(readFileTest, "Read content of every file")                                                                     \
 	XX(writeThroughTest, "With hybrid filesystem, 'touch' files to propagate them to SPIFFS from FWFS")                \
-	XX(recurse, "Recurse sub-directories")
+	XX(recurse, "Recurse sub-directories")                                                                             \
+	XX(attributes, "Include attributes")
 
 enum class Flag {
 #define XX(name, desc) name,

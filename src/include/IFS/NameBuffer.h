@@ -1,4 +1,4 @@
-/**
+/****
  * NameBuffer.h
  *
  * Created on: 31 Aug 2018
@@ -79,6 +79,11 @@ struct NameBuffer {
 	explicit operator String() const
 	{
 		return String(buffer, length);
+	}
+
+	bool operator==(const char* other)
+	{
+		return other != nullptr && strncmp(buffer, other, length) == 0;
 	}
 
 	/**
@@ -170,6 +175,18 @@ struct NameBuffer {
 	bool overflow() const
 	{
 		return length >= size;
+	}
+
+	bool endsWith(const char* suffix) const
+	{
+		if(suffix == nullptr) {
+			return false;
+		}
+		auto suffix_len = strlen(suffix);
+		if(length < suffix_len || suffix_len == 0) {
+			return false;
+		}
+		return memcmp(&buffer[length - suffix_len], suffix, suffix_len) == 0;
 	}
 };
 

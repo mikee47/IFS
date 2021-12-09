@@ -1,4 +1,4 @@
-/**
+/****
  * FileSystem.h
  * IFS wrapper for GDB syscall file access
  *
@@ -77,6 +77,10 @@ public:
 		return Error::NotSupported;
 	}
 	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override
+	{
+		return Error::NotSupported;
+	}
+	int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) override
 	{
 		return Error::NotSupported;
 	}

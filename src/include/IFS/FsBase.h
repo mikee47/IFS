@@ -1,4 +1,4 @@
-/**
+/****
  * FsBase.h
  * Common base for file system classes
  *
@@ -35,6 +35,11 @@ class FsBase
 public:
 	FsBase(IFileSystem* filesys) : fileSystem(FileSystem::cast(filesys))
 	{
+	}
+
+	bool isValid() const
+	{
+		return fileSystem != nullptr;
 	}
 
 	/** @brief determine if an error occurred during operation

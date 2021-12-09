@@ -27,7 +27,7 @@
 namespace
 {
 constexpr size_t nameSize{32};
-constexpr size_t contentSize{512};
+constexpr size_t contentSize{1024};
 
 NTSTATUS getExtendedAttribute(HANDLE hFile, const char* name, void* buffer, size_t bufSize, size_t& length)
 {
@@ -62,6 +62,39 @@ NTSTATUS setExtendedAttribute(HANDLE hFile, const char* name, const void* value,
 	IO_STATUS_BLOCK ioStatus{};
 	auto buflen = offsetof(FILE_FULL_EA_INFORMATION, EaName) + info->EaNameLength + 1 + info->EaValueLength;
 	return NtSetEaFile(hFile, &ioStatus, buf, buflen);
+}
+
+size_t queryExtendedAttributeNames(HANDLE hFile, char* buffer, size_t bufSize)
+{
+	size_t length{0};
+
+	for(unsigned i = 0;; ++i) {
+		IO_STATUS_BLOCK ioStatus{};
+		char buf[sizeof(FILE_FULL_EA_INFORMATION) + nameSize + contentSize];
+		auto res = NtQueryEaFile(hFile, &ioStatus, buf, sizeof(buf), true, nullptr, 0, nullptr, i == 0);
+		if(res != STATUS_SUCCESS) {
+			// res == STATUS_NO_EAS_ON_FILE
+			// res == STATUS_NO_MORE_EAS when finished
+			break;
+		}
+
+		auto& info = *reinterpret_cast<FILE_FULL_EA_INFORMATION*>(buf);
+		if(memcmp(info.EaName, "LX.", 3) != 0) {
+			continue;
+		}
+		auto name = info.EaName + 3;
+		auto namelen = info.EaNameLength - 3;
+		if(length + namelen > bufSize) {
+			break;
+		}
+		memcpy(buffer + length, name, namelen);
+		length += namelen;
+		if(length == bufSize) {
+			break;
+		}
+		buffer[length++] = '\0';
+	}
+	return length;
 }
 
 int getErrno(NTSTATUS status)
@@ -142,6 +175,11 @@ int fsetxattr(int file, const char* name, const void* value, size_t size, int fl
 	auto status = setExtendedAttribute(getHandle(file), buffer.name, buffer.content, size + lxea_prefix_length);
 	errno = getErrno(status);
 	return (status == STATUS_SUCCESS) ? 0 : -1;
+}
+
+int flistxattr(int file, char* namebuf, size_t size)
+{
+	return queryExtendedAttributeNames(getHandle(file), namebuf, size);
 }
 
 int fgetattr(int file, uint32_t& attr)

@@ -4,15 +4,19 @@
 # Defines all options for the build
 #
 
-import sys, os, json
+import sys, os, json, util
 from fnmatch import fnmatch
 from FWFS import ObjectAttr
 from rjsmin import jsmin
 
 class Config:
-    def __init__(self, filename):
-        din = open(filename).read()
-        self.data = json.loads(jsmin(din))
+    def __init__(self, source):
+        if source.startswith('{'):
+            self.data = json.loads(source)
+        else:
+            filename = os.path.expandvars(util.ospath(source))
+            din = open(filename).read()
+            self.data = json.loads(jsmin(din))
 
         try:
             from jsonschema import Draft7Validator

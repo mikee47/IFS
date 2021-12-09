@@ -14,7 +14,7 @@
     },
     // Rules for file metadata. All rules are evaluated in sequence for every file.
     // The masks apply to the full target path
-    // Masks without leading '/' are additionaly checked against just the filename
+    // Masks without leading '/' are also checked against just the filename
     "rules": [
         {
             "mask": "*",

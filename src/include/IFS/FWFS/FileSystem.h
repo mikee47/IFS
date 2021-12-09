@@ -1,4 +1,4 @@
-/**
+/****
  * FileSystem.h
  * FWFS - Firmware File System
  *
@@ -18,16 +18,12 @@
  * You should have received a copy of the GNU General Public License along with this library.
  * If not, see <https://www.gnu.org/licenses/>.
  *
- */
+ ****/
 
 #pragma once
 
-#include "../FileSystem.h"
+#include "../IFileSystem.h"
 #include "Object.h"
-
-#if FWFS_CACHE_SPACING
-#include "ObjRefCache.h"
-#endif
 
 namespace IFS
 {
@@ -119,6 +115,7 @@ public:
 	int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize) override;
 	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override;
 	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override;
+	int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) override;
 	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override;
 	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override;
 	FileHandle open(const char* path, OpenFlags flags) override;
@@ -234,11 +231,11 @@ private:
 	 * @param dataSize The total size in bytes
 	 * @retval int error code
 	 */
-	int getObjectDataSize(FWObjDesc& od, size_t& dataSize);
+	int getObjectDataSize(FWObjDesc& od, uint32_t& dataSize);
 
 	int readObjectName(const FWObjDesc& od, NameBuffer& name);
 	int fillStat(Stat& stat, const FWObjDesc& entry);
-	int readAttribute(Stat& stat, AttributeTag tag, void* buffer, size_t size);
+	int readAttribute(FWObjDesc& od, AttributeTag tag, void* buffer, size_t size);
 
 	void printObject(const FWObjDesc& od, bool isChild);
 
@@ -251,12 +248,8 @@ private:
 	FWVolume volumes[FWFS_MAX_VOLUMES]; ///< Volumes mapped to mountpoints by index
 	FWFileDesc fileDescriptors[FWFS_MAX_FDS];
 	FWObjDesc odRoot; ///< Reference to root directory object
-#if FWFS_CACHE_SPACING
-	ObjRefCache cache;
-#endif
-	ObjRef lastFound; ///< Speeds up consective searches
 	Object::ID volume;
-	ACL rootACL;
+	ACL rootACL{};
 	BitSet<uint8_t, Flag> flags;
 };
 
