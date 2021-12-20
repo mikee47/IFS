@@ -160,7 +160,7 @@ The maximum number of mount points is fixed at compile time, but file systems ca
 
 Mount points are identified explicitly in the build configuration file:
 
-.. highlight:: json
+.. code-block:: json
 
    "mountpoints": {
       "path/to/use/spiffs": 0,
