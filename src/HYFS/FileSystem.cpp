@@ -153,6 +153,7 @@ int FileSystem::mount()
 	auto checkAce = [&](AttributeTag tag, UserRole src, UserRole dst) {
 		if(src != dst) {
 			int err = ffs->setxattr(nullptr, tag, &src, sizeof(src));
+			(void)err;
 			debug_i("[HYFS] Root %s -> %s (%s)", toString(tag).c_str(), toString(src).c_str(),
 					ffs->getErrorString(err).c_str());
 		}
