@@ -206,7 +206,7 @@ bool ArchiveStream::openRootDirectory()
 
 	assert(level == 0);
 	debug_d("[FWFS] Root directory: '%s'", currentPath.c_str());
-	Stat stat;
+	NameStat stat;
 	int res = fs->stat(currentPath, stat);
 	if(res < 0) {
 		debug_e("[FWFS] stat('%s'): %s", currentPath.c_str(), fs->getErrorString(res).c_str());
