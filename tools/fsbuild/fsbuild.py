@@ -12,6 +12,16 @@ from compress import CompressionType
 from rjsmin import jsmin
 import argparse
 
+do_minify = True
+
+def minify(name, data):
+    if do_minify:
+        ext = os.path.splitext(name)[1]
+        if ext in ['.json', '.jsonc']:
+            return json.dumps(json.loads(jsmin(data).decode()), separators=(',', ':')).encode()
+        if ext in ['.js']:
+            return jsmin(data)
+    return data
 
 # Create a file object, add it to the parent
 def addFile(parent, name, sourcePath):
@@ -27,14 +37,8 @@ def addFile(parent, name, sourcePath):
 
     with open(sourcePath, "rb") as fin:
         din = fin.read()
-        ext = os.path.splitext(name)[1]
-        if ext in ['.json', '.jsonc']:
-            dout = json.dumps(json.loads(jsmin(din).decode()), separators=(',', ':')).encode()
-        elif ext in ['.js']:
-            dout = jsmin(din)
-        else:
-            dout = din
         fin.close()
+    dout = minify(name, din)
 
     # If rules say we should compress this file, give it a go
     cmp = fileObj.findObject(FwObt.Compression)
@@ -130,11 +134,14 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input', metavar='filename', required=True, help='Source configuration file')
     parser.add_argument('-o', '--output', metavar='filename', required=True, help='Destination image file')
     parser.add_argument('-v', '--verbose', action='store_true', help='Show build details')
-    
+    parser.add_argument('-n', '--nominify', action='store_true', help='Do not minify Javasript or JSON')
+
     args = parser.parse_args()
 
     if args.verbose:
         print("Python version: ", sys.version, ", version info: ", sys.version_info)
+
+    do_minify = not args.nominify
 
     # Parse the configuration file or input JSON
     cfg = config.Config(args.input)
