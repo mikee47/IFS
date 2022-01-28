@@ -60,8 +60,10 @@ struct FileDir {
 
 namespace
 {
-// Always mounted
-#define CHECK_MOUNTED()
+#define CHECK_MOUNTED()                                                                                                \
+	if(!mounted) {                                                                                                     \
+		return Error::NotMounted;                                                                                      \
+	}
 
 FileSystem hostFileSystem;
 
@@ -151,17 +153,6 @@ void getExtendedAttributes(FileHandle file, Stat& stat)
 	checkStat(stat);
 }
 
-bool getExtendedAttributes(const char* path, Stat& stat)
-{
-	auto f = hostFileSystem.open(path, OpenFlag::Read);
-	if(f < 0) {
-		return false;
-	}
-	getExtendedAttributes(f, stat);
-	hostFileSystem.close(f);
-	return true;
-}
-
 int settime(FileHandle file, TimeStamp mtime)
 {
 #ifdef __WIN32
@@ -195,13 +186,37 @@ IFS::FileSystem& getFileSystem()
 	return reinterpret_cast<IFS::FileSystem&>(hostFileSystem);
 }
 
+int FileSystem::mount()
+{
+	if(mounted) {
+		return FS_OK;
+	}
+
+	struct stat s;
+	int res = ::stat(rootpath.c_str(), &s);
+	if(res < 0) {
+		res = syserr();
+		debug_e("[FS] Mount '%s' failed, %s", rootpath.c_str(), getErrorString(res));
+		return res;
+	}
+	if(!S_ISDIR(s.st_mode)) {
+		return Error::BadParam;
+	}
+	if(rootpath.endsWith('/')) {
+		rootpath.setLength(rootpath.length() - 1);
+	}
+
+	mounted = true;
+	return FS_OK;
+}
+
 int FileSystem::getinfo(Info& info)
 {
 	info.clear();
 	info.type = Type::Host;
 	info.maxNameLength = NAME_MAX;
 	info.maxPathLength = PATH_MAX;
-	info.attr = Attribute::Mounted;
+	info.attr[Attribute::Mounted] = mounted;
 	return FS_OK;
 }
 
@@ -210,16 +225,28 @@ String FileSystem::getErrorString(int err)
 	return IFS::Host::getErrorString(err);
 }
 
-int FileSystem::opendir(const char* path, DirHandle& dir)
+String FileSystem::resolvePath(const char* path)
 {
-	auto d = new FileDir{};
-
-	// Interpret empty path as current directory
 	if(path == nullptr || path[0] == '\0') {
-		path = ".";
+		if(rootpath) {
+			return rootpath;
+		}
+		// Interpret empty path as current directory
+		return ".";
 	}
 
-	d->d = ::opendir(path);
+	return rootpath ? (rootpath + '/' + path) : path;
+}
+
+int FileSystem::opendir(const char* path, DirHandle& dir)
+{
+	CHECK_MOUNTED()
+
+	auto d = new FileDir{};
+
+	String fullpath = resolvePath(path);
+
+	d->d = ::opendir(fullpath.c_str());
 	if(d->d == nullptr) {
 		int err = syserr();
 		delete d;
@@ -275,10 +302,14 @@ int FileSystem::closedir(DirHandle dir)
 
 int FileSystem::mkdir(const char* path)
 {
+	CHECK_MOUNTED()
+
+	String fullpath = resolvePath(path);
+
 #ifdef __WIN32
-	int res = ::mkdir(path);
+	int res = ::mkdir(fullpath.c_str());
 #else
-	int res = ::mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	int res = ::mkdir(fullpath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
 	return (res >= 0) ? res : syserr();
 }
@@ -300,8 +331,12 @@ void FileSystem::fillStat(const struct stat& s, Stat& stat)
 
 int FileSystem::stat(const char* path, Stat* stat)
 {
+	CHECK_MOUNTED()
+
+	String fullpath = resolvePath(path);
+
 	struct stat s;
-	int res = ::stat(path, &s);
+	int res = ::stat(fullpath.c_str(), &s);
 	if(res < 0) {
 		return syserr();
 	}
@@ -310,7 +345,11 @@ int FileSystem::stat(const char* path, Stat* stat)
 		fillStat(s, *stat);
 		const char* lastSep = strrchr(path, '/');
 		stat->name.copy(lastSep ? lastSep + 1 : path);
-		getExtendedAttributes(path, *stat);
+		FileHandle f = ::open(fullpath.c_str(), O_RDONLY);
+		if(f >= 0) {
+			getExtendedAttributes(f, *stat);
+			::close(f);
+		}
 	}
 
 	return FS_OK;
@@ -318,6 +357,8 @@ int FileSystem::stat(const char* path, Stat* stat)
 
 int FileSystem::fstat(FileHandle file, Stat* stat)
 {
+	CHECK_MOUNTED()
+
 	struct stat s;
 	int res = ::fstat(file, &s);
 	if(res < 0) {
@@ -334,6 +375,8 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 
 int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size)
 {
+	CHECK_MOUNTED()
+
 	if(tag < AttributeTag::User) {
 		auto attrSize = getAttributeSize(tag);
 		if(attrSize != 0 && size != attrSize) {
@@ -351,6 +394,8 @@ int FileSystem::fsetxattr(FileHandle file, AttributeTag tag, const void* data, s
 
 int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size)
 {
+	CHECK_MOUNTED()
+
 	if(tag == AttributeTag::ModifiedTime) {
 		struct ::stat s {
 		};
@@ -367,6 +412,8 @@ int FileSystem::fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_
 
 int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize)
 {
+	CHECK_MOUNTED()
+
 	unsigned count{0};
 	AttributeEnum e{buffer, bufsize};
 
@@ -413,16 +460,20 @@ int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void
 
 int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, size_t size)
 {
+	CHECK_MOUNTED()
+
+	String fullpath = resolvePath(path);
+
 	if(tag == AttributeTag::ModifiedTime) {
 		TimeStamp mtime;
 		if(size < sizeof(mtime)) {
 			return Error::BadParam;
 		}
 		memcpy(&mtime, data, size);
-		return settime(path, mtime);
+		return settime(fullpath.c_str(), mtime);
 	}
 
-	int file = ::open(path, O_RDWR);
+	int file = ::open(fullpath.c_str(), O_RDWR);
 	if(file < 0) {
 		return syserr();
 	}
@@ -436,51 +487,65 @@ int FileSystem::setxattr(const char* path, AttributeTag tag, const void* data, s
 
 int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_t size)
 {
-	int file = ::open(path, O_RDONLY);
+	auto file = open(path, OpenFlag::Read);
 	if(file < 0) {
-		return syserr();
+		return file;
 	}
 
 	int res = fgetxattr(file, tag, buffer, size);
 
-	::close(file);
+	close(file);
 
 	return res;
 }
 
 FileHandle FileSystem::open(const char* path, OpenFlags flags)
 {
-	int res = ::open(path, mapFlags(flags), 0644);
+	CHECK_MOUNTED()
+
+	String fullpath = resolvePath(path);
+
+	int res = ::open(fullpath.c_str(), mapFlags(flags), 0644);
 	assert(FileHandle(res) == res);
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::close(FileHandle file)
 {
+	CHECK_MOUNTED()
+
 	int res = ::close(file);
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::read(FileHandle file, void* data, size_t size)
 {
+	CHECK_MOUNTED()
+
 	int res = ::read(file, data, size);
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::write(FileHandle file, const void* data, size_t size)
 {
+	CHECK_MOUNTED()
+
 	int res = ::write(file, data, size);
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
 {
+	CHECK_MOUNTED()
+
 	int res = ::lseek(file, offset, uint8_t(origin));
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::eof(FileHandle file)
 {
+	CHECK_MOUNTED()
+
 	// POSIX doesn't appear to have eof()
 
 	int pos = tell(file);
@@ -504,25 +569,38 @@ int32_t FileSystem::tell(FileHandle file)
 
 int FileSystem::ftruncate(FileHandle file, size_t new_size)
 {
+	CHECK_MOUNTED()
+
 	int res = ::ftruncate(file, new_size);
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::flush(FileHandle file)
 {
+	CHECK_MOUNTED()
+
 	int res = ::fsync(file);
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::rename(const char* oldpath, const char* newpath)
 {
-	int res = ::rename(oldpath, newpath);
+	CHECK_MOUNTED()
+
+	String fulloldpath = resolvePath(oldpath);
+	String fullnewpath = resolvePath(newpath);
+
+	int res = ::rename(fulloldpath.c_str(), fullnewpath.c_str());
 	return (res >= 0) ? res : syserr();
 }
 
 int FileSystem::remove(const char* path)
 {
-	int res = ::remove(path);
+	CHECK_MOUNTED()
+
+	String fullpath = resolvePath(path);
+
+	int res = ::remove(fullpath.c_str());
 	return (res >= 0) ? res : syserr();
 }
 

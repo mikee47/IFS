@@ -36,7 +36,7 @@ namespace Host
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem()
+	FileSystem(const char* rootpath = nullptr) : rootpath(rootpath), mounted(!rootpath)
 	{
 	}
 
@@ -44,10 +44,7 @@ public:
 	{
 	}
 
-	int mount() override
-	{
-		return FS_OK;
-	}
+	int mount() override;
 
 	// IFileSystem methods
 	int getinfo(Info& info) override;
@@ -89,7 +86,10 @@ public:
 	}
 
 private:
+	String resolvePath(const char* path);
 	void fillStat(const struct stat& s, Stat& stat);
+	String rootpath;
+	bool mounted;
 };
 
 } // namespace Host
