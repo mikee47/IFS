@@ -69,8 +69,8 @@ public:
 			destroyStorageDevice(LFS_IMGFILE);
 		}
 
-		listPartitions();
-		listDevices();
+		listPartitions(Serial);
+		listDevices(Serial);
 	}
 
 	void verify(Storage::Partition fwfsPart, SubType subtype)
@@ -78,14 +78,14 @@ public:
 		auto fs = initFWFS(fwfsPart, subtype);
 		CHECK(fs != nullptr);
 		if(fs != nullptr) {
-			fstest(fs, Flag::recurse | Flag::readFileTest | Flag::writeThroughTest);
+			fstest(*fs, Flag::readFileTest | Flag::writeThroughTest);
 
 			Serial.println();
 
 			auto part = createFwfsPartition(*fs, BACKUP_FWFS);
 			auto fs2 = initFWFS(part, SubType::fwfs);
 			if(fs2 != nullptr) {
-				fstest(fs2, Flag::recurse | Flag::readFileTest);
+				fstest(*fs2, Flag::readFileTest);
 				delete fs2;
 			}
 
@@ -96,7 +96,7 @@ public:
 		Serial.println();
 		fs = initVolume(subtype);
 		if(fs != nullptr) {
-			fstest(fs, Flag::recurse | Flag::readFileTest);
+			fstest(*fs, Flag::readFileTest);
 			delete fs;
 		}
 	}
@@ -250,12 +250,12 @@ public:
 		auto fwfs = IFS::createFirmwareFilesystem(part);
 		int res = fwfs->mount();
 		if(res < 0) {
-			debug_e("FWFS mount failed: %s", getErrorString(fwfs, err).c_str());
+			debug_e("FWFS mount failed: %s", fwfs->getErrorString(err).c_str());
 		} else {
 			DirHandle dir;
 			err = fwfs->opendir(nullptr, dir);
 			if(err < 0) {
-				debug_e("FWFS opendir failed: %s", getErrorString(fwfs, err).c_str());
+				debug_e("FWFS opendir failed: %s", fwfs->getErrorString(err).c_str());
 			} else {
 				IFS::NameStat stat;
 				while((err = fwfs->readdir(dir, stat)) >= 0) {
@@ -303,7 +303,7 @@ public:
 
 		int err = fs->mount();
 		if(err < 0) {
-			debug_e("Mount failed: %s", getErrorString(fs, err).c_str());
+			debug_e("Mount failed: %s", fs->getErrorString(err).c_str());
 			delete fs;
 			return nullptr;
 		}
@@ -311,10 +311,10 @@ public:
 		return fs;
 	}
 
-	void readFileTest(FileSystem* fs, const String& filename, const IFS::Stat& stat)
+	void readFileTest(FileSystem& fs, const String& filename, const IFS::Stat& stat)
 	{
 		Crypto::Md5 ctx;
-		IFS::File file(fs);
+		IFS::File file(&fs);
 		if(!file.open(filename)) {
 			debug_e("open('%s'): %s", filename.c_str(), file.getLastErrorString().c_str());
 			TEST_ASSERT(false);
@@ -351,7 +351,7 @@ public:
 		CHECK(hash == fileHash);
 	}
 
-	void writeThroughTest(FileSystem* fs, const String& filename, const IFS::Stat& stat)
+	void writeThroughTest(FileSystem& fs, const String& filename, const IFS::Stat& stat)
 	{
 		IFS::FileSystem::Info info;
 		CHECK(stat.fs->getinfo(info) >= 0);
@@ -360,17 +360,17 @@ public:
 		}
 
 		auto originalStat = stat;
-		auto originalContent = fs->getContent(filename);
+		auto originalContent = fs.getContent(filename);
 
 		// On the hybrid volume this will copy FW file onto SPIFFS
 		IFS::FileSystem::Info fsinfo;
-		fs->getinfo(fsinfo);
+		fs.getinfo(fsinfo);
 		if(filename.length() > fsinfo.maxPathLength || stat.name.length > fsinfo.maxNameLength) {
 			debug_w("** Skipping: File name too long for writethrough");
 			return;
 		}
 
-		IFS::File file(fs);
+		IFS::File file(&fs);
 		file.open(filename, IFS::OpenFlag::Write | IFS::OpenFlag::Append);
 		if(stat.attr[IFS::FileAttribute::ReadOnly]) {
 			debug_i("** Skipping copy, '%s' is marked read-only", stat.name.buffer);
@@ -392,7 +392,7 @@ public:
 		CHECK(file.stat(copyStat));
 		file.close();
 
-		printFileInfo(copyStat);
+		printFileInfo(Serial, copyStat);
 
 		CHECK(copyStat.size == originalStat.size);
 		CHECK(copyStat.attr == originalStat.attr);
@@ -419,18 +419,18 @@ public:
 			}
 		}
 
-		auto copyContent = fs->getContent(filename);
+		auto copyContent = fs.getContent(filename);
 		REQUIRE(copyContent == originalContent);
 	}
 
-	int scandir(FileSystem* fs, const String& path, Flags flags)
+	int scandir(FileSystem& fs, const String& path, Flags flags)
 	{
 		debug_i("Scanning '%s'", path.c_str());
 
 		Vector<String> files;
 		Vector<String> directories;
 		{
-			IFS::Directory dir(fs);
+			IFS::Directory dir(&fs);
 			dir.open(path);
 			while(dir.next()) {
 				auto name = dir.stat().name.buffer;
@@ -450,13 +450,13 @@ public:
 			filename += name;
 
 			IFS::Stat stat;
-			int err = fs->stat(filename, &stat);
+			int err = fs.stat(filename, &stat);
 			if(err < 0) {
 				debug_e("> %s: %d", filename.c_str(), err);
 				continue;
 			}
 			stat.name.buffer = filename.begin();
-			printFileInfo(stat);
+			printFileInfo(Serial, stat);
 
 			if(flags[Flag::readFileTest]) {
 				readFileTest(fs, filename, stat);
@@ -467,30 +467,28 @@ public:
 			}
 		}
 
-		if(flags[Flag::recurse]) {
-			for(auto& name : directories) {
-				String subdir = path;
-				if(path.length() != 0) {
-					subdir += '/';
-				}
-				subdir += name;
-				scandir(fs, subdir, flags);
+		for(auto& name : directories) {
+			String subdir = path;
+			if(path.length() != 0) {
+				subdir += '/';
 			}
+			subdir += name;
+			scandir(fs, subdir, flags);
 		}
 
 		return FS_OK;
 	}
 
-	void fstest(FileSystem* fs, Flags flags)
+	void fstest(FileSystem& fs, Flags flags)
 	{
 		Serial.println();
 		Serial.print("FS Test: ");
 		Serial.println(toString(flags));
 
-		printFsInfo(fs);
+		printFsInfo(Serial, fs);
 
-		int res = fs->check();
-		debug_i("check(): %s", getErrorString(fs, res).c_str());
+		int res = fs.check();
+		debug_i("check(): %s", fs.getErrorString(res).c_str());
 		scandir(fs, "", flags);
 		Serial.println();
 

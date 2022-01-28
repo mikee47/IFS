@@ -124,7 +124,7 @@ public:
 		FileStat stat;
 		int err = fileStats(file, stat);
 		CHECK(err >= 0);
-		printFileInfo(stat);
+		printFileInfo(Serial, stat);
 		CHECK(file >= 0);
 		uint8_t buffer[1024];
 		fileRead(file, buffer, sizeof(buffer));
