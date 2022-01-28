@@ -239,7 +239,7 @@ private:
 
 	void printObject(const FWObjDesc& od, bool isChild);
 
-private:
+protected:
 	enum class Flag {
 		mounted,
 	};

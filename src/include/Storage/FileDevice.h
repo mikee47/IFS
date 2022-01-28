@@ -17,23 +17,39 @@
  *
  ****/
 
+#pragma once
+
 #include <Storage/CustomDevice.h>
 #include "../IFS/FileSystem.h"
 
 namespace Storage
 {
 /**
- * @brief Read-only partition on a stream object
- * @note Writes not possible as streams always append data, cannot do random writes
+ * @brief Create custom storage device using backing file
  */
 class FileDevice : public CustomDevice
 {
 public:
+	/**
+	 * @brief Construct a file device with custom size
+	 * @param name Name of device
+	 * @param fileSys File system where file is located
+	 * @param file Handle to open file
+	 * @param size Size of device in bytes
+	 */
 	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, size_t size)
 		: name(name), size(size), fileSystem(fileSys), file(file)
 	{
 	}
 
+	/**
+	 * @brief Construct a device using existing file
+	 * @param name Name of device
+	 * @param fileSys File system where file is located
+	 * @param file Handle to open file
+	 *
+	 * Device will match size of existing file
+	 */
 	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file)
 		: name(name), fileSystem(fileSys), file(file)
 	{
