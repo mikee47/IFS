@@ -1,3 +1,5 @@
+COMPONENT_SOC := host
+
 HWCONFIG := fstest
 
 # Empty SPIFFS partition please

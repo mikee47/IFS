@@ -31,14 +31,19 @@ class File : public FsBase
 public:
 	using FsBase::FsBase;
 
-	// Common flag combinations
-	static constexpr OpenFlags ReadOnly{OpenFlag::Read};
-	static constexpr OpenFlags WriteOnly{OpenFlag::Write};
-	static constexpr OpenFlags ReadWrite{OpenFlag::Read | OpenFlag::Write};
-	static constexpr OpenFlags Create{OpenFlag::Create};
-	static constexpr OpenFlags Append{OpenFlag::Append};
-	static constexpr OpenFlags Truncate{OpenFlag::Truncate};
-	static constexpr OpenFlags CreateNewAlways{OpenFlag::Create | OpenFlag::Truncate};
+	/**
+	 * @name Common flag combinations
+	 * @{
+	 */
+	static constexpr OpenFlags ReadOnly{OpenFlag::Read};					///< Read-only
+	static constexpr OpenFlags WriteOnly{OpenFlag::Write};					///< Write-only
+	static constexpr OpenFlags ReadWrite{OpenFlag::Read | OpenFlag::Write}; ///< Read + Write
+	static constexpr OpenFlags Create{OpenFlag::Create};					///< Create file if it doesn't exist
+	static constexpr OpenFlags Append{OpenFlag::Append};					///< Append to existing file
+	static constexpr OpenFlags Truncate{OpenFlag::Truncate};				///< Truncate existing file to zero length
+	static constexpr OpenFlags CreateNewAlways{OpenFlag::Create |
+											   OpenFlag::Truncate}; ///< Create new file or overwrite file if it exists
+	/** @} */
 
 	~File()
 	{
