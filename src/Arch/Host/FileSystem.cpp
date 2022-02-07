@@ -159,7 +159,10 @@ int settime(FileHandle file, TimeStamp mtime)
 	_utimbuf times{mtime, mtime};
 	int res = _futime(file, &times);
 #else
-	struct timespec times[]{mtime, mtime};
+	struct timespec times[]{
+		{.tv_sec = mtime},
+		{.tv_sec = mtime},
+	};
 	int res = ::futimens(file, times);
 #endif
 	return (res >= 0) ? res : syserr();
