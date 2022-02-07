@@ -260,15 +260,26 @@ public:
 	 *
 	 * Only the final directory in the path is guaranteed to be created.
 	 * Usually, this call will fail if intermediate directories are not present.
-	 * Use `makedirs()` for this purpose.
+	 * Use `IFS::FileSystem::makedirs()` for this purpose.
 	 */
 	virtual int mkdir(const char* path) = 0;
 
 	/**
 	 * @brief get file information
-     * @param path name or path of file
+     * @param path name or path of file/directory/mountpoint
      * @param s structure to return information in, may be null to do a simple file existence check
      * @retval int error code
+	 *
+	 * Returned stat will indicate whether the path is a mountpoint or directory.
+	 * For a mount point, stats for the root directory of the mounted filesystem
+	 * must be obtained by opening a handle then using `fstat`:
+	 *
+	 * ```
+	 * int handle = fs.open("path-to-mountpoint");
+	 * Stat stat;
+	 * fs.fstat(handle, &stat);
+	 * fs.close(handle);
+	 * ```
      */
 	virtual int stat(const char* path, Stat* stat) = 0;
 
@@ -298,10 +309,14 @@ public:
 	}
 
 	/**
-	 * @brief open a file by path
+	 * @brief open a file (or directory) by path
      * @param path full path to file
-     * @param flags opens for opening file
+     * @param flags Desired access and other options
      * @retval FileHandle file handle or error code
+	 *
+	 * This function may also be used to obtain a directory handle to perform various operations
+	 * such as enumerating attributes.
+	 * Calls to read or write on such handles will typically fail.
      */
 	virtual FileHandle open(const char* path, OpenFlags flags) = 0;
 

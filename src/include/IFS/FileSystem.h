@@ -94,7 +94,7 @@ public:
 	}
 
 	using IFileSystem::open;
-	FileHandle open(const String& path, OpenFlags flags)
+	FileHandle open(const String& path, OpenFlags flags = OpenFlag::Read)
 	{
 		return open(path.c_str(), flags);
 	}

@@ -84,6 +84,9 @@ struct Stat {
 		return *this;
 	}
 
+	/**
+	 * @brief Is this a directory (or mountpoint) ?
+	 */
 	bool isDir() const
 	{
 		return attr[FileAttribute::Directory];
