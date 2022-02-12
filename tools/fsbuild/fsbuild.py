@@ -16,11 +16,14 @@ do_minify = True
 
 def minify(name, data):
     if do_minify:
-        ext = os.path.splitext(name)[1]
-        if ext in ['.json', '.jsonc']:
-            return json.dumps(json.loads(jsmin(data).decode()), separators=(',', ':')).encode()
-        if ext in ['.js']:
-            return jsmin(data)
+        try:
+            ext = os.path.splitext(name)[1]
+            if ext in ['.json', '.jsonc']:
+                return json.dumps(json.loads(jsmin(data).decode()), separators=(',', ':')).encode()
+            if ext in ['.js']:
+                return jsmin(data)
+        except json.JSONDecodeError as err:
+            print(f"Warning! {name}: {err}")
     return data
 
 # Create a file object, add it to the parent
