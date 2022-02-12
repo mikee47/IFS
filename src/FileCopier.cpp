@@ -20,7 +20,6 @@
  ****/
 
 #include "include/IFS/FileCopier.h"
-#include "include/IFS/File.h"
 #include "include/IFS/Directory.h"
 
 namespace
@@ -66,6 +65,7 @@ bool FileCopier::handleError(FileSystem& fileSys, int errorCode, Operation opera
 
 bool FileCopier::copyFile(const String& srcFileName, const String& dstFileName)
 {
+	debug_d("copyFile('%s', '%s')", srcFileName.c_str(), dstFileName.c_str());
 	File srcFile(&srcfs);
 	if(!srcFile.open(srcFileName)) {
 		return handleError(srcFile, Operation::open, srcFileName);
@@ -84,18 +84,38 @@ bool FileCopier::copyFile(const String& srcFileName, const String& dstFileName)
 		return handleError(srcFile, Operation::read, srcFileName);
 	}
 
+	return copyAttributes(srcFile, dstFile, srcFileName, dstFileName);
+}
+
+bool FileCopier::copyAttributes(const String& srcPath, const String& dstPath)
+{
+	debug_d("copyAttributes('%s', '%s')", srcPath.c_str(), dstPath.c_str());
+	File src(&srcfs);
+	if(!src.open(srcPath)) {
+		return handleError(src, Operation::open, srcPath);
+	}
+	File dst(&dstfs);
+	if(!dst.open(dstPath, File::WriteOnly)) {
+		return handleError(dst, Operation::create, dstPath);
+	}
+
+	return copyAttributes(src, dst, srcPath, dstPath);
+}
+
+bool FileCopier::copyAttributes(File& src, File& dst, const String& srcPath, const String& dstPath)
+{
 	auto callback = [&](AttributeEnum& e) -> bool {
 		debug_d("setAttribute(%u, %s)", unsigned(e.tag), toString(e.tag).c_str());
 		debug_hex(DBG, "ATTR", e.buffer, e.size);
-		return dstFile.setAttribute(e.tag, e.buffer, e.size);
+		return dst.setAttribute(e.tag, e.buffer, e.size);
 	};
 	char buffer[1024];
-	srcFile.enumAttributes(callback, buffer, sizeof(buffer));
-	if(dstFile.getLastError() < 0) {
-		return handleError(dstFile, Operation::setattr, dstFileName);
+	src.enumAttributes(callback, buffer, sizeof(buffer));
+	if(dst.getLastError() < 0) {
+		return handleError(dst, Operation::setattr, dstPath);
 	}
-	if(srcFile.getLastError() < 0) {
-		return handleError(srcFile, Operation::enumattr, srcFileName);
+	if(src.getLastError() < 0) {
+		return handleError(src, Operation::enumattr, srcPath);
 	}
 
 	return true;
@@ -103,6 +123,10 @@ bool FileCopier::copyFile(const String& srcFileName, const String& dstFileName)
 
 bool FileCopier::copyDir(const String& srcPath, const String& dstPath)
 {
+	if(!copyAttributes(srcPath, dstPath)) {
+		return false;
+	}
+
 	Directory srcDir(&srcfs);
 	if(!srcDir.open(srcPath)) {
 		return false;

@@ -22,7 +22,7 @@
 #pragma once
 
 #include "FileSystem.h"
-#include "FsBase.h"
+#include "File.h"
 
 #define IFS_FILECOPIER_OPERATION_MAP(XX)                                                                               \
 	XX(stat)                                                                                                           \
@@ -59,6 +59,7 @@ public:
 
 	bool copyFile(const String& srcFileName, const String& dstFileName);
 	bool copyDir(const String& srcPath, const String& dstPath);
+	bool copyAttributes(const String& srcPath, const String& dstPath);
 
 	void onError(ErrorHandler callback)
 	{
@@ -67,6 +68,7 @@ public:
 
 private:
 	bool copyFile(const String& srcPath, const String& dstPath, const Stat& stat);
+	bool copyAttributes(File& src, File& dst, const String& srcPath, const String& dstPath);
 
 	bool handleError(FileSystem& fileSys, int errorCode, Operation operation, const String& path);
 
