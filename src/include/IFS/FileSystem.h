@@ -408,6 +408,11 @@ FileSystem& getFileSystem();
 }
 #endif
 
+/**
+ * @brief Framework should implement this method
+ */
+FileSystem* getDefaultFileSystem();
+
 } // namespace IFS
 
 /** @} */
