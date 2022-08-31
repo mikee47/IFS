@@ -107,8 +107,9 @@ void printAttrInfo(Print& out, FileSystem& fs, const String& filename)
 
 int listDirectory(Print& out, FileSystem& fs, const String& path, Options options)
 {
-	out.print(_F("$ ls "));
-	out.println(path);
+	out.print(_F("$ ls \""));
+	out.print(path);
+	out.println('\"');
 
 	NameStat stat;
 	int err = fs.stat(path, &stat);
