@@ -46,7 +46,10 @@
 	XX(SPIFFS, SPIF, "SPI Flash File System (SPIFFS)")                                                                 \
 	XX(LittleFS, LFS, "Little FS")                                                                                     \
 	XX(Hybrid, HYFS, "Hybrid File System")                                                                             \
-	XX(Host, HOST, "Host File System")
+	XX(Host, HOST, "Host File System")                                                                                 \
+	XX(Fat, FAT, "FAT File System")                                                                                    \
+	XX(Fat32, FAT32, "FAT32 File System")                                                                              \
+	XX(ExFat, exFAT, "EXFAT File System")
 
 /**
  * @brief Attribute flags for filing system
