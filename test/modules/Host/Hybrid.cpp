@@ -392,7 +392,7 @@ public:
 		CHECK(file.stat(copyStat));
 		file.close();
 
-		printFileInfo(Serial, copyStat);
+		Serial.println(copyStat);
 
 		CHECK(copyStat.size == originalStat.size);
 		CHECK(copyStat.attr == originalStat.attr);
@@ -456,7 +456,7 @@ public:
 				continue;
 			}
 			stat.name = filename;
-			printFileInfo(Serial, stat);
+			Serial.println(stat);
 
 			if(flags[Flag::readFileTest]) {
 				readFileTest(fs, filename, stat);

@@ -45,6 +45,13 @@ struct ACL {
 	{
 		return !operator==(other);
 	}
+
+	String toString() const;
+
+	operator String() const
+	{
+		return toString();
+	}
 };
 
 static_assert(sizeof(ACL) == 2, "ACL is misaligned");
@@ -64,4 +71,7 @@ String getAclString(const IFS::ACL& acl);
  * @param acl
  * @retval String
  */
-String toString(const IFS::ACL& acl);
+inline String toString(const IFS::ACL& acl)
+{
+	return String(acl);
+}

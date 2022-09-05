@@ -40,7 +40,7 @@ public:
 			err = fileStats(FS_MOUNTPOINT_PATH, stat);
 			debug_ifs(fs, err, "stat");
 			CHECK(err == FS_OK);
-			printFileInfo(Serial, stat);
+			Serial.println(stat);
 			REQUIRE(FS_MOUNTPOINT_NAME == stat.name);
 			REQUIRE(stat.attr == FileAttribute::Directory + FileAttribute::MountPoint);
 		}

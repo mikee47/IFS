@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <time.h>
 #include <cstring>
+#include <WString.h>
 
 namespace IFS
 {
@@ -44,6 +45,16 @@ struct TimeStamp {
 	{
 		mValue = t;
 		return *this;
+	}
+
+	/**
+	 * @brief Convert time to local time for display
+	 */
+	String toString(const char* dtsep = " ") const;
+
+	explicit operator String() const
+	{
+		return toString();
 	}
 };
 

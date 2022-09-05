@@ -1,5 +1,5 @@
 /****
- * Debug.h
+ * TimeStamp.cpp
  *
  * Copyright 2022 mikee47 <mike@sillyhouse.net>
  *
@@ -17,26 +17,21 @@
  *
  ****/
 
-#pragma once
-
-#include "FileSystem.h"
-#include <Print.h>
-#include <Data/BitSet.h>
+#include "include/IFS/TimeStamp.h"
 
 namespace IFS
 {
-namespace Debug
+String TimeStamp::toString(const char* dtsep) const
 {
-enum class Option {
-	recurse,	// Recurse sub-directories
-	attributes, // Include attributes
-};
+	time_t t = mValue;
+	struct tm* tm = localtime(&t);
+	if(tm == nullptr) {
+		return nullptr;
+	}
+	char buffer[64];
+	m_snprintf(buffer, sizeof(buffer), _F("%02u/%02u/%04u%s%02u:%02u:%02u"), tm->tm_mday, tm->tm_mon + 1,
+			   1900 + tm->tm_year, dtsep ?: " ", tm->tm_hour, tm->tm_min, tm->tm_sec);
+	return buffer;
+}
 
-using Options = BitSet<uint8_t, Option, 2>;
-
-void printFsInfo(Print& out, FileSystem& fs);
-void printAttrInfo(Print& out, FileSystem& fs, const String& filename);
-int listDirectory(Print& out, FileSystem& fs, const String& path, Options options = 0);
-
-} // namespace Debug
 } // namespace IFS

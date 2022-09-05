@@ -156,6 +156,8 @@ public:
 		{
 			*this = Info{};
 		}
+
+		size_t printTo(Print& p) const;
 	};
 
 	/**

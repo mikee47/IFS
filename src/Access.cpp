@@ -23,21 +23,21 @@
 
 namespace IFS
 {
-String getAclString(const IFS::ACL& acl)
+String getAclString(const ACL& acl)
 {
 	String s;
-	s += IFS::getChar(acl.readAccess);
-	s += IFS::getChar(acl.writeAccess);
+	s += getChar(acl.readAccess);
+	s += getChar(acl.writeAccess);
+	return s;
+}
+
+String ACL::toString() const
+{
+	String s;
+	s += readAccess;
+	s += '/';
+	s += writeAccess;
 	return s;
 }
 
 } // namespace IFS
-
-String toString(const IFS::ACL& acl)
-{
-	String s;
-	s += toString(acl.readAccess);
-	s += '/';
-	s += toString(acl.writeAccess);
-	return s;
-}

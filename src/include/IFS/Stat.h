@@ -26,6 +26,7 @@
 #include "Access.h"
 #include "Compression.h"
 #include "FileAttributes.h"
+#include <Printable.h>
 
 namespace IFS
 {
@@ -91,6 +92,8 @@ struct Stat {
 	{
 		return attr[FileAttribute::Directory];
 	}
+
+	size_t printTo(Print& p) const;
 };
 
 /**

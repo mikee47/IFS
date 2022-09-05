@@ -1,5 +1,5 @@
-/****
- * Debug.h
+/**
+ * Stat.cpp
  *
  * Copyright 2022 mikee47 <mike@sillyhouse.net>
  *
@@ -17,26 +17,37 @@
  *
  ****/
 
-#pragma once
-
-#include "FileSystem.h"
+#include "include/IFS/Stat.h"
+#include "include/IFS/FileSystem.h"
 #include <Print.h>
-#include <Data/BitSet.h>
 
 namespace IFS
 {
-namespace Debug
+size_t Stat::printTo(Print& p) const
 {
-enum class Option {
-	recurse,	// Recurse sub-directories
-	attributes, // Include attributes
-};
+	if(fs == nullptr) {
+		return 0;
+	}
 
-using Options = BitSet<uint8_t, Option, 2>;
+	FileSystem::Info info;
+	fs->getinfo(info);
 
-void printFsInfo(Print& out, FileSystem& fs);
-void printAttrInfo(Print& out, FileSystem& fs, const String& filename);
-int listDirectory(Print& out, FileSystem& fs, const String& path, Options options = 0);
+	size_t n{0};
+	n += p.print(String(name).padRight(50));
+	n += p.print(' ');
+	n += p.print(size, DEC, 8, ' ');
+	n += p.print(' ');
+	n += p.print(info.type);
+	n += p.print(" #0x");
+	n += p.print(id, HEX, 8);
+	n += p.print(' ');
+	n += p.print(mtime);
+	n += p.print(' ');
+	n += p.print(acl);
+	n += p.print(" {");
+	n += p.print(compression.type);
+	n += p.print('}');
+	return n;
+}
 
-} // namespace Debug
 } // namespace IFS

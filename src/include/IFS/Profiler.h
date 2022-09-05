@@ -20,6 +20,7 @@
 #pragma once
 
 #include <WString.h>
+#include <Print.h>
 
 namespace IFS
 {
@@ -77,6 +78,11 @@ public:
 			s += "KB";
 			return s;
 		}
+
+		operator String() const
+		{
+			return toString();
+		}
 	};
 
 	Stat readStat;
@@ -107,16 +113,16 @@ public:
 		eraseStat.reset();
 	}
 
-	String toString() const
+	size_t printTo(Print& p) const
 	{
-		String s;
-		s += F("Read: ");
-		s += readStat.toString();
-		s += F(", Write: ");
-		s += writeStat.toString();
-		s += F(", Erase: ");
-		s += eraseStat.toString();
-		return s;
+		size_t n{0};
+		n += p.print(_F("Read: "));
+		n += p.print(readStat);
+		n += p.print(_F(", Write: "));
+		n += p.print(writeStat);
+		n += p.print(_F(", Erase: "));
+		n += p.print(eraseStat);
+		return n;
 	}
 };
 
