@@ -455,7 +455,7 @@ public:
 				debug_e("> %s: %d", filename.c_str(), err);
 				continue;
 			}
-			stat.name.buffer = filename.begin();
+			stat.name = filename;
 			printFileInfo(Serial, stat);
 
 			if(flags[Flag::readFileTest]) {
