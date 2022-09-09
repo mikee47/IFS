@@ -96,7 +96,7 @@ bool FileCopier::copyAttributes(const String& srcPath, const String& dstPath)
 	}
 	File dst(&dstfs);
 	if(!dst.open(dstPath, File::WriteOnly)) {
-		return handleError(dst, Operation::create, dstPath);
+		return handleError(dst, Operation::open, dstPath);
 	}
 
 	return copyAttributes(src, dst, srcPath, dstPath);
