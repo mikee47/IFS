@@ -154,10 +154,10 @@ public:
      * @param origin where to seek from (start/end or current position)
      * @retval int current position or error code
      */
-	int seek(int offset, SeekOrigin origin)
+	file_offset_t seek(file_offset_t offset, SeekOrigin origin)
 	{
 		GET_FS(lastError);
-		int res = fs->lseek(handle, offset, origin);
+		auto res = fs->lseek(handle, offset, origin);
 		check(res);
 		return res;
 	}
@@ -181,10 +181,10 @@ public:
 	 * @brief get current file position
      * @retval int32_t current position relative to start of file, or error code
      */
-	int32_t tell()
+	file_offset_t tell()
 	{
 		GET_FS(lastError);
-		int res = fs->tell(handle);
+		auto res = fs->tell(handle);
 		check(res);
 		return res;
 	}
@@ -194,7 +194,7 @@ public:
 	 * @param newSize
      * @retval bool true on success
 	 */
-	bool truncate(size_t new_size)
+	bool truncate(file_size_t new_size)
 	{
 		GET_FS(lastError);
 		int res = fs->ftruncate(handle, new_size);
@@ -319,7 +319,7 @@ public:
 	 * @brief  Get size of file
 	 * @retval uint32_t Size of file in bytes, 0 on error
 	 */
-	uint32_t getSize()
+	file_size_t getSize()
 	{
 		GET_FS(lastError);
 		return fs->getSize(handle);
@@ -333,10 +333,10 @@ public:
 	 * @param callback
 	 * @retval int Number of bytes processed, or error code
 	 */
-	int readContent(size_t size, ReadContentCallback callback)
+	file_offset_t readContent(size_t size, ReadContentCallback callback)
 	{
 		GET_FS(lastError);
-		int res = fs->readContent(handle, size, callback);
+		auto res = fs->readContent(handle, size, callback);
 		check(res);
 		return res;
 	}
@@ -344,12 +344,12 @@ public:
 	/**
 	 * @brief Read from current file position to end of file and invoke callback for each block read
 	 * @param callback
-	 * @retval int Number of bytes processed, or error code
+	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	int readContent(ReadContentCallback callback)
+	file_offset_t readContent(ReadContentCallback callback)
 	{
 		GET_FS(lastError);
-		int res = fs->readContent(handle, callback);
+		auto res = fs->readContent(handle, callback);
 		check(res);
 		return res;
 	}

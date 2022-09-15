@@ -52,7 +52,7 @@ using FileID = uint32_t;
 struct Stat {
 	IFileSystem* fs{nullptr};				 ///< The filing system owning this file
 	NameBuffer name;						 ///< Name of file
-	uint32_t size{0};						 ///< Size of file in bytes
+	file_size_t size{0};					 ///< Size of file in bytes
 	FileID id{0};							 ///< Internal file identifier
 	TimeStamp mtime{};						 ///< File modification time
 	ACL acl{UserRole::None, UserRole::None}; ///< Access Control

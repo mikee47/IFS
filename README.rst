@@ -369,6 +369,14 @@ Configuration variables
    Set to 1 to enable more detailed debugging information.
 
 
+.. envvar:: ENABLE_FILE_SIZE64
+
+   default: disabled
+
+   Set to 1 to enable support for 64-bit files.
+   This requires :envvar:`ENABLE_STORAGE_SIZE64` to be set.
+
+
 API
 ---
 

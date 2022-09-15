@@ -37,7 +37,7 @@ public:
 	 * @param file Handle to open file
 	 * @param size Size of device in bytes
 	 */
-	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, size_t size)
+	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, storage_size_t size)
 		: name(name), size(size), fileSystem(fileSys), file(file)
 	{
 	}
@@ -54,6 +54,9 @@ public:
 		: name(name), fileSystem(fileSys), file(file)
 	{
 		size = IFS::FileSystem::cast(fileSys).getSize(file);
+		auto blockSize = getBlockSize();
+		auto blockCount = (size + blockSize - 1) / blockSize;
+		size = blockCount * blockSize;
 	}
 
 	~FileDevice()
@@ -71,23 +74,24 @@ public:
 		return Type::file;
 	}
 
-	size_t getSize() const override
+	storage_size_t getSize() const override
 	{
 		return size;
 	}
 
 	size_t getBlockSize() const override
 	{
-		return sizeof(uint32_t);
+		// Use block size compatible with most disk drives
+		return 512;
 	}
 
-	bool read(uint32_t address, void* buffer, size_t len) override;
-	bool write(uint32_t address, const void* data, size_t len) override;
-	bool erase_range(uint32_t address, size_t len) override;
+	bool read(storage_size_t address, void* buffer, size_t len) override;
+	bool write(storage_size_t address, const void* data, size_t len) override;
+	bool erase_range(storage_size_t address, storage_size_t len) override;
 
 private:
 	CString name;
-	size_t size;
+	storage_size_t size;
 	IFS::IFileSystem& fileSystem;
 	IFS::FileHandle file;
 };

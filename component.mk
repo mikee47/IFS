@@ -1,3 +1,5 @@
+COMPONENT_DEPENDS := Storage
+
 COMPONENT_SRCDIRS := \
 	src \
 	src/File \
@@ -14,6 +16,16 @@ ifeq ($(UNAME),Windows)
 	EXTRA_LIBS	+= ntdll
 	COMPONENT_SRCDIRS += src/Arch/Host/Windows
 endif
+endif
+
+COMPONENT_VARS := ENABLE_FILE_SIZE64
+ifeq ($(ENABLE_FILE_SIZE64),1)
+ENABLE_STORAGE_SIZE64 := 1
+# Check user didn't override this on command line
+ifneq ($(ENABLE_STORAGE_SIZE64),1)
+$(error ENABLE_FILE_SIZE64 requires ENABLE_STORAGE_SIZE64=1)
+endif
+GLOBAL_CFLAGS += -DENABLE_FILE_SIZE64
 endif
 
 COMPONENT_DOCFILES := tools/fsbuild/README.rst

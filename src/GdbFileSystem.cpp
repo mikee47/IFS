@@ -109,7 +109,7 @@ int FileSystem::write(FileHandle file, const void* data, size_t size)
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
+file_offset_t FileSystem::lseek(FileHandle file, file_offset_t offset, SeekOrigin origin)
 {
 	int res = gdb_syscall_lseek(file, offset, uint8_t(origin));
 	return (res >= 0) ? res : IFS::Host::syserr();
@@ -133,7 +133,7 @@ int FileSystem::eof(FileHandle file)
 	return (uint32_t(pos) >= stat.st_size) ? 1 : 0;
 }
 
-int32_t FileSystem::tell(FileHandle file)
+file_offset_t FileSystem::tell(FileHandle file)
 {
 	return lseek(file, 0, SeekOrigin::Current);
 }

@@ -21,41 +21,56 @@
 
 namespace Storage
 {
-bool FileDevice::read(uint32_t address, void* buffer, size_t len)
+#if defined(ENABLE_STORAGE_SIZE64) && !defined(ENABLE_FILE_SIZE64)
+#define CHECK_RANGE()                                                                                                  \
+	if(isSize64(address) || isSize64(address + len - 1)) {                                                             \
+		debug_e("[IFS] %s(0x%llx, 0x%x) range error: set ENABLE_FILE_SIZE64=1", __FUNCTION__, address, len);           \
+	}
+#else
+#define CHECK_RANGE()
+#endif
+
+bool FileDevice::read(storage_size_t address, void* buffer, size_t len)
 {
-	int res = fileSystem.lseek(file, address, SeekOrigin::Start);
-	if(size_t(res) != address) {
+	CHECK_RANGE()
+
+	auto res = fileSystem.lseek(file, address, SeekOrigin::Start);
+	if(storage_size_t(res) != address) {
 		return false;
 	}
 
-	res = fileSystem.read(file, buffer, len);
-	return size_t(res) == len;
+	auto count = fileSystem.read(file, buffer, len);
+	return size_t(count) == len;
 }
 
-bool FileDevice::write(uint32_t address, const void* data, size_t len)
+bool FileDevice::write(storage_size_t address, const void* data, size_t len)
 {
-	int res = fileSystem.lseek(file, address, SeekOrigin::Start);
-	if(size_t(res) != address) {
+	CHECK_RANGE()
+
+	auto res = fileSystem.lseek(file, address, SeekOrigin::Start);
+	if(storage_size_t(res) != address) {
 		return false;
 	}
 
-	res = fileSystem.write(file, data, len);
-	return size_t(res) == len;
+	auto count = fileSystem.write(file, data, len);
+	return size_t(count) == len;
 }
 
-bool FileDevice::erase_range(uint32_t address, size_t len)
+bool FileDevice::erase_range(storage_size_t address, storage_size_t len)
 {
+	CHECK_RANGE()
+
 	constexpr size_t bufSize{512};
 	uint8_t buffer[bufSize];
 	memset(buffer, 0xff, sizeof(buffer));
 
-	int res = fileSystem.lseek(file, address, SeekOrigin::Start);
-	if(size_t(res) != address) {
+	auto res = fileSystem.lseek(file, address, SeekOrigin::Start);
+	if(storage_size_t(res) != address) {
 		return false;
 	}
 
 	while(len > 0) {
-		size_t toWrite = std::min(bufSize, len);
+		size_t toWrite = std::min(storage_size_t(bufSize), len);
 		int res = fileSystem.write(file, buffer, toWrite);
 		if(size_t(res) != toWrite) {
 			return false;

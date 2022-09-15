@@ -33,6 +33,15 @@
 #include <sys/utime.h>
 #include "Windows/xattr.h"
 #include "Windows/fsync.h"
+#include <winbase.h>
+template <typename... Args> int stat64(Args... args)
+{
+	return _stati64(args...);
+}
+template <typename... Args> int fstat64(Args... args)
+{
+	return _fstati64(args...);
+}
 #else
 #include <sys/xattr.h>
 #include <utime.h>
@@ -53,6 +62,14 @@ class FileSystem;
 
 namespace Host
 {
+#ifdef __WIN32
+struct os_stat_t : public ::_stati64 {
+};
+#else
+struct os_stat_t : public ::stat64 {
+};
+#endif
+
 struct FileDir {
 	CString path;
 	DIR* d;
@@ -317,7 +334,7 @@ int FileSystem::mkdir(const char* path)
 	return (res >= 0) ? res : syserr();
 }
 
-void FileSystem::fillStat(const struct stat& s, Stat& stat)
+void FileSystem::fillStat(const os_stat_t& s, Stat& stat)
 {
 	stat = Stat{};
 	stat.fs = this;
@@ -329,7 +346,11 @@ void FileSystem::fillStat(const struct stat& s, Stat& stat)
 		stat.attr |= FileAttribute::Directory;
 	}
 	stat.mtime = s.st_mtime;
+#ifdef ENABLE_FILE_SIZE64
 	stat.size = s.st_size;
+#else
+	stat.size = std::min(uint64_t(s.st_size), uint64_t(std::numeric_limits<file_size_t>::max()));
+#endif
 }
 
 int FileSystem::stat(const char* path, Stat* stat)
@@ -338,8 +359,8 @@ int FileSystem::stat(const char* path, Stat* stat)
 
 	String fullpath = resolvePath(path);
 
-	struct stat s;
-	int res = ::stat(fullpath.c_str(), &s);
+	os_stat_t s;
+	int res = ::stat64(fullpath.c_str(), &s);
 	if(res < 0) {
 		return syserr();
 	}
@@ -362,8 +383,8 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 {
 	CHECK_MOUNTED()
 
-	struct stat s;
-	int res = ::fstat(file, &s);
+	os_stat_t s;
+	int res = ::fstat64(file, &s);
 	if(res < 0) {
 		return syserr();
 	}
@@ -517,6 +538,10 @@ int FileSystem::close(FileHandle file)
 {
 	CHECK_MOUNTED()
 
+	if(file < 0) {
+		return Error::InvalidHandle;
+	}
+
 	int res = ::close(file);
 	return (res >= 0) ? res : syserr();
 }
@@ -537,12 +562,20 @@ int FileSystem::write(FileHandle file, const void* data, size_t size)
 	return (res >= 0) ? res : syserr();
 }
 
-int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
+file_offset_t FileSystem::lseek(FileHandle file, file_offset_t offset, SeekOrigin origin)
 {
 	CHECK_MOUNTED()
 
-	int res = ::lseek(file, offset, uint8_t(origin));
-	return (res >= 0) ? res : syserr();
+	auto res = ::lseek64(file, offset, uint8_t(origin));
+	if(res < 0) {
+		return syserr();
+	}
+#ifndef ENABLE_FILE_SIZE64
+	if(Storage::isSize64(res)) {
+		return Error::TooBig;
+	}
+#endif
+	return res;
 }
 
 int FileSystem::eof(FileHandle file)
@@ -551,13 +584,13 @@ int FileSystem::eof(FileHandle file)
 
 	// POSIX doesn't appear to have eof()
 
-	int pos = tell(file);
+	auto pos = tell(file);
 	if(pos < 0) {
 		return syserr();
 	}
 
-	struct stat stat;
-	int err = ::fstat(file, &stat);
+	os_stat_t stat;
+	int err = ::fstat64(file, &stat);
 	if(err < 0) {
 		return syserr();
 	}
@@ -565,16 +598,16 @@ int FileSystem::eof(FileHandle file)
 	return (pos >= stat.st_size) ? 1 : 0;
 }
 
-int32_t FileSystem::tell(FileHandle file)
+file_offset_t FileSystem::tell(FileHandle file)
 {
 	return lseek(file, 0, SeekOrigin::Current);
 }
 
-int FileSystem::ftruncate(FileHandle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, file_size_t new_size)
 {
 	CHECK_MOUNTED()
 
-	int res = ::ftruncate(file, new_size);
+	int res = ::ftruncate64(file, new_size);
 	return (res >= 0) ? res : syserr();
 }
 

@@ -121,10 +121,10 @@ public:
 		size_t maxNameLength{255}; ///< Maximum length of a single file name
 		size_t maxPathLength{255}; ///< Maximum length of a full file path
 		Storage::Partition partition;
-		uint32_t volumeID{0};   ///< Unique identifier for volume
-		NameBuffer name;		///< Buffer for name
-		uint32_t volumeSize{0}; ///< Size of volume, in bytes
-		uint32_t freeSpace{0};  ///< Available space, in bytes
+		uint32_t volumeID{0};		 ///< Unique identifier for volume
+		NameBuffer name;			 ///< Buffer for name
+		volume_size_t volumeSize{0}; ///< Size of volume, in bytes
+		volume_size_t freeSpace{0};  ///< Available space, in bytes
 		TimeStamp creationTime{};
 
 		Info()
@@ -135,7 +135,7 @@ public:
 		{
 		}
 
-		uint32_t used() const
+		volume_size_t used() const
 		{
 			return volumeSize - freeSpace;
 		}
@@ -352,9 +352,9 @@ public:
      * @param file handle to open file
      * @param offset position relative to origin
      * @param origin where to seek from (start/end or current position)
-     * @retval int current position or error code
+     * @retval file_offset_t current position or error code
      */
-	virtual int lseek(FileHandle file, int offset, SeekOrigin origin) = 0;
+	virtual file_offset_t lseek(FileHandle file, file_offset_t offset, SeekOrigin origin) = 0;
 
 	/**
 	 * @brief determine if current file position is at end of file
@@ -366,9 +366,9 @@ public:
 	/**
 	 * @brief get current file position
      * @param file handle to open file
-     * @retval int32_t current position relative to start of file, or error code
+     * @retval file_offset_t current position relative to start of file, or error code
      */
-	virtual int32_t tell(FileHandle file) = 0;
+	virtual file_offset_t tell(FileHandle file) = 0;
 
 	/**
 	 * @brief Truncate (reduce) the size of an open file
@@ -378,7 +378,7 @@ public:
 	 * @note In POSIX `ftruncate()` can also make the file bigger, however SPIFFS can only
 	 * reduce the file size and will return an error if newSize > fileSize
 	 */
-	virtual int ftruncate(FileHandle file, size_t new_size) = 0;
+	virtual int ftruncate(FileHandle file, file_size_t new_size) = 0;
 
 	/**
 	 * @brief flush any buffered data to physical media

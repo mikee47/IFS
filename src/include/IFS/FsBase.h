@@ -80,7 +80,7 @@ protected:
 	 *  @param res result of fileXXX() operation to check
 	 *  @retval bool true if operation was successful, false if error occurred
 	 */
-	bool check(int res)
+	bool check(int64_t res)
 	{
 		if(res >= 0) {
 			return true;

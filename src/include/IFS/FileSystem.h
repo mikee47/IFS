@@ -102,7 +102,7 @@ public:
 	using IFileSystem::ftruncate;
 	int ftruncate(FileHandle file)
 	{
-		int pos = tell(file);
+		auto pos = tell(file);
 		return (pos < 0) ? pos : ftruncate(file, pos);
 	}
 
@@ -111,9 +111,9 @@ public:
 	 * @param fileName File to truncate
      * @retval int new file size, or error code
 	 */
-	int truncate(const char* fileName, size_t newSize);
+	int truncate(const char* fileName, file_size_t newSize);
 
-	int truncate(const String& fileName, size_t newSize)
+	int truncate(const String& fileName, file_size_t newSize)
 	{
 		return truncate(fileName.c_str(), newSize);
 	}
@@ -280,17 +280,17 @@ public:
 
 	/** @brief  Get size of file
 	 *  @param  file File handle
-	 *  @retval uint32_t Size of file in bytes, 0 on error
+	 *  @retval file_size_t Size of file in bytes, 0 on error
 	 */
-	uint32_t getSize(FileHandle file);
+	file_size_t getSize(FileHandle file);
 
 	/** @brief  Get size of file
 	 *  @param  fileName Name of file
-	 *  @retval uint32_t Size of file in bytes, 0 on error
+	 *  @retval file_size_t Size of file in bytes, 0 on error
 	 */
-	uint32_t getSize(const char* fileName);
+	file_size_t getSize(const char* fileName);
 
-	uint32_t getSize(const String& fileName)
+	file_size_t getSize(const String& fileName)
 	{
 		return getSize(fileName.c_str());
 	}
@@ -309,25 +309,25 @@ public:
 	 * @param file
 	 * @param size Maximum number of bytes to read
 	 * @param callback
-	 * @retval int Number of bytes processed, or error code
+	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	int readContent(FileHandle file, size_t size, ReadContentCallback callback);
+	file_offset_t readContent(FileHandle file, size_t size, ReadContentCallback callback);
 
 	/**
 	 * @brief Read from current file position to end of file and invoke callback for each block read
 	 * @param file
 	 * @param callback
-	 * @retval int Number of bytes processed, or error code
+	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	int readContent(FileHandle file, ReadContentCallback callback);
+	file_offset_t readContent(FileHandle file, ReadContentCallback callback);
 
 	/**
 	 * @brief Read entire file content in blocks, invoking callback after every read
 	 * @param filename
 	 * @param callback
-	 * @retval int Number of bytes processed, or error code
+	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	int readContent(const String& filename, ReadContentCallback callback);
+	file_offset_t readContent(const String& filename, ReadContentCallback callback);
 
 	/**
 	 * @name  Read content of a file

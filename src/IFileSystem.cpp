@@ -73,10 +73,8 @@ size_t IFileSystem::Info::printTo(Print& p) const
 #define TPRINTLN(tag, value, ...) n += tprintln(p, F(tag), value, ##__VA_ARGS__)
 
 	TPRINTLN("type", type);
-	TPRINTLN("partition", partition.name());
 	if(partition) {
-		TPRINTLN(" type", partition.longTypeString());
-		TPRINTLN(" device", partition.getDeviceName());
+		TPRINTLN("partition", partition);
 	}
 	TPRINTLN("maxNameLength", maxNameLength);
 	TPRINTLN("maxPathLength", maxPathLength);
