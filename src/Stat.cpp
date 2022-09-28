@@ -41,7 +41,7 @@ size_t Stat::printTo(Print& p) const
 	n += p.print(" #0x");
 	n += p.print(id, HEX, 8);
 	n += p.print(' ');
-	n += p.print(mtime);
+	n += p.print(String(mtime));
 	n += p.print(' ');
 	n += p.print(acl);
 	n += p.print(" {");
