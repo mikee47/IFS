@@ -52,6 +52,13 @@ String toString(IFS::FileCopier::Operation operation)
 
 namespace IFS
 {
+FileCopier::FileCopier(FileSystem& srcfs, FileSystem& dstfs) : srcfs(srcfs), dstfs(dstfs)
+{
+	FileSystem::Info info;
+	dstfs.getinfo(info);
+	dstAttr = info.attr;
+}
+
 bool FileCopier::handleError(FileSystem& fileSys, int errorCode, Operation operation, const String& path)
 {
 	if(errorHandler) {
@@ -150,6 +157,21 @@ bool FileCopier::copyDir(const String& srcPath, const String& dstPath)
 
 		String srcFileName = abspath(srcPath, stat.name.c_str());
 		String dstFileName = abspath(dstPath, stat.name.c_str());
+
+		// If target filesystem doesn't support metadata then add suitable extension to compressed files
+		if(dstAttr[FileSystem::Attribute::NoMeta]) {
+			switch(stat.compression.type) {
+			case Compression::Type::GZip:
+				dstFileName += ".gz";
+				break;
+			case Compression::Type::None:
+				break;
+			default:
+				dstFileName += '.';
+				dstFileName += toString(stat.compression.type);
+			}
+		}
+
 		if(!copyFile(srcFileName, dstFileName)) {
 			return false;
 		}

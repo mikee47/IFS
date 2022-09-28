@@ -53,9 +53,7 @@ public:
      */
 	using ErrorHandler = Delegate<bool(FileSystem& fileSys, int errorCode, Operation operation, const String& path)>;
 
-	FileCopier(FileSystem& srcfs, FileSystem& dstfs) : srcfs(srcfs), dstfs(dstfs)
-	{
-	}
+	FileCopier(FileSystem& srcfs, FileSystem& dstfs);
 
 	bool copyFile(const String& srcFileName, const String& dstFileName);
 	bool copyDir(const String& srcPath, const String& dstPath);
@@ -80,6 +78,7 @@ private:
 	FileSystem& srcfs;
 	FileSystem& dstfs;
 	ErrorHandler errorHandler;
+	IFileSystem::Attributes dstAttr;
 };
 
 } // namespace IFS
