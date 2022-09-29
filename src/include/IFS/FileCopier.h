@@ -49,9 +49,52 @@ public:
 	};
 
 	/**
+	 * @brief Error information passed to callback
+	 */
+	struct ErrorInfo {
+		FileSystem& fileSys;
+		Operation operation;
+		const String& path;
+		int errorCode;
+		AttributeTag attr;
+
+		ErrorInfo(FileSystem& fileSys, Operation operation, const String& path, int errorCode)
+			: fileSys(fileSys), operation(operation), path(path), errorCode(errorCode)
+		{
+		}
+
+		ErrorInfo(FsBase& obj, Operation operation, const String& path)
+			: fileSys(*obj.getFileSystem()), operation(operation), path(path), errorCode(obj.getLastError())
+		{
+		}
+
+		ErrorInfo(FsBase& obj, Operation operation, const String& path, AttributeTag attr)
+			: ErrorInfo(obj, operation, path)
+		{
+			this->attr = attr;
+		}
+
+		operator String() const
+		{
+			String s;
+			s += operation;
+			s += "(\"";
+			s += path;
+			s += '"';
+			if(operation == Operation::setattr) {
+				s += ", ";
+				s += attr;
+			}
+			s += F("): ");
+			s += fileSys.getErrorString(errorCode);
+			return s;
+		}
+	};
+
+	/**
      * @brief Return true to ignore error and continue copying, false to stop
      */
-	using ErrorHandler = Delegate<bool(FileSystem& fileSys, int errorCode, Operation operation, const String& path)>;
+	using ErrorHandler = Delegate<bool(const ErrorInfo& info)>;
 
 	FileCopier(FileSystem& srcfs, FileSystem& dstfs);
 
@@ -68,12 +111,7 @@ private:
 	bool copyFile(const String& srcPath, const String& dstPath, const Stat& stat);
 	bool copyAttributes(File& src, File& dst, const String& srcPath, const String& dstPath);
 
-	bool handleError(FileSystem& fileSys, int errorCode, Operation operation, const String& path);
-
-	bool handleError(FsBase& obj, Operation operation, const String& path)
-	{
-		return handleError(*obj.getFileSystem(), obj.getLastError(), operation, path);
-	}
+	bool handleError(const ErrorInfo& info);
 
 	FileSystem& srcfs;
 	FileSystem& dstfs;

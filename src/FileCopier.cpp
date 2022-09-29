@@ -59,14 +59,13 @@ FileCopier::FileCopier(FileSystem& srcfs, FileSystem& dstfs) : srcfs(srcfs), dst
 	dstAttr = info.attr;
 }
 
-bool FileCopier::handleError(FileSystem& fileSys, int errorCode, Operation operation, const String& path)
+bool FileCopier::handleError(const ErrorInfo& info)
 {
 	if(errorHandler) {
-		return errorHandler(fileSys, errorCode, operation, path);
+		return errorHandler(info);
 	}
 
-	debug_e("%s('%s') failed: %s", toString(operation).c_str(), path.c_str(),
-			fileSys.getErrorString(errorCode).c_str());
+	debug_e("%s", String(info).c_str());
 	return false;
 }
 
@@ -75,20 +74,20 @@ bool FileCopier::copyFile(const String& srcFileName, const String& dstFileName)
 	debug_d("copyFile('%s', '%s')", srcFileName.c_str(), dstFileName.c_str());
 	File srcFile(&srcfs);
 	if(!srcFile.open(srcFileName)) {
-		return handleError(srcFile, Operation::open, srcFileName);
+		return handleError({srcFile, Operation::open, srcFileName});
 	}
 	File dstFile(&dstfs);
 	if(!dstFile.open(dstFileName, File::CreateNewAlways | File::WriteOnly)) {
-		return handleError(dstFile, Operation::create, dstFileName);
+		return handleError({dstFile, Operation::create, dstFileName});
 	}
 	srcFile.readContent([&dstFile](const char* buffer, size_t size) -> int { return dstFile.write(buffer, size); });
 	int err = dstFile.getLastError();
 	if(err < 0) {
-		return handleError(dstFile, Operation::write, dstFileName);
+		return handleError({dstFile, Operation::write, dstFileName});
 	}
 	err = srcFile.getLastError();
 	if(err < 0) {
-		return handleError(srcFile, Operation::read, srcFileName);
+		return handleError({srcFile, Operation::read, srcFileName});
 	}
 
 	return copyAttributes(srcFile, dstFile, srcFileName, dstFileName);
@@ -99,11 +98,11 @@ bool FileCopier::copyAttributes(const String& srcPath, const String& dstPath)
 	debug_d("copyAttributes('%s', '%s')", srcPath.c_str(), dstPath.c_str());
 	File src(&srcfs);
 	if(!src.open(srcPath)) {
-		return handleError(src, Operation::open, srcPath);
+		return handleError({src, Operation::open, srcPath});
 	}
 	File dst(&dstfs);
 	if(!dst.open(dstPath, File::WriteOnly)) {
-		return handleError(dst, Operation::open, dstPath);
+		return handleError({dst, Operation::open, dstPath});
 	}
 
 	return copyAttributes(src, dst, srcPath, dstPath);
@@ -114,15 +113,12 @@ bool FileCopier::copyAttributes(File& src, File& dst, const String& srcPath, con
 	auto callback = [&](AttributeEnum& e) -> bool {
 		debug_d("setAttribute(%u, %s)", unsigned(e.tag), toString(e.tag).c_str());
 		debug_hex(DBG, "ATTR", e.buffer, e.size);
-		return dst.setAttribute(e.tag, e.buffer, e.size);
+		return dst.setAttribute(e.tag, e.buffer, e.size) || handleError({dst, Operation::setattr, dstPath, e.tag});
 	};
 	char buffer[1024];
 	src.enumAttributes(callback, buffer, sizeof(buffer));
-	if(dst.getLastError() < 0) {
-		return handleError(dst, Operation::setattr, dstPath);
-	}
 	if(src.getLastError() < 0) {
-		return handleError(src, Operation::enumattr, srcPath);
+		return handleError({src, Operation::enumattr, srcPath});
 	}
 
 	return true;
@@ -184,7 +180,7 @@ bool FileCopier::copyDir(const String& srcPath, const String& dstPath)
 	for(auto& dir : directories) {
 		String dstDirPath = abspath(dstPath, dir.name.c_str());
 		int err = dstfs.mkdir(dstDirPath);
-		if(err < 0 && !handleError(dstfs, err, Operation::mkdir, dstDirPath)) {
+		if(err < 0 && !handleError({dstfs, Operation::mkdir, dstDirPath, err})) {
 			return false;
 		}
 		if(dir.mtime != time) {
