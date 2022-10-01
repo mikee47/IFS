@@ -54,7 +54,7 @@ public:
 	{
 		Serial.println();
 
-		auto part = createFwfsPartition(fwfsImage1);
+		auto part = addFwfsPartition(fwfsImage1);
 		fwfsRef = initFWFS(part, SubType::fwfs);
 
 		TEST_CASE("Verify Hybrid SPIFFS")
@@ -126,7 +126,7 @@ public:
 		if(curSize < size) {
 			dev->erase_range(curSize, size - curSize);
 		}
-		part = dev->createPartition(name, subtype, 0, size);
+		part = dev->partitions().add(name, subtype, 0, size);
 		return part;
 	}
 
@@ -135,9 +135,9 @@ public:
 		return createPartition(imgfile, size, F("spiffs"), SubType::spiffs);
 	}
 
-	Storage::Partition createFwfsPartition(const FlashString& image)
+	Storage::Partition addFwfsPartition(const FlashString& image)
 	{
-		return Storage::progMem.createPartition(FS_PART_FWFS1, image, SubType::fwfs);
+		return Storage::progMem.partitions().add(FS_PART_FWFS1, image, SubType::fwfs);
 	}
 
 	Storage::Partition createFwfsPartition(FileSystem& fileSys, const String& imgfile)
@@ -152,8 +152,8 @@ public:
 			auto dev = new Storage::FileDevice(imgfile, fileSys, file);
 			Storage::registerDevice(dev);
 
-			part = dev->createPartition(FS_PART_FWFS1, SubType::fwfs, 0, dev->getSize(),
-										Storage::Partition::Flag::readOnly);
+			part = dev->partitions().add(FS_PART_FWFS1, SubType::fwfs, 0, dev->getSize(),
+										 Storage::Partition::Flag::readOnly);
 		}
 
 		return part;
@@ -246,7 +246,7 @@ public:
 		debug_i("Filesystem is empty, copy some stuff from FWFS");
 
 		// Mount source data image
-		auto part = Storage::progMem.createPartition(FS_PART_FWFS2, fwfsImage1, SubType::fwfs);
+		auto part = Storage::progMem.partitions().add(FS_PART_FWFS2, fwfsImage1, SubType::fwfs);
 		auto fwfs = IFS::createFirmwareFilesystem(part);
 		int res = fwfs->mount();
 		if(res < 0) {

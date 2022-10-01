@@ -41,8 +41,8 @@ public:
 		auto file = fileSys.open(filename, OpenFlag::Read);
 		if(file >= 0) {
 			device.reset(new Storage::FileDevice(filename, fileSys, file));
-			partition =
-				device->createPartition("archive", Storage::Partition::SubType::Data::fwfs, 0, device->getSize());
+			partition = device->partitions().add(F("archive"), Storage::Partition::SubType::Data::fwfs, 0U,
+												 device->getSize(), 0);
 		}
 	}
 
