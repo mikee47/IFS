@@ -67,3 +67,8 @@ struct TimeStamp {
 time_t fsGetTimeUTC();
 
 } // namespace IFS
+
+inline String toString(IFS::TimeStamp timestamp)
+{
+	return timestamp.toString();
+}
