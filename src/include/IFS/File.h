@@ -355,8 +355,7 @@ public:
 	}
 
 	/**
-	 * @brief  Read content of a file
-	 * @param  fileName Name of file to read from
+	 * @brief  Read content of the file, from current position
 	 * @retval String String variable in to which to read the file content
 	 * @note   After calling this function the content of the file is placed in to a string.
 	 * The result will be an invalid String (equates to `false`) if the file could not be read.
@@ -375,6 +374,16 @@ public:
 		}
 
 		return s;
+	}
+
+	/**
+	 * @brief Return current file handle and release ownership
+	 */
+	FileHandle release()
+	{
+		auto res = handle;
+		handle = -1;
+		return res;
 	}
 
 private:
