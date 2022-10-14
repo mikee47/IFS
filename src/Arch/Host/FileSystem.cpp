@@ -529,8 +529,50 @@ FileHandle FileSystem::open(const char* path, OpenFlags flags)
 
 	String fullpath = resolvePath(path);
 
+#ifdef __WIN32
+	uint32_t dwCreationDisposition{0};
+	if(flags[OpenFlag::Create]) {
+		if(flags[OpenFlag::Truncate]) {
+			dwCreationDisposition = CREATE_ALWAYS;
+		} else {
+			dwCreationDisposition = OPEN_ALWAYS;
+		}
+	} else if(flags[OpenFlag::Truncate]) {
+		dwCreationDisposition = TRUNCATE_EXISTING;
+	} else {
+		dwCreationDisposition = OPEN_EXISTING;
+	}
+
+	uint32_t dwAccess{0};
+	if(flags[OpenFlag::Read]) {
+		dwAccess |= GENERIC_READ;
+	}
+	if(flags[OpenFlag::Write]) {
+		dwAccess |= GENERIC_WRITE;
+	}
+
+	auto handle = CreateFileA(fullpath.c_str(), dwAccess, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+							  dwCreationDisposition, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, 0);
+	if(handle == INVALID_HANDLE_VALUE) {
+		auto err = GetLastError();
+		switch(err) {
+		case ERROR_FILE_EXISTS:
+		case ERROR_ALREADY_EXISTS:
+			return Error::Exists;
+		case ERROR_INVALID_PARAMETER:
+			return Error::BadParam;
+		case ERROR_FILE_NOT_FOUND:
+			return Error::NotFound;
+		case ERROR_ACCESS_DENIED:
+		case ERROR_SHARING_VIOLATION:
+		default:
+			return Error::Denied;
+		}
+	}
+	int res = _open_osfhandle(intptr_t(handle), flags[OpenFlag::Append] ? _O_APPEND : 0);
+#else
 	int res = ::open(fullpath.c_str(), mapFlags(flags), 0644);
-	assert(FileHandle(res) == res);
+#endif
 	return (res >= 0) ? res : syserr();
 }
 
