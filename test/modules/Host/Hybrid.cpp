@@ -126,7 +126,7 @@ public:
 		if(curSize < size) {
 			dev->erase_range(curSize, size - curSize);
 		}
-		part = dev->partitions().add(name, subtype, 0, size);
+		part = dev->editablePartitions().add(name, subtype, 0, size);
 		return part;
 	}
 
@@ -137,7 +137,7 @@ public:
 
 	Storage::Partition addFwfsPartition(const FlashString& image)
 	{
-		return Storage::progMem.partitions().add(FS_PART_FWFS1, image, SubType::fwfs);
+		return Storage::progMem.editablePartitions().add(FS_PART_FWFS1, image, SubType::fwfs);
 	}
 
 	Storage::Partition createFwfsPartition(FileSystem& fileSys, const String& imgfile)
@@ -152,8 +152,8 @@ public:
 			auto dev = new Storage::FileDevice(imgfile, fileSys, file);
 			Storage::registerDevice(dev);
 
-			part = dev->partitions().add(FS_PART_FWFS1, SubType::fwfs, 0, dev->getSize(),
-										 Storage::Partition::Flag::readOnly);
+			part = dev->editablePartitions().add(FS_PART_FWFS1, SubType::fwfs, 0, dev->getSize(),
+												 Storage::Partition::Flag::readOnly);
 		}
 
 		return part;
@@ -246,7 +246,7 @@ public:
 		debug_i("Filesystem is empty, copy some stuff from FWFS");
 
 		// Mount source data image
-		auto part = Storage::progMem.partitions().add(FS_PART_FWFS2, fwfsImage1, SubType::fwfs);
+		auto part = Storage::progMem.editablePartitions().add(FS_PART_FWFS2, fwfsImage1, SubType::fwfs);
 		auto fwfs = IFS::createFirmwareFilesystem(part);
 		int res = fwfs->mount();
 		if(res < 0) {

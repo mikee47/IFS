@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <Storage/CustomDevice.h>
+#include <Storage/Device.h>
 #include "../IFS/FileSystem.h"
 
 namespace Storage
@@ -27,7 +27,7 @@ namespace Storage
 /**
  * @brief Create custom storage device using backing file
  */
-class FileDevice : public CustomDevice
+class FileDevice : public Device
 {
 public:
 	/**
