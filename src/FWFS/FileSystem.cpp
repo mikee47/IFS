@@ -173,6 +173,42 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 	return readObjectName(entry, stat.name);
 }
 
+int FileSystem::fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount)
+{
+	GET_FD()
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fgetextents(fd.file, part, list, extcount);
+	}
+
+	if(part) {
+		*part = partition;
+	}
+	auto odFile = fd.odFile;
+	uint16_t extIndex{0};
+	FWObjDesc child;
+	int res;
+	while((res = readChildObjectHeader(odFile, child)) >= 0) {
+		if(child.obj.isData()) {
+			FWObjDesc odData;
+			res = getChildObject(odFile, child, odData);
+			if(res < 0) {
+				return res;
+			}
+
+			Extent ext{odData.contentOffset(), odData.obj.contentSize()};
+			if(list && extIndex < extcount) {
+				list[extIndex] = ext;
+			}
+			++extIndex;
+		}
+
+		child.next();
+	}
+
+	return (res == Error::EndOfObjects) ? extIndex : res;
+}
+
 int FileSystem::findUnusedDescriptor()
 {
 	for(int i = 0; i < FWFS_MAX_FDS; ++i) {

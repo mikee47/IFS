@@ -628,6 +628,12 @@ int FileSystem::flush(FileHandle file)
 	return fs->flush(file);
 }
 
+int FileSystem::fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount)
+{
+	GET_FS(file)
+	return fs->fgetextents(file, part, list, extcount);
+}
+
 /*
  * OK, so here's another tricky one like open. Easiest way to deal with it:
  *  open file in write mode

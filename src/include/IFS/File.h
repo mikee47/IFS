@@ -386,6 +386,14 @@ public:
 		return res;
 	}
 
+	int getExtents(Storage::Partition* part, Extent* list, uint16_t extcount)
+	{
+		GET_FS(lastError);
+		int res = fs->fgetextents(handle, part, list, extcount);
+		check(res);
+		return res;
+	}
+
 private:
 	FileHandle handle{-1};
 };

@@ -34,6 +34,7 @@
 #include "Control.h"
 #include "Profiler.h"
 #include "Attribute.h"
+#include "Extent.h"
 #include <Data/Stream/SeekOrigin.h>
 
 /**
@@ -440,6 +441,19 @@ public:
      * @retval int error code, on success returns size of attribute (which may be larger than size)
      */
 	virtual int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) = 0;
+
+	/**
+	 * @brief Get extents for a file
+     * @param file Handle to open file
+	 * @param part Partition where the file lives (OUT, OPTIONAL)
+	 * @param list Buffer for extents (OPTIONAL)
+	 * @param extcount Maximum number of extents to return in `list`
+     * @retval int Total number of extents for file (may be larger than 'extcount'), or error code
+     */
+	virtual int fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount)
+	{
+		return Error::NotImplemented;
+	}
 
 	/**
 	 * @brief rename a file
