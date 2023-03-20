@@ -596,10 +596,10 @@ int FileSystem::write(FileHandle file, const void* data, size_t size)
 	return fs->write(file, data, size);
 }
 
-int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
+file_offset_t FileSystem::lseek(FileHandle file, file_offset_t offset, SeekOrigin origin)
 {
 	GET_FS(file)
-	int res = fs->lseek(file, offset, origin);
+	auto res = fs->lseek(file, offset, origin);
 	//  debug_i("CHybridFileSystem::lseek(%d, %d, %d): %d", file, offset, origin, res);
 	return res;
 }
@@ -610,13 +610,13 @@ int FileSystem::eof(FileHandle file)
 	return fs->eof(file);
 }
 
-int32_t FileSystem::tell(FileHandle file)
+file_offset_t FileSystem::tell(FileHandle file)
 {
 	GET_FS(file)
 	return fs->tell(file);
 }
 
-int FileSystem::ftruncate(FileHandle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, file_size_t new_size)
 {
 	GET_FS(file)
 	return fs->ftruncate(file, new_size);

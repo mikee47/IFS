@@ -33,7 +33,7 @@ namespace IFS
 class FsBase
 {
 public:
-	FsBase(IFileSystem* filesys) : fileSystem(FileSystem::cast(filesys))
+	FsBase(IFileSystem* filesys = nullptr) : fileSystem(FileSystem::cast(filesys))
 	{
 	}
 
@@ -62,10 +62,17 @@ public:
 
 	FileSystem* getFileSystem() const
 	{
-		if(fileSystem == nullptr) {
-			lastError = Error::NoFileSystem;
+		if(fileSystem != nullptr) {
+			return fileSystem;
 		}
-		return fileSystem;
+
+		auto res = getDefaultFileSystem();
+		if(res != nullptr) {
+			return res;
+		}
+
+		lastError = Error::NoFileSystem;
+		return nullptr;
 	}
 
 protected:
@@ -73,7 +80,7 @@ protected:
 	 *  @param res result of fileXXX() operation to check
 	 *  @retval bool true if operation was successful, false if error occurred
 	 */
-	bool check(int res)
+	bool check(int64_t res)
 	{
 		if(res >= 0) {
 			return true;

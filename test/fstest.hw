@@ -1,10 +1,10 @@
 {
     "name": "FS Test",
-    "base_config": "spiffs",
+    "base_config": "spiffs-2m",
     "partitions": {
         "lfs1": {
             "device": "spiFlash",
-            "address": "0x00100000",
+            "address": "0x000b0000",
             "size": "512K",
             "type": "data",
             "subtype": "littlefs",
@@ -14,9 +14,12 @@
                 "config": "backup.fwfs"
             }
         },
+        "spiffs0": {
+            "address": "0x00130000"
+        },
         "fwfs1": {
-            "address": "0x280000",
-            "size": "0x60000",
+            "address": "0x001b0000",
+            "size": "296K",
             "type": "data",
             "subtype": "fwfs",
             "filename": "out/fwfsImage1.bin",

@@ -39,6 +39,16 @@ FILE_SYSTEM_ATTR_MAP(XX)
 #define XX(tag, comment) &attrstr_##tag,
 DEFINE_FSTR_VECTOR_LOCAL(attributeStrings, FSTR::String, FILE_SYSTEM_ATTR_MAP(XX))
 #undef XX
+
+template <typename T, typename... Args> size_t tprintln(Print& p, String tag, const T& value, Args... args)
+{
+	size_t n{0};
+	n += p.print(tag.padRight(16));
+	n += p.print(": ");
+	n += p.println(value, args...);
+	return n;
+}
+
 } // namespace
 
 String toString(IFS::IFileSystem::Type type)
@@ -53,3 +63,28 @@ String toString(IFS::IFileSystem::Attribute attr)
 {
 	return attributeStrings[unsigned(attr)];
 }
+
+namespace IFS
+{
+size_t IFileSystem::Info::printTo(Print& p) const
+{
+	size_t n{0};
+
+#define TPRINTLN(tag, value, ...) n += tprintln(p, F(tag), value, ##__VA_ARGS__)
+
+	TPRINTLN("type", type);
+	if(partition) {
+		TPRINTLN("partition", partition);
+	}
+	TPRINTLN("maxNameLength", maxNameLength);
+	TPRINTLN("maxPathLength", maxPathLength);
+	TPRINTLN("attr", toString(attr));
+	TPRINTLN("volumeID", volumeID, HEX, 8);
+	TPRINTLN("name", name);
+	TPRINTLN("volumeSize", volumeSize);
+	TPRINTLN("freeSpace", freeSpace);
+
+	return n;
+}
+
+} // namespace IFS

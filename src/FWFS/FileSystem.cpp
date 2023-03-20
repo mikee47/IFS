@@ -246,7 +246,7 @@ int FileSystem::write(FileHandle file, const void* data, size_t size)
 	return Error::ReadOnly;
 }
 
-int FileSystem::lseek(FileHandle file, int offset, SeekOrigin origin)
+file_offset_t FileSystem::lseek(FileHandle file, file_offset_t offset, SeekOrigin origin)
 {
 	GET_FD();
 
@@ -913,7 +913,7 @@ int FileSystem::eof(FileHandle file)
 	return fd.cursor >= fd.dataSize ? 1 : 0;
 }
 
-int32_t FileSystem::tell(FileHandle file)
+file_offset_t FileSystem::tell(FileHandle file)
 {
 	GET_FD();
 
@@ -1132,7 +1132,7 @@ int FileSystem::getxattr(const char* path, AttributeTag tag, void* buffer, size_
 	return readAttribute(od, tag, buffer, size);
 }
 
-int FileSystem::ftruncate(FileHandle file, size_t new_size)
+int FileSystem::ftruncate(FileHandle file, file_size_t new_size)
 {
 	GET_FD();
 

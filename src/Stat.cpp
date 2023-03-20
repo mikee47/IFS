@@ -1,9 +1,7 @@
 /**
- * Access.cpp
+ * Stat.cpp
  *
- * Created on: 6 Jun 2018
- *
- * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ * Copyright 2022 mikee47 <mike@sillyhouse.net>
  *
  * This file is part of the IFS Library
  *
@@ -19,25 +17,37 @@
  *
  ****/
 
-#include "include/IFS/Access.h"
+#include "include/IFS/Stat.h"
+#include "include/IFS/FileSystem.h"
+#include <Print.h>
 
 namespace IFS
 {
-String getAclString(const ACL& acl)
+size_t Stat::printTo(Print& p) const
 {
-	String s;
-	s += getChar(acl.readAccess);
-	s += getChar(acl.writeAccess);
-	return s;
-}
+	if(fs == nullptr) {
+		return 0;
+	}
 
-String ACL::toString() const
-{
-	String s;
-	s += readAccess;
-	s += '/';
-	s += writeAccess;
-	return s;
+	FileSystem::Info info;
+	fs->getinfo(info);
+
+	size_t n{0};
+	n += p.print(String(name).padRight(50));
+	n += p.print(' ');
+	n += p.print(size, DEC, 8, ' ');
+	n += p.print(' ');
+	n += p.print(info.type);
+	n += p.print(" #0x");
+	n += p.print(id, HEX, 8);
+	n += p.print(' ');
+	n += p.print(String(mtime));
+	n += p.print(' ');
+	n += p.print(acl);
+	n += p.print(" {");
+	n += p.print(compression.type);
+	n += p.print('}');
+	return n;
 }
 
 } // namespace IFS

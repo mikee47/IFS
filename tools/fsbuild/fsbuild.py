@@ -7,16 +7,29 @@
 
 import os, json, sys
 import util, FWFS, config
-from FWFS import FwObt
+from FWFS import FwObt, isNumberType
 from compress import CompressionType
 from rjsmin import jsmin
 import argparse
 
+do_minify = True
+
+def minify(name, data):
+    if do_minify:
+        try:
+            ext = os.path.splitext(name)[1]
+            if ext in ['.json', '.jsonc']:
+                return json.dumps(json.loads(jsmin(data).decode()), separators=(',', ':')).encode()
+            if ext in ['.js']:
+                return jsmin(data)
+        except json.JSONDecodeError as err:
+            print(f"Warning! {name}: {err}")
+    return data
 
 # Create a file object, add it to the parent
 def addFile(parent, name, sourcePath):
 #    print("'{}' -> '{}'".format(name, sourcePath))
-    
+
     fileObj = parent.findChild(name)
     if fileObj is not None:
         raise KeyError("Directory '%s' already contains file '%s'" % (parent.path(), name))
@@ -27,14 +40,8 @@ def addFile(parent, name, sourcePath):
 
     with open(sourcePath, "rb") as fin:
         din = fin.read()
-        ext = os.path.splitext(name)[1]
-        if ext in ['.json', '.jsonc']:
-            dout = json.dumps(json.loads(jsmin(din).decode()), separators=(',', ':')).encode()
-        elif ext in ['.js']:
-            dout = jsmin(din)
-        else:
-            dout = din
         fin.close()
+    dout = minify(name, din)
 
     # If rules say we should compress this file, give it a go
     cmp = fileObj.findObject(FwObt.Compression)
@@ -68,6 +75,9 @@ def addFile(parent, name, sourcePath):
 
 
 # Create a filing system object, add it to the parent
+# @param parent
+# @param target
+# @param source Source for this file or directory, or number for mount point
 def createFsObject(parent, target, source):
     # Resolve target path to single name
     while '/' in target and len(target) > 1:
@@ -80,7 +90,10 @@ def createFsObject(parent, target, source):
     if parent.findChild(target) is not None:
         raise KeyError("Error: Directory '%s' already contains '%s'" % (parent.name, target))
 
-    if os.path.isdir(source):
+    if isNumberType(source):
+        obj = FWFS.MountPoint(parent, target, source)
+        cfg.applyRules(obj)
+    elif os.path.isdir(source):
         obj = addDirectory(parent, target, source)
     else:
         obj = addFile(parent, target, source)
@@ -115,7 +128,7 @@ def addDirectory(parent, name, sourcePath):
 
     cfg.applyRules(dirObj)
 
-#        print("parsedir('{}', '{}')".format(target, source))
+    # print("parsedir('{}', '{}')".format(target, source))
     for item in os.listdir(sourcePath):
         createFsObject(dirObj, item, os.path.join(sourcePath, item))
 
@@ -130,23 +143,26 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input', metavar='filename', required=True, help='Source configuration file')
     parser.add_argument('-o', '--output', metavar='filename', required=True, help='Destination image file')
     parser.add_argument('-v', '--verbose', action='store_true', help='Show build details')
-    
+    parser.add_argument('-n', '--nominify', action='store_true', help='Do not minify Javasript or JSON')
+
     args = parser.parse_args()
 
     if args.verbose:
         print("Python version: ", sys.version, ", version info: ", sys.version_info)
 
+    do_minify = not args.nominify
+
     # Parse the configuration file or input JSON
     cfg = config.Config(args.input)
 
     img = FWFS.Image(cfg.volumeName(), cfg.volumeID())
-    
+
     outFilePath = args.files
     if outFilePath:
         print("Writing copy of generated files to '" + outFilePath + '"')
         util.mkdir(outFilePath)
         util.cleandir(outFilePath)
-    
+
     if args.log:
         if args.log == '-':
             logfile = sys.stdout
@@ -157,10 +173,10 @@ if __name__ == "__main__":
         logfile.write(fmtstr.format("--------", "-------", "--------", "--", "---", "------", "", "---------", "----", "--------"))
     else:
         logfile = None
-    
+
     #
     cfg.applyRules(img.root())
-    
+
     # resolve file mappings
     for target, source in cfg.sourceMap():
         if logfile:
@@ -169,7 +185,7 @@ if __name__ == "__main__":
 
     # create mount point objects
     for target, store in cfg.mountPoints():
-        img.root().appendMountPoint(target, store)
+        createFsObject(img.root(), target, store)
 
     # Emit the image
     imgFilePath = util.ospath(args.output)

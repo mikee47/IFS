@@ -30,5 +30,24 @@
 #include <sming_attr.h>
 #include <WString.h>
 #include <Data/BitSet.h>
+#include <Storage/Types.h>
 
 #define snprintf(_buf, _length, _fmt, ...) m_snprintf(_buf, _length, _fmt, ##__VA_ARGS__)
+
+using volume_size_t = storage_size_t;
+
+#ifdef ENABLE_FILE_SIZE64
+
+#ifndef ENABLE_STORAGE_SIZE64
+static_assert(false, "ENABLE_FILE_SIZE64 requires ENABLE_STORAGE_SIZE64 also");
+#endif
+
+using file_size_t = uint64_t;
+using file_offset_t = int64_t;
+
+#else
+
+using file_size_t = uint32_t;
+using file_offset_t = int32_t;
+
+#endif

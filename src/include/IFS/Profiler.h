@@ -20,6 +20,7 @@
 #pragma once
 
 #include <WString.h>
+#include <Print.h>
 
 namespace IFS
 {
@@ -34,19 +35,23 @@ public:
 	}
 
 	/**
-	 * @brief Called AFTER reading a block of data
+	 * @name Called AFTER reading a block of data
+	 * @{
 	 */
-	virtual void read(uint32_t address, const void* buffer, size_t size) = 0;
+	virtual void read(storage_size_t address, const void* buffer, size_t size) = 0;
+	/** @} */
 
 	/**
-	 * @brief Called BEFORE writing a block of data
+	 * @name Called BEFORE writing a block of data
+	 * @{
 	 */
-	virtual void write(uint32_t address, const void* buffer, size_t size) = 0;
+	virtual void write(storage_size_t address, const void* buffer, size_t size) = 0;
+	/** @} */
 
 	/**
 	 * @brief Called BEFORE an erase operation
 	 */
-	virtual void erase(uint32_t address, size_t size) = 0;
+	virtual void erase(storage_size_t address, size_t size) = 0;
 };
 
 class Profiler : public IProfiler
@@ -54,14 +59,14 @@ class Profiler : public IProfiler
 public:
 	struct Stat {
 		size_t count{0};
-		size_t size{0};
+		storage_size_t size{0};
 
 		void reset()
 		{
 			size = count = 0;
 		}
 
-		void update(size_t n)
+		void update(storage_size_t n)
 		{
 			size += n;
 			++count;
@@ -77,25 +82,32 @@ public:
 			s += "KB";
 			return s;
 		}
+
+		operator String() const
+		{
+			return toString();
+		}
 	};
 
 	Stat readStat;
 	Stat writeStat;
 	Stat eraseStat;
 
-	void read(uint32_t address, const void* buffer, size_t size) override
+	void read(storage_size_t address, const void* buffer, size_t size) override
 	{
+		(void)address;
 		(void)buffer;
 		readStat.update(size);
 	}
 
-	void write(uint32_t address, const void* buffer, size_t size) override
+	void write(storage_size_t address, const void* buffer, size_t size) override
 	{
+		(void)address;
 		(void)buffer;
 		writeStat.update(size);
 	}
 
-	void erase(uint32_t address, size_t size) override
+	void erase(storage_size_t address, size_t size) override
 	{
 		eraseStat.update(size);
 	}
@@ -107,16 +119,16 @@ public:
 		eraseStat.reset();
 	}
 
-	String toString() const
+	size_t printTo(Print& p) const
 	{
-		String s;
-		s += F("Read: ");
-		s += readStat.toString();
-		s += F(", Write: ");
-		s += writeStat.toString();
-		s += F(", Erase: ");
-		s += eraseStat.toString();
-		return s;
+		size_t n{0};
+		n += p.print(_F("Read: "));
+		n += p.print(readStat);
+		n += p.print(_F(", Write: "));
+		n += p.print(writeStat);
+		n += p.print(_F(", Erase: "));
+		n += p.print(eraseStat);
+		return n;
 	}
 };
 

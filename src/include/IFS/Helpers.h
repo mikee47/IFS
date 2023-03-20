@@ -41,4 +41,12 @@ FileSystem* createFirmwareFilesystem(Storage::Partition partition);
  */
 FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, IFileSystem* flashFileSystem);
 
+/**
+ * @brief Mount an FWFS archive
+ * @param fs Filesystem where file is located
+ * @param filename Name of archive file
+ * @retval FileSystem* constructed filesystem object
+ */
+FileSystem* mountArchive(FileSystem& fs, const String& filename);
+
 } // namespace IFS

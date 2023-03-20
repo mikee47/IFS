@@ -23,10 +23,39 @@
 #include "include/IFS/FWFS/FileSystem.h"
 #include "include/IFS/HYFS/FileSystem.h"
 #include <Storage.h>
+#include <Storage/FileDevice.h>
 #include <SystemClock.h>
 
 namespace IFS
 {
+namespace
+{
+/**
+ * @brief Read-only filesystem archive
+ */
+class ArchiveFileSystem : public FWFS::FileSystem
+{
+public:
+	ArchiveFileSystem(IFileSystem& fileSys, const char* filename) : FileSystem(Storage::Partition{})
+	{
+		auto file = fileSys.open(filename, OpenFlag::Read);
+		if(file >= 0) {
+			device.reset(new Storage::FileDevice(filename, fileSys, file));
+			partition = device->editablePartitions().add(F("archive"), Storage::Partition::SubType::Data::fwfs, 0U,
+														 device->getSize(), 0);
+		}
+	}
+
+	ArchiveFileSystem(IFileSystem& fileSys, const String& filename) : ArchiveFileSystem(fileSys, filename.c_str())
+	{
+	}
+
+private:
+	std::unique_ptr<Storage::FileDevice> device;
+};
+
+} // namespace
+
 /** @brief required by IFS, platform-specific */
 time_t fsGetTimeUTC()
 {
@@ -53,6 +82,19 @@ FileSystem* createHybridFilesystem(Storage::Partition fwfsPartition, IFileSystem
 
 	auto fs = new HYFS::FileSystem(fwfs, flashFileSystem);
 	return FileSystem::cast(fs);
+}
+
+FileSystem* mountArchive(FileSystem& fs, const String& filename)
+{
+	auto arcfs = new ArchiveFileSystem(fs, filename);
+	if(arcfs == nullptr) {
+		return nullptr;
+	}
+	if(arcfs->mount() != FS_OK) {
+		delete arcfs;
+		return nullptr;
+	}
+	return IFS::FileSystem::cast(arcfs);
 }
 
 } // namespace IFS

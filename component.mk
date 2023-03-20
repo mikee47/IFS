@@ -1,3 +1,5 @@
+COMPONENT_DEPENDS := Storage
+
 COMPONENT_SRCDIRS := \
 	src \
 	src/File \
@@ -16,6 +18,16 @@ ifeq ($(UNAME),Windows)
 endif
 endif
 
+COMPONENT_VARS := ENABLE_FILE_SIZE64
+ifeq ($(ENABLE_FILE_SIZE64),1)
+ENABLE_STORAGE_SIZE64 := 1
+# Check user didn't override this on command line
+ifneq ($(ENABLE_STORAGE_SIZE64),1)
+$(error ENABLE_FILE_SIZE64 requires ENABLE_STORAGE_SIZE64=1)
+endif
+GLOBAL_CFLAGS += -DENABLE_FILE_SIZE64
+endif
+
 COMPONENT_DOCFILES := tools/fsbuild/README.rst
 COMPONENT_DOXYGEN_INPUT := src
 
@@ -32,6 +44,9 @@ DEBUG_VARS += FSBUILD
 FSBUILD_PATH := $(COMPONENT_PATH)/tools/fsbuild/fsbuild.py
 FSBUILD := $(PYTHON) $(FSBUILD_PATH) $(if $V,--verbose -l -)
 
+CACHE_VARS += FSBUILD_OPTIONS
+FSBUILD_OPTIONS ?=
+
 # Target invoked via partition table
 ifneq (,$(filter fwfs-build,$(MAKECMDGOALS)))
 PART_TARGET := $(PARTITION_$(PART)_FILENAME)
@@ -40,6 +55,6 @@ $(eval PART_CONFIG := $(call HwExpr,part.build['config']))
 .PHONY: fwfs-build
 fwfs-build:
 	@echo "Creating FWFS image '$(PART_TARGET)'"
-	$(Q) $(FSBUILD) -i "$(subst ",\",$(PART_CONFIG))" -o $(PART_TARGET)
+	$(Q) $(FSBUILD) $(FSBUILD_OPTIONS) -i "$(subst ",\",$(PART_CONFIG))" -o $(PART_TARGET)
 endif
 endif

@@ -1,9 +1,7 @@
-/**
- * Access.cpp
+/****
+ * Debug.h
  *
- * Created on: 6 Jun 2018
- *
- * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ * Copyright 2022 mikee47 <mike@sillyhouse.net>
  *
  * This file is part of the IFS Library
  *
@@ -19,25 +17,26 @@
  *
  ****/
 
-#include "include/IFS/Access.h"
+#pragma once
+
+#include "FileSystem.h"
+#include <Print.h>
+#include <Data/BitSet.h>
 
 namespace IFS
 {
-String getAclString(const ACL& acl)
+namespace Debug
 {
-	String s;
-	s += getChar(acl.readAccess);
-	s += getChar(acl.writeAccess);
-	return s;
-}
+enum class Option {
+	recurse,	// Recurse sub-directories
+	attributes, // Include attributes
+};
 
-String ACL::toString() const
-{
-	String s;
-	s += readAccess;
-	s += '/';
-	s += writeAccess;
-	return s;
-}
+using Options = BitSet<uint8_t, Option, 2>;
 
+void printFsInfo(Print& out, FileSystem& fs);
+void printAttrInfo(Print& out, FileSystem& fs, const String& filename);
+int listDirectory(Print& out, FileSystem& fs, const String& path, Options options = 0);
+
+} // namespace Debug
 } // namespace IFS

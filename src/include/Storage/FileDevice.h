@@ -17,27 +17,46 @@
  *
  ****/
 
-#include <Storage/CustomDevice.h>
+#pragma once
+
+#include <Storage/Device.h>
 #include "../IFS/FileSystem.h"
 
 namespace Storage
 {
 /**
- * @brief Read-only partition on a stream object
- * @note Writes not possible as streams always append data, cannot do random writes
+ * @brief Create custom storage device using backing file
  */
-class FileDevice : public CustomDevice
+class FileDevice : public Device
 {
 public:
-	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, size_t size)
+	/**
+	 * @brief Construct a file device with custom size
+	 * @param name Name of device
+	 * @param fileSys File system where file is located
+	 * @param file Handle to open file
+	 * @param size Size of device in bytes
+	 */
+	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file, storage_size_t size)
 		: name(name), size(size), fileSystem(fileSys), file(file)
 	{
 	}
 
+	/**
+	 * @brief Construct a device using existing file
+	 * @param name Name of device
+	 * @param fileSys File system where file is located
+	 * @param file Handle to open file
+	 *
+	 * Device will match size of existing file
+	 */
 	FileDevice(const String& name, IFS::IFileSystem& fileSys, IFS::FileHandle file)
 		: name(name), fileSystem(fileSys), file(file)
 	{
 		size = IFS::FileSystem::cast(fileSys).getSize(file);
+		auto blockSize = getBlockSize();
+		auto blockCount = (size + blockSize - 1) / blockSize;
+		size = blockCount * blockSize;
 	}
 
 	~FileDevice()
@@ -55,23 +74,24 @@ public:
 		return Type::file;
 	}
 
-	size_t getSize() const override
+	storage_size_t getSize() const override
 	{
 		return size;
 	}
 
 	size_t getBlockSize() const override
 	{
-		return sizeof(uint32_t);
+		// Use block size compatible with most disk drives
+		return 512;
 	}
 
-	bool read(uint32_t address, void* buffer, size_t len) override;
-	bool write(uint32_t address, const void* data, size_t len) override;
-	bool erase_range(uint32_t address, size_t len) override;
+	bool read(storage_size_t address, void* buffer, size_t len) override;
+	bool write(storage_size_t address, const void* data, size_t len) override;
+	bool erase_range(storage_size_t address, storage_size_t len) override;
 
 private:
 	CString name;
-	size_t size;
+	storage_size_t size;
 	IFS::IFileSystem& fileSystem;
 	IFS::FileHandle file;
 };

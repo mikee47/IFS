@@ -48,7 +48,7 @@ public:
 
 		auto fs = getFileSystem();
 		CHECK(fs != nullptr);
-		listdir(fs, nullptr);
+		listDirectory(Serial, *fs, nullptr);
 
 		// If our test file already exists, make sure it's not read-only
 		int res = fileSetAttr(filename, 0);
@@ -203,7 +203,7 @@ public:
 
 		TEST_CASE("Directory listing")
 		{
-			listdir(&hostfs, nullptr, 0); //Flag::recurse);
+			listDirectory(Serial, hostfs, nullptr, 0); //Option::recurse);
 		}
 
 		TEST_CASE("Attribute enumeration")

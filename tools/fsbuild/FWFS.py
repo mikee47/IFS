@@ -443,10 +443,6 @@ class NamedObject(Object16):
     def writeACE(self):
         return self.findInheritableObject(FwObt.WriteACE)
 
-    def appendMountPoint(self, target, store):
-        mp = MountPoint(self, target)
-        VolumeIndexObject(mp, store)
-
     def findInheritableObject(self, obt):
         obj = self.findObject(obt)
         if obj is None and self.parent() is not None:
@@ -561,8 +557,9 @@ class Directory(NamedObject):
 class MountPoint(NamedObject):
     """Mount point object"""
     
-    def __init__(self, parent, name):
+    def __init__(self, parent, name, store):
         super().__init__(parent, FwObt.MountPoint, name)
+        VolumeIndexObject(self, store)
 
     def pathsep(self):
         return '/'

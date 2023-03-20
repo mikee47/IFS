@@ -106,9 +106,9 @@ public:
 		CHECK(lfs != nullptr);
 		REQUIRE(lfs->mount() == FS_OK);
 		volumeInfo.name = F("Full backup of LFS filesystem");
-		backupFilesystem(lfs, volumeInfo, LFS_ARCHIVE_BIN);
+		backupFilesystem(*lfs, volumeInfo, LFS_ARCHIVE_BIN);
 		volumeInfo.name = F("Backup of LFS filesystem with filtering and XORed file content");
-		backupFilesystem(lfs, volumeInfo, LFS_ARCHIVE_FILTERED_BIN, filterStat, [](ArchiveStream::FileInfo& file) {
+		backupFilesystem(*lfs, volumeInfo, LFS_ARCHIVE_FILTERED_BIN, filterStat, [](ArchiveStream::FileInfo& file) {
 			file.setAttribute(IFS::AttributeTag::Comment, F("This is a file comment"));
 			return new XorEncoder(file);
 		});
@@ -123,14 +123,14 @@ public:
 		int err = fwfs->getinfo(fsinfo);
 		CHECK(err >= 0);
 		volumeInfo = fsinfo;
-		backupFilesystem(fwfs, volumeInfo, FWFS_ARCHIVE_BIN);
+		backupFilesystem(*fwfs, volumeInfo, FWFS_ARCHIVE_BIN);
 		delete fwfs;
 
 		// Verify that the generated image is identical to the source image
 		TEST_CASE("Compare images")
 		{
 			// List the main root directory to show the filesystem image
-			listdir(getFileSystem(), nullptr, 0);
+			listDirectory(Serial, *getFileSystem(), nullptr, 0);
 
 			File f;
 			REQUIRE(f.open(FWFS_ARCHIVE_BIN));
@@ -149,18 +149,18 @@ public:
 		}
 	}
 
-	void backupFilesystem(IFS::FileSystem* fs, const ArchiveStream::VolumeInfo& volumeInfo, const String& filename,
+	void backupFilesystem(IFS::FileSystem& fs, const ArchiveStream::VolumeInfo& volumeInfo, const String& filename,
 						  ArchiveStream::FilterStatCallback filterStat = nullptr,
 						  ArchiveStream::CreateEncoderCallback createEncoder = nullptr)
 	{
 		char name[64];
 		IFS::FileSystem::Info info{name, sizeof(name)};
-		CHECK(fs->getinfo(info) == FS_OK);
+		CHECK(fs.getinfo(info) == FS_OK);
 		m_printf(_F("\r\n\nBacking up %s filesystem '%s' to '%s'\r\n"), toString(info.type).c_str(), name,
 				 filename.c_str());
-		printFsInfo(fs);
-		listdir(fs, nullptr, Flag::attributes);
-		ArchiveStream archive(fs, volumeInfo);
+		printFsInfo(Serial, fs);
+		listDirectory(Serial, fs, nullptr, Option::attributes);
+		ArchiveStream archive(&fs, volumeInfo);
 		archive.onFilterStat(filterStat);
 		archive.onCreateEncoder(createEncoder);
 		FileStream stream;
@@ -195,17 +195,12 @@ public:
 	{
 		m_puts("\r\n");
 		m_puts("\r\n");
-		auto file = fileOpen(filename, File::ReadOnly);
-		auto dev = new Storage::FileDevice(filename, *getFileSystem(), file);
-		Storage::registerDevice(dev);
-		auto part = dev->createPartition("archive", Storage::Partition::SubType::Data::fwfs, 0, dev->getSize());
-		auto fs = IFS::createFirmwareFilesystem(part);
+		auto fs = fileMountArchive(filename);
 		CHECK(fs != nullptr);
 		REQUIRE(fs->mount() >= 0);
-		printFsInfo(fs);
-		listdir(fs, nullptr, Flag::attributes | Flag::recurse);
+		printFsInfo(Serial, *fs);
+		listDirectory(Serial, *fs, nullptr, Option::attributes | Option::recurse);
 		delete fs;
-		delete dev;
 	}
 };
 

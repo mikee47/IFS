@@ -1,6 +1,8 @@
-COMPONENT_SOC := host
-
-HWCONFIG := fstest
+ifeq ($(SMING_ARCH),Esp32)
+HWCONFIG := fstest-esp32
+else
+HWCONFIG := fstest-std
+endif
 
 # Empty SPIFFS partition please
 SPIFF_FILES :=
@@ -17,11 +19,13 @@ endif
 
 # Don't need network
 HOST_NETWORK_OPTIONS := --nonet
+DISABLE_NETWORK := 1
 
 COMPONENT_DEPENDS := \
 	SmingTest \
 	Spiffs \
-	LittleFS
+	LittleFS \
+	crypto
 
 # Time in milliseconds to pause after a test group has completed
 CONFIG_VARS += TEST_GROUP_INTERVAL

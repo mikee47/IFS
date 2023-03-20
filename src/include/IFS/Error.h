@@ -64,18 +64,20 @@ namespace Error
 	XX(NameTooLong, "File name or path is too long for buffer")                                                        \
 	XX(BufferTooSmall, "Data is too long for buffer")                                                                  \
 	XX(NotFound, "Object not found")                                                                                   \
+	XX(Exists, "File/directory exists")                                                                                \
 	XX(ReadOnly, "Media is read-only")                                                                                 \
 	XX(ReadFailure, "Media read failed")                                                                               \
 	XX(WriteFailure, "Media write failed")                                                                             \
 	XX(EraseFailure, "Media erase failed")                                                                             \
 	XX(InvalidHandle, "File handle is outside valid range")                                                            \
-	XX(InvalidObjectRef, "Filesystem object reference invalid")                                                        \
-	XX(InvalidObject, "Filesystem object invalid")                                                                     \
 	XX(EndOfObjects, "Last object in filing system has been read")                                                     \
 	XX(FileNotOpen, "File handle is valid but the file is not open")                                                   \
 	XX(SeekBounds, "seek would give an invalid file offset")                                                           \
 	XX(NoMoreFiles, "readdir has no more files to return")                                                             \
-	XX(OutOfFileDescs, "Cannot open another file until one is closed")
+	XX(OutOfFileDescs, "Cannot open another file until one is closed")                                                 \
+	XX(Denied, "Operation denied")                                                                                     \
+	XX(NoSpace, "No free space")                                                                                       \
+	XX(TooBig, "File size too big")
 
 enum class Value {
 #define XX(tag, text) tag,

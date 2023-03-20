@@ -204,10 +204,17 @@ bool ArchiveStream::openRootDirectory()
 {
 	GET_FS(false)
 
+	// Root directory may be a mountpoint, so query stats from open handle rather than path
 	assert(level == 0);
 	debug_d("[FWFS] Root directory: '%s'", currentPath.c_str());
+	int file = fs->open(currentPath);
+	if(file < 0) {
+		debug_e("[FWFS] open('%s'): %s", currentPath.c_str(), fs->getErrorString(file).c_str());
+		return false;
+	}
 	Stat stat;
-	int res = fs->stat(currentPath, stat);
+	int res = fs->fstat(file, stat);
+	fs->close(file);
 	if(res < 0) {
 		debug_e("[FWFS] stat('%s'): %s", currentPath.c_str(), fs->getErrorString(res).c_str());
 		return false;
@@ -218,6 +225,7 @@ bool ArchiveStream::openRootDirectory()
 		return false;
 	}
 
+	stat.name = currentPath;
 	openDirectory(stat);
 	return true;
 }

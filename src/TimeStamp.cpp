@@ -1,9 +1,7 @@
-/**
- * Access.cpp
+/****
+ * TimeStamp.cpp
  *
- * Created on: 6 Jun 2018
- *
- * Copyright 2019 mikee47 <mike@sillyhouse.net>
+ * Copyright 2022 mikee47 <mike@sillyhouse.net>
  *
  * This file is part of the IFS Library
  *
@@ -19,25 +17,21 @@
  *
  ****/
 
-#include "include/IFS/Access.h"
+#include "include/IFS/TimeStamp.h"
 
 namespace IFS
 {
-String getAclString(const ACL& acl)
+String TimeStamp::toString(const char* dtsep) const
 {
-	String s;
-	s += getChar(acl.readAccess);
-	s += getChar(acl.writeAccess);
-	return s;
-}
-
-String ACL::toString() const
-{
-	String s;
-	s += readAccess;
-	s += '/';
-	s += writeAccess;
-	return s;
+	time_t t = mValue;
+	struct tm* tm = localtime(&t);
+	if(tm == nullptr) {
+		return nullptr;
+	}
+	char buffer[64];
+	m_snprintf(buffer, sizeof(buffer), _F("%02u/%02u/%04u%s%02u:%02u:%02u"), tm->tm_mday, tm->tm_mon + 1,
+			   1900 + tm->tm_year, dtsep ?: " ", tm->tm_hour, tm->tm_min, tm->tm_sec);
+	return buffer;
 }
 
 } // namespace IFS

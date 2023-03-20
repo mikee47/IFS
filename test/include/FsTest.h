@@ -4,6 +4,11 @@
 #include <IFS/FileSystem.h>
 #include <IFS/Helpers.h>
 #include <IFS/Directory.h>
+#include <IFS/Debug.h>
+#include <Storage/Debug.h>
+
+using namespace IFS::Debug;
+using namespace Storage::Debug;
 
 #define debug_ifs(fs, err, func, ...)                                                                                  \
 	do {                                                                                                               \
@@ -21,9 +26,7 @@ using FileSystem = IFS::FileSystem;
 
 #define FLAG_MAP(XX)                                                                                                   \
 	XX(readFileTest, "Read content of every file")                                                                     \
-	XX(writeThroughTest, "With hybrid filesystem, 'touch' files to propagate them to SPIFFS from FWFS")                \
-	XX(recurse, "Recurse sub-directories")                                                                             \
-	XX(attributes, "Include attributes")
+	XX(writeThroughTest, "With hybrid filesystem, 'touch' files to propagate them to SPIFFS from FWFS")
 
 enum class Flag {
 #define XX(name, desc) name,
@@ -36,15 +39,3 @@ using Flags = BitSet<uint32_t, Flag, 3>;
 String getErrorString(FileSystem* fs, int err);
 
 String toString(Flag f);
-
-void printFsInfo(FileSystem* fs);
-
-void printFileInfo(const IFS::Stat& stat);
-
-// Displays as local time
-String timeToStr(time_t t, const char* dtsep);
-
-int listdir(FileSystem* fs, const String& path, Flags flags = 0);
-
-void listPartitions();
-void listDevices();

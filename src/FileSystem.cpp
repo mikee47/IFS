@@ -23,29 +23,27 @@
 
 namespace IFS
 {
-uint32_t FileSystem::getSize(FileHandle file)
+file_size_t FileSystem::getSize(FileHandle file)
 {
 	auto curpos = lseek(file, 0, SeekOrigin::Current);
-	lseek(file, 0, SeekOrigin::End);
-	int size = tell(file);
+	auto size = lseek(file, 0, SeekOrigin::End);
 	lseek(file, curpos, SeekOrigin::Start);
-	return (size > 0) ? uint32_t(size) : 0;
+	return (size > 0) ? size : 0;
 }
 
-uint32_t FileSystem::getSize(const char* fileName)
+file_size_t FileSystem::getSize(const char* fileName)
 {
 	auto file = open(fileName, OpenFlag::Read);
 	if(file < 0) {
 		return 0;
 	}
 	// Get size
-	lseek(file, 0, SeekOrigin::End);
-	int size = tell(file);
+	auto size = lseek(file, 0, SeekOrigin::End);
 	close(file);
-	return (size > 0) ? uint32_t(size) : 0;
+	return (size > 0) ? size : 0;
 }
 
-int FileSystem::truncate(const char* fileName, size_t newSize)
+int FileSystem::truncate(const char* fileName, file_size_t newSize)
 {
 	auto file = open(fileName, OpenFlag::Write);
 	if(file < 0) {
@@ -77,13 +75,12 @@ String FileSystem::getContent(const String& fileName)
 		return nullptr;
 	}
 
-	int size = lseek(file, 0, SeekOrigin::End);
+	auto size = lseek(file, 0, SeekOrigin::End);
 	if(size == 0) {
 		res = ""; // Valid String, file is empty
 	} else if(size > 0) {
 		lseek(file, 0, SeekOrigin::Start);
-		res.setLength(size);
-		if(read(file, res.begin(), res.length()) != size) {
+		if(size < 0x100000 && res.setLength(size) && read(file, res.begin(), res.length()) != size) {
 			res = nullptr; // read failed, invalidate String
 		}
 	}
@@ -103,8 +100,8 @@ size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize
 		return 0;
 	}
 
-	int size = lseek(file, 0, SeekOrigin::End);
-	if(size <= 0 || bufSize <= size_t(size)) {
+	auto size = lseek(file, 0, SeekOrigin::End);
+	if(size <= 0 || file_size_t(size) > bufSize) {
 		size = 0;
 	} else {
 		lseek(file, 0, SeekOrigin::Start);
@@ -117,11 +114,11 @@ size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize
 	return size;
 }
 
-int FileSystem::readContent(FileHandle file, size_t size, ReadContentCallback callback)
+file_offset_t FileSystem::readContent(FileHandle file, size_t size, ReadContentCallback callback)
 {
 	constexpr size_t bufSize{512};
 	char buf[bufSize];
-	size_t count{0};
+	file_offset_t count{0};
 	while(size > 0) {
 		size_t toRead = std::min(bufSize, size);
 		int len = read(file, buf, toRead);
@@ -142,11 +139,11 @@ int FileSystem::readContent(FileHandle file, size_t size, ReadContentCallback ca
 	return count;
 }
 
-int FileSystem::readContent(FileHandle file, ReadContentCallback callback)
+file_offset_t FileSystem::readContent(FileHandle file, ReadContentCallback callback)
 {
 	constexpr size_t bufSize{512};
 	char buf[bufSize];
-	size_t count{0};
+	file_offset_t count{0};
 	int len;
 	while((len = read(file, buf, bufSize)) > 0) {
 		int res = callback(buf, len);
@@ -159,13 +156,13 @@ int FileSystem::readContent(FileHandle file, ReadContentCallback callback)
 	return (len < 0) ? len : count;
 }
 
-int FileSystem::readContent(const String& filename, ReadContentCallback callback)
+file_offset_t FileSystem::readContent(const String& filename, ReadContentCallback callback)
 {
 	auto file = open(filename, OpenFlag::Read);
 	if(file < 0) {
 		return file;
 	}
-	int res = readContent(file, callback);
+	auto res = readContent(file, callback);
 	close(file);
 	return res;
 }
