@@ -56,9 +56,8 @@ public:
 class BasicEncoder : public IBlockEncoder
 {
 public:
-	BasicEncoder(IDataSourceStream* stream)
+	BasicEncoder(IDataSourceStream* stream) : stream(stream)
 	{
-		this->stream.reset(stream);
 	}
 
 	IDataSourceStream* getNextStream() override

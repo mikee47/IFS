@@ -309,7 +309,7 @@ bool ArchiveStream::readFileEntry(const Stat& stat)
 			// Default behaviour
 			auto stream = new FileStream(fs);
 			stream->attach(file, stat.size);
-			encoder.reset(new BasicEncoder(stream));
+			encoder = std::make_unique<BasicEncoder>(stream);
 		}
 		sendDataHeader();
 	}

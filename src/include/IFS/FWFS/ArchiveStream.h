@@ -235,7 +235,7 @@ private:
 
 		void createContent()
 		{
-			content.reset(new ObjectBuffer);
+			content = std::make_unique<ObjectBuffer>();
 		}
 
 		int addAttribute(AttributeTag tag, const void* data, size_t size);
