@@ -18,20 +18,28 @@
  ****/
 
 #include "include/IFS/TimeStamp.h"
+#include <DateTime.h>
 
 namespace IFS
 {
+template <typename T = time_t> typename std::enable_if<sizeof(T) == 8, time_t>::type clamp(uint32_t timestamp)
+{
+	return timestamp;
+}
+
+template <typename T = time_t> typename std::enable_if<sizeof(T) == 4, time_t>::type clamp(uint32_t timestamp)
+{
+	return (timestamp < INT32_MAX) ? timestamp : INT32_MAX;
+}
+
 String TimeStamp::toString(const char* dtsep) const
 {
-	time_t t = mValue;
-	struct tm* tm = localtime(&t);
-	if(tm == nullptr) {
-		return nullptr;
-	}
-	char buffer[64];
-	m_snprintf(buffer, sizeof(buffer), _F("%02u/%02u/%04u%s%02u:%02u:%02u"), tm->tm_mday, tm->tm_mon + 1,
-			   1900 + tm->tm_year, dtsep ?: " ", tm->tm_hour, tm->tm_min, tm->tm_sec);
-	return buffer;
+	DateTime dt(clamp(mValue));
+	String s;
+	s += dt.format(_F("%d/%m/%Y"));
+	s += dtsep ?: "T";
+	s += dt.format(_F("%H:%M:%S"));
+	return s;
 }
 
 } // namespace IFS
