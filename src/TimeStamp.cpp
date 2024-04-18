@@ -22,19 +22,13 @@
 
 namespace IFS
 {
-template <typename T = time_t> typename std::enable_if<sizeof(T) == 8, time_t>::type clamp(uint32_t timestamp)
-{
-	return timestamp;
-}
-
-template <typename T = time_t> typename std::enable_if<sizeof(T) == 4, time_t>::type clamp(uint32_t timestamp)
-{
-	return (timestamp < INT32_MAX) ? timestamp : INT32_MAX;
-}
-
 String TimeStamp::toString(const char* dtsep) const
 {
-	DateTime dt(clamp(mValue));
+	time_t value = mValue;
+	if(sizeof(time_t) == 4 && mValue > INT32_MAX) {
+		value = INT32_MAX;
+	}
+	DateTime dt(value);
 	String s;
 	s += dt.format(_F("%d/%m/%Y"));
 	s += dtsep ?: "T";
