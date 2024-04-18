@@ -191,8 +191,10 @@ int settime(const char* path, TimeStamp mtime)
 	_utimbuf times{mtime, mtime};
 	int res = _utime(path, &times);
 #else
-	struct utimbuf times[]{mtime, mtime};
-	int res = ::utime(path, times);
+	struct utimbuf times {
+		mtime, mtime
+	};
+	int res = ::utime(path, &times);
 #endif
 	return (res >= 0) ? res : syserr();
 }
