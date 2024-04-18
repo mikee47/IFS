@@ -218,7 +218,7 @@ int FileSystem::mount()
 	int res = ::stat(rootpath.c_str(), &s);
 	if(res < 0) {
 		res = syserr();
-		debug_e("[FS] Mount '%s' failed, %s", rootpath.c_str(), getErrorString(res));
+		debug_e("[FS] Mount '%s' failed, %s", rootpath.c_str(), getErrorString(res).c_str());
 		return res;
 	}
 	if(!S_ISDIR(s.st_mode)) {

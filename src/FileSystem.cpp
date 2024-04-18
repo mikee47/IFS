@@ -114,7 +114,7 @@ size_t FileSystem::getContent(const char* fileName, char* buffer, size_t bufSize
 	return size;
 }
 
-file_offset_t FileSystem::readContent(FileHandle file, size_t size, ReadContentCallback callback)
+file_offset_t FileSystem::readContent(FileHandle file, size_t size, const ReadContentCallback& callback)
 {
 	constexpr size_t bufSize{512};
 	char buf[bufSize];
@@ -139,7 +139,7 @@ file_offset_t FileSystem::readContent(FileHandle file, size_t size, ReadContentC
 	return count;
 }
 
-file_offset_t FileSystem::readContent(FileHandle file, ReadContentCallback callback)
+file_offset_t FileSystem::readContent(FileHandle file, const ReadContentCallback& callback)
 {
 	constexpr size_t bufSize{512};
 	char buf[bufSize];
@@ -156,7 +156,7 @@ file_offset_t FileSystem::readContent(FileHandle file, ReadContentCallback callb
 	return (len < 0) ? len : count;
 }
 
-file_offset_t FileSystem::readContent(const String& filename, ReadContentCallback callback)
+file_offset_t FileSystem::readContent(const String& filename, const ReadContentCallback& callback)
 {
 	auto file = open(filename, OpenFlag::Read);
 	if(file < 0) {

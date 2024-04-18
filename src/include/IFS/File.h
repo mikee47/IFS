@@ -291,7 +291,7 @@ public:
 		return check(fs->removeUserAttribute(handle, tagValue));
 	}
 
-	int enumAttributes(AttributeEnumCallback callback, void* buffer, size_t bufsize)
+	int enumAttributes(const AttributeEnumCallback& callback, void* buffer, size_t bufsize)
 	{
 		GET_FS(lastError);
 		int res = fs->fenumxattr(handle, callback, buffer, bufsize);
@@ -333,7 +333,7 @@ public:
 	 * @param callback
 	 * @retval int Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(size_t size, ReadContentCallback callback)
+	file_offset_t readContent(size_t size, const ReadContentCallback& callback)
 	{
 		GET_FS(lastError);
 		auto res = fs->readContent(handle, size, callback);
@@ -346,7 +346,7 @@ public:
 	 * @param callback
 	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(ReadContentCallback callback)
+	file_offset_t readContent(const ReadContentCallback& callback)
 	{
 		GET_FS(lastError);
 		auto res = fs->readContent(handle, callback);

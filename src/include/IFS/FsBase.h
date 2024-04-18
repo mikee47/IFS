@@ -86,7 +86,7 @@ protected:
 			return true;
 		}
 
-		lastError = res;
+		lastError = int(res);
 		return false;
 	}
 

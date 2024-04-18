@@ -67,7 +67,7 @@ bool fromString(const char* name, IFS::AttributeTag& tag)
 {
 	auto namelen = strlen(name);
 	if(namelen == 6 && memicmp(name, _F("user"), 4) == 0) {
-		auto tagIndex = (unhex(name[4]) << 4) | unhex(name[5]);
+		auto tagIndex = (uint8_t(unhex(name[4])) << 4) | unhex(name[5]);
 		tag = IFS::AttributeTag(unsigned(IFS::AttributeTag::User) + tagIndex);
 		return true;
 	}

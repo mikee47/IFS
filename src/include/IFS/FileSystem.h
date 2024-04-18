@@ -311,7 +311,7 @@ public:
 	 * @param callback
 	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(FileHandle file, size_t size, ReadContentCallback callback);
+	file_offset_t readContent(FileHandle file, size_t size, const ReadContentCallback& callback);
 
 	/**
 	 * @brief Read from current file position to end of file and invoke callback for each block read
@@ -319,7 +319,7 @@ public:
 	 * @param callback
 	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(FileHandle file, ReadContentCallback callback);
+	file_offset_t readContent(FileHandle file, const ReadContentCallback& callback);
 
 	/**
 	 * @brief Read entire file content in blocks, invoking callback after every read
@@ -327,7 +327,7 @@ public:
 	 * @param callback
 	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(const String& filename, ReadContentCallback callback);
+	file_offset_t readContent(const String& filename, const ReadContentCallback& callback);
 
 	/**
 	 * @name  Read content of a file

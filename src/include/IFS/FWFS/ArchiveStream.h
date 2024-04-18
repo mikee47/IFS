@@ -125,10 +125,12 @@ public:
 	/**
 	 * @brief Construct an archive stream
 	 * @param fileSystem The filesystem to read
+	 * @param volumeInfo Information about volume to store in the stream
 	 * @param rootPath Where to root the generated filesystem
 	 * @param flags
 	 */
-	ArchiveStream(FileSystem* fileSystem, VolumeInfo volumeInfo, String rootPath = nullptr, Flags flags = 0)
+	ArchiveStream(FileSystem* fileSystem, const VolumeInfo& volumeInfo, const String& rootPath = nullptr,
+				  Flags flags = 0)
 		: FsBase(fileSystem), currentPath(rootPath), volumeInfo(volumeInfo), flags(flags)
 	{
 	}

@@ -111,9 +111,8 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 	stat.mtime = entry.obj.data16.named.mtime;
 	stat.acl = rootACL;
 
-	int res;
 	FWObjDesc child;
-	while((res = readChildObjectHeader(entry, child)) >= 0) {
+	while(readChildObjectHeader(entry, child) >= 0) {
 		if(child.obj.isNamed()) {
 			child.next();
 			continue;
@@ -122,7 +121,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 		if(child.obj.isData()) {
 			if(child.obj.isRef()) {
 				FWObjDesc od;
-				res = getChildObject(entry, child, od);
+				int res = getChildObject(entry, child, od);
 				if(res < 0) {
 					return res;
 				}
@@ -352,7 +351,7 @@ int FileSystem::mount()
 		return Error::BadFileSystem;
 	}
 
-	unsigned objectCount = 0;
+	[[maybe_unused]] unsigned objectCount = 0;
 	FWObjDesc odVolume{};
 	FWObjDesc od{FWFS_BASE_OFFSET};
 	int res;
@@ -786,12 +785,11 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 int FileSystem::getObjectDataSize(FWObjDesc& od, uint32_t& dataSize)
 {
 	dataSize = 0;
-	int res;
 	FWObjDesc child;
-	while((res = readChildObjectHeader(od, child)) >= 0) {
+	while(readChildObjectHeader(od, child) >= 0) {
 		if(child.obj.isData()) {
 			FWObjDesc odData;
-			res = getChildObject(od, child, odData);
+			int res = getChildObject(od, child, odData);
 			if(res < 0) {
 				return res;
 			}
@@ -973,7 +971,7 @@ int FileSystem::getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize)
 		return res;
 	}
 
-	if(child.obj.contentSize() != md5HashSize) {
+	if(child.obj.isRef() || child.obj.contentSize() != md5HashSize) {
 		return Error::BadObject;
 	}
 	FWObjDesc od;
@@ -1083,10 +1081,9 @@ int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void
 		return callback(e);
 	};
 
-	int res;
 	FWObjDesc child;
 	bool cont{true};
-	while(cont && (res = readChildObjectHeader(fd.odFile, child)) >= 0) {
+	while(cont && readChildObjectHeader(fd.odFile, child) >= 0) {
 		switch(child.obj.type()) {
 		case Object::Type::ObjAttr: {
 			Object::Attributes objattr = child.obj.data8.objectAttributes.attr;
