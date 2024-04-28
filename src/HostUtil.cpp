@@ -19,13 +19,29 @@
 
 #include "include/IFS/Host/Util.h"
 #include <fcntl.h>
-
-#include <string.h>
-extern "C" char* strerror_r(int, char*, size_t);
+#include <cstring>
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
+namespace
+{
+/*
+ * There's no guarantee which version of strerror_r got linked,
+ * so use overloaded helper function to get correct result.
+ */
+[[maybe_unused]] const char* get_error_string(char* retval, char*)
+{
+	return retval;
+}
+
+[[maybe_unused]] const char* get_error_string(int, char* buffer)
+{
+	return buffer;
+}
+
+} // namespace
 
 namespace IFS::Host
 {
@@ -58,15 +74,7 @@ String getErrorString(int err)
 	if(Error::isSystem(err)) {
 		char buffer[256]{};
 		auto r = strerror_r(-Error::toSystem(err), buffer, sizeof(buffer));
-		/*
-		 * There's no guarantee which version of strerror_r got linked,
-		 * but the return value gives us a clue
-		 */
-		if(int(r) == -1 || uint32_t(r) < 0x10000) {
-			return buffer;
-		} else {
-			return r;
-		}
+		return get_error_string(r, buffer);
 	}
 
 	return IFS::Error::toString(err);

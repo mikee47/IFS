@@ -19,8 +19,6 @@
  *
  ****/
 
-#define _POSIX_C_SOURCE 200112L
-
 #include <IFS/Host/FileSystem.h>
 #include <IFS/Host/Util.h>
 #include <IFS/Util.h>
