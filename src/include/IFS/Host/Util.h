@@ -29,9 +29,7 @@
 
 struct stat;
 
-namespace IFS
-{
-namespace Host
+namespace IFS::Host
 {
 /**
  * @brief Get IFS error code for the current system errno
@@ -48,5 +46,4 @@ int mapFlags(OpenFlags flags);
 
 String getErrorString(int err);
 
-} // namespace Host
-} // namespace IFS
+} // namespace IFS::Host

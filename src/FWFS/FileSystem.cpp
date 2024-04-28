@@ -27,9 +27,7 @@
 #include <Platform/Timers.h>
 #endif
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /*
  * Macros to perform standard checks
@@ -1224,5 +1222,4 @@ int FileSystem::fremove(FileHandle file)
 	return Error::ReadOnly;
 }
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

@@ -22,9 +22,7 @@
 #include <IFS/FWFS/Object.h>
 #include <FlashString/Map.hpp>
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 constexpr uint8_t Object::FWOBT_REF;
 
@@ -48,8 +46,7 @@ Object::Attributes getObjectAttributes(FileAttributes fileAttr)
 	return objattr;
 }
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS
 
 namespace
 {

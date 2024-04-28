@@ -24,9 +24,7 @@
 #include <FlashString/String.hpp>
 #include <FlashString/Vector.hpp>
 
-namespace IFS
-{
-namespace Error
+namespace IFS::Error
 {
 /*
  * Define string table for standard IFS error codes
@@ -56,5 +54,4 @@ String toString(int err)
 	return s;
 }
 
-} // namespace Error
-} // namespace IFS
+} // namespace IFS::Error

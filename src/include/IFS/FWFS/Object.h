@@ -77,9 +77,7 @@
 #include "../Compression.h"
 #include "../UserRole.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /*
  * Helper template function to get the next object pointer at (current + offset)
@@ -483,8 +481,7 @@ struct FWObjDesc {
 FileAttributes getFileAttributes(Object::Attributes objattr);
 Object::Attributes getObjectAttributes(FileAttributes fileAttr);
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS
 
 /**
  * @brief Get descriptive String for an object type

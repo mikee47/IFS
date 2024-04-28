@@ -21,9 +21,7 @@
 
 #include <Data/Stream/DataSourceStream.h>
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /**
  * @brief Virtual base class to support (file) data encryption and compression
@@ -76,5 +74,4 @@ protected:
 	bool done{false};
 };
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

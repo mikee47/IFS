@@ -24,9 +24,7 @@
 
 #include "../IFileSystem.h"
 
-namespace IFS
-{
-namespace Gdb
+namespace IFS::Gdb
 {
 /**
  * @brief IFS implementation of Host filing system
@@ -123,5 +121,4 @@ public:
 	}
 };
 
-} // namespace Gdb
-} // namespace IFS
+} // namespace IFS::Gdb

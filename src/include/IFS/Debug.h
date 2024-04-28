@@ -23,9 +23,7 @@
 #include <Print.h>
 #include <Data/BitSet.h>
 
-namespace IFS
-{
-namespace Debug
+namespace IFS::Debug
 {
 enum class Option {
 	recurse,	// Recurse sub-directories
@@ -38,5 +36,4 @@ void printFsInfo(Print& out, FileSystem& fs);
 void printAttrInfo(Print& out, FileSystem& fs, const String& filename);
 int listDirectory(Print& out, FileSystem& fs, const String& path, Options options = 0);
 
-} // namespace Debug
-} // namespace IFS
+} // namespace IFS::Debug

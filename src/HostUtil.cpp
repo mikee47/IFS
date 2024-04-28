@@ -27,9 +27,7 @@ extern "C" char* strerror_r(int, char*, size_t);
 #define O_BINARY 0
 #endif
 
-namespace IFS
-{
-namespace Host
+namespace IFS::Host
 {
 int mapFlags(OpenFlags flags)
 {
@@ -74,5 +72,4 @@ String getErrorString(int err)
 	return IFS::Error::toString(err);
 }
 
-} // namespace Host
-} // namespace IFS
+} // namespace IFS::Host

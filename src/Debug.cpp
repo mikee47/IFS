@@ -21,9 +21,7 @@
 #include <IFS/File.h>
 #include <IFS/Directory.h>
 
-namespace IFS
-{
-namespace Debug
+namespace IFS::Debug
 {
 void printFsInfo(Print& out, FileSystem& fs)
 {
@@ -102,5 +100,4 @@ int listDirectory(Print& out, FileSystem& fs, const String& path, Options option
 	return dir.getLastError();
 }
 
-} // namespace Debug
-} // namespace IFS
+} // namespace IFS::Debug

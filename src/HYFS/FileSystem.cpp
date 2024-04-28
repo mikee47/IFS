@@ -102,9 +102,7 @@
 		fs = ffs;                                                                                                      \
 	}
 
-namespace IFS
-{
-namespace HYFS
+namespace IFS::HYFS
 {
 // opendir() uses this structure to track file listing
 struct FileDir {
@@ -663,5 +661,4 @@ int FileSystem::fremove(FileHandle file)
 	return fs->fremove(file);
 }
 
-} // namespace HYFS
-} // namespace IFS
+} // namespace IFS::HYFS

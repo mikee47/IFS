@@ -48,9 +48,7 @@
 #include "WVector.h"
 #endif
 
-namespace IFS
-{
-namespace HYFS
+namespace IFS::HYFS
 {
 class FileSystem : public IFileSystem
 {
@@ -112,6 +110,4 @@ private:
 	bool mounted{false};
 };
 
-} // namespace HYFS
-
-} // namespace IFS
+} // namespace IFS::HYFS

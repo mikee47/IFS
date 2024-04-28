@@ -25,9 +25,7 @@
 #include "../IFileSystem.h"
 #include "Object.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 // File handles start at this value
 #ifndef FWFS_HANDLE_MIN
@@ -254,6 +252,4 @@ protected:
 	BitSet<uint8_t, Flag> flags;
 };
 
-} // namespace FWFS
-
-} // namespace IFS
+} // namespace IFS::FWFS

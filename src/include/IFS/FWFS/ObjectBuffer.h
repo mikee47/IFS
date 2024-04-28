@@ -22,9 +22,7 @@
 #include <Data/Stream/MemoryDataStream.h>
 #include "../include/IFS/FWFS/Object.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /**
  * @brief Class to manage writing object data into a stream
@@ -123,5 +121,4 @@ private:
 	MemoryDataStream mem;
 };
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

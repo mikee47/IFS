@@ -24,9 +24,7 @@
 
 #include <IFS/IFileSystem.h>
 
-namespace IFS
-{
-namespace Host
+namespace IFS::Host
 {
 struct os_stat_t;
 
@@ -92,5 +90,4 @@ private:
 	bool mounted;
 };
 
-} // namespace Host
-} // namespace IFS
+} // namespace IFS::Host

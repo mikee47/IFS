@@ -24,9 +24,7 @@
 #include "ObjectBuffer.h"
 #include "BlockEncoder.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /**
  * @brief Supports direct streaming into FWFS archive format
@@ -273,5 +271,4 @@ private:
 	State state{};
 };
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

@@ -20,9 +20,7 @@
 #include <IFS/FWFS/ArchiveStream.h>
 #include <Data/Stream/IFS/FileStream.h>
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 constexpr size_t maxInlineSize{255};
 
@@ -478,5 +476,4 @@ void ArchiveStream::getVolume()
 	queueStream(buffer, State::volumeHeader);
 }
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS
