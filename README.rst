@@ -254,8 +254,8 @@ Such a system would require almost no static RAM allocation and code size would 
 
 
 However, the :library:`LittleFS` has excellent metadata support and is ideal for storing configuration information.
-This can be done using :IFS::FileSystem::`setUserAttribute` and read using :IFS::FileSystem::`getUserAttribute`
-or :IFS::FileSystem::`enumAttributes`.
+This can be done using :cpp:method:`IFS::FileSystem::setUserAttribute` and read using :cpp:method:`IFS::FileSystem::getUserAttribute`
+or :cpp:method:`IFS::FileSystem::enumAttributes`.
 
 
 .. note::
