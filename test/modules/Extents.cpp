@@ -24,7 +24,7 @@ public:
 		auto bufptr = static_cast<uint8_t*>(buffer);
 		size_t res{0};
 		while(res < count && extIndex < extCount) {
-			size_t len = std::min(ext.length, count - res);
+			size_t len = std::min(ext.length, uint32_t(count - res));
 			part.read(ext.offset, bufptr, len);
 			bufptr += len;
 			res += len;
