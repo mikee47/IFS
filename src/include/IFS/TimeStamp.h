@@ -52,11 +52,6 @@ struct TimeStamp {
 	 * @brief Convert time to string for display
 	 */
 	String toString(const char* dtsep = " ") const;
-
-	explicit operator String() const
-	{
-		return toString();
-	}
 };
 
 /**
