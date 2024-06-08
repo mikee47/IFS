@@ -209,13 +209,13 @@ public:
 	}
 
 	template <typename T, typename... ParamTypes>
-	int setUserAttribute(const T& file, uint8_t tagValue, ParamTypes... params)
+	int setUserAttribute(const T& file, uint8_t tagValue, const ParamTypes&... params)
 	{
 		return setAttribute(file, getUserAttributeTag(tagValue), params...);
 	}
 
 	template <typename T, typename... ParamTypes>
-	int getUserAttribute(const T& file, uint8_t tagValue, ParamTypes... params)
+	int getUserAttribute(const T& file, uint8_t tagValue, const ParamTypes&... params)
 	{
 		return getAttribute(file, getUserAttributeTag(tagValue), params...);
 	}

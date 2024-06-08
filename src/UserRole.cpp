@@ -29,7 +29,7 @@ IFS_USER_ROLE_MAP(XX)
 #undef XX
 
 #define XX(tag, char, comment) &str_##tag,
-DEFINE_FSTR_VECTOR(userRoleStrings, FSTR::String, IFS_USER_ROLE_MAP(XX))
+DEFINE_FSTR_VECTOR_LOCAL(userRoleStrings, FSTR::String, IFS_USER_ROLE_MAP(XX))
 #undef XX
 
 #define XX(tag, ch, comment) #ch
