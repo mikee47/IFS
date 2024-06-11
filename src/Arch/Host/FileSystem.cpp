@@ -647,7 +647,11 @@ int FileSystem::eof(FileHandle file)
 	}
 
 	os_stat_t stat;
+#ifdef __APPLE__
+	int err = ::fstat(file, &stat);
+#else
 	int err = ::fstat64(file, &stat);
+#endif
 	if(err < 0) {
 		return syserr();
 	}
@@ -664,7 +668,11 @@ int FileSystem::ftruncate(FileHandle file, file_size_t new_size)
 {
 	CHECK_MOUNTED()
 
+#ifdef __APPLE__
+	int res = ::ftruncate(file, new_size);
+#else
 	int res = ::ftruncate64(file, new_size);
+#endif
 	return (res >= 0) ? res : syserr();
 }
 
