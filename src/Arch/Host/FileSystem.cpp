@@ -63,6 +63,9 @@ namespace Host
 #ifdef __WIN32
 struct os_stat_t : public ::_stati64 {
 };
+#elif defined(__APPLE__)
+struct os_stat_t : public ::stat {
+};
 #else
 struct os_stat_t : public ::stat64 {
 };
@@ -86,7 +89,7 @@ const char* extendedAttributePrefix{"user.ifs."};
 
 int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 {
-#if defined(__MACOS)
+#if defined(__APPLE__)
 	int res = ::fsetxattr(file, name, value, size, 0, 0);
 #else
 	int res = ::fsetxattr(file, name, value, size, 0);
@@ -96,7 +99,7 @@ int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 
 int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 {
-#if defined(__MACOS)
+#if defined(__APPLE__)
 	auto len = ::fgetxattr(file, name, value, size, 0, 0);
 #else
 	auto len = ::fgetxattr(file, name, value, size);
@@ -106,7 +109,7 @@ int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 
 int listXAttr(FileHandle file, char* namebuf, size_t size)
 {
-#if defined(__MACOS)
+#if defined(__APPLE__)
 	auto len = ::flistxattr(file, namebuf, size, 0);
 #else
 	auto len = ::flistxattr(file, namebuf, size);
@@ -360,7 +363,11 @@ int FileSystem::stat(const char* path, Stat* stat)
 	String fullpath = resolvePath(path);
 
 	os_stat_t s;
+#ifdef __APPLE__
+	int res = ::stat(fullpath.c_str(), &s);
+#else
 	int res = ::stat64(fullpath.c_str(), &s);
+#endif
 	if(res < 0) {
 		return syserr();
 	}
@@ -384,7 +391,11 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	CHECK_MOUNTED()
 
 	os_stat_t s;
+#ifdef __APPLE__
+	int res = ::fstat(file, &s);
+#else
 	int res = ::fstat64(file, &s);
+#endif
 	if(res < 0) {
 		return syserr();
 	}
