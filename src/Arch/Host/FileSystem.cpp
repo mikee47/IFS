@@ -619,7 +619,11 @@ file_offset_t FileSystem::lseek(FileHandle file, file_offset_t offset, SeekOrigi
 {
 	CHECK_MOUNTED()
 
+#ifdef __APPLE__
+	auto res = ::lseek(file, offset, uint8_t(origin));
+#else
 	auto res = ::lseek64(file, offset, uint8_t(origin));
+#endif
 	if(res < 0) {
 		return syserr();
 	}
