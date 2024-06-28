@@ -32,8 +32,6 @@
 #include <Data/BitSet.h>
 #include <Storage/Types.h>
 
-#define snprintf(_buf, _length, _fmt, ...) m_snprintf(_buf, _length, _fmt, ##__VA_ARGS__)
-
 using volume_size_t = storage_size_t;
 
 #ifdef ENABLE_FILE_SIZE64

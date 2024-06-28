@@ -104,7 +104,7 @@ public:
 		/**
 		 * @brief Set an additional user attribute
 		 */
-		template <typename... ParamTypes> int setUserAttribute(uint8_t tagValue, ParamTypes... params)
+		template <typename... ParamTypes> int setUserAttribute(uint8_t tagValue, const ParamTypes&... params)
 		{
 			return setAttribute(getUserAttributeTag(tagValue), params...);
 		}
