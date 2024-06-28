@@ -29,7 +29,7 @@ namespace
 constexpr size_t nameSize{32};
 constexpr size_t contentSize{1024};
 
-NTSTATUS getExtendedAttribute(HANDLE hFile, const char* name, void* buffer, size_t bufSize, size_t& length)
+NTSTATUS getExtendedAttribute(HANDLE hFile, const char* name, void* buffer, size_t& length)
 {
 	char buf[sizeof(FILE_FULL_EA_INFORMATION) + nameSize + contentSize];
 	auto get = reinterpret_cast<FILE_GET_EA_INFORMATION*>(buf);
@@ -147,7 +147,7 @@ int fgetxattr(int file, const char* name, void* value, size_t size)
 {
 	EaBuffer buffer(name);
 	size_t length;
-	auto status = getExtendedAttribute(getHandle(file), buffer.name, buffer.content, contentSize, length);
+	auto status = getExtendedAttribute(getHandle(file), buffer.name, buffer.content, length);
 	errno = getErrno(status);
 	if(status != STATUS_SUCCESS) {
 		return -1;

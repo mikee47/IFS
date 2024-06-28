@@ -74,8 +74,7 @@ using DirHandle = struct ImplFileDir*;
 #if DEBUG_BUILD
 #define debug_ifserr(err, func, ...)                                                                                   \
 	do {                                                                                                               \
-		int errorCode = err;                                                                                           \
-		(void)errorCode;                                                                                               \
+		[[maybe_unused]] int errorCode = err;                                                                          \
 		debug_e(func ": %s (%d)", ##__VA_ARGS__, getErrorString(errorCode).c_str(), err);                              \
 	} while(0)
 #else
@@ -202,7 +201,7 @@ public:
 	 * @param profiler
 	 * @retval int error code - profiling may not be supported on all filesystems
      */
-	virtual int setProfiler(IProfiler* profiler)
+	virtual int setProfiler(IProfiler*)
 	{
 		return Error::NotImplemented;
 	}
@@ -222,7 +221,7 @@ public:
 	 * @param fileSystem The filesystem to root at this mountpoint
 	 * @retval int error code
 	 */
-	virtual int setVolume(uint8_t index, IFileSystem* fileSystem)
+	virtual int setVolume([[maybe_unused]] uint8_t index, [[maybe_unused]] IFileSystem* fileSystem)
 	{
 		return Error::NotSupported;
 	}
@@ -309,7 +308,8 @@ public:
 	 * Only the size of the buffer is provided. If a specific FCNTL code requires more
 	 * information then it will be contained within the provided data.
 	 */
-	virtual int fcontrol(FileHandle file, ControlCode code, void* buffer, size_t bufSize)
+	virtual int fcontrol([[maybe_unused]] FileHandle file, [[maybe_unused]] ControlCode code,
+						 [[maybe_unused]] void* buffer, [[maybe_unused]] size_t bufSize)
 	{
 		return Error::NotSupported;
 	}
@@ -450,7 +450,8 @@ public:
 	 * @param extcount Maximum number of extents to return in `list`
      * @retval int Total number of extents for file (may be larger than 'extcount'), or error code
      */
-	virtual int fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount)
+	virtual int fgetextents([[maybe_unused]] FileHandle file, [[maybe_unused]] Storage::Partition* part,
+							[[maybe_unused]] Extent* list, [[maybe_unused]] uint16_t extcount)
 	{
 		return Error::NotImplemented;
 	}

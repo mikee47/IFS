@@ -40,7 +40,7 @@ void fillStat(IFileSystem* fs, const gdb_stat_t& s, Stat& stat)
 
 } // namespace
 
-int FileSystem::getinfo(Info& info)
+int FileSystem::getinfo(Info&)
 {
 	return Error::NotImplemented;
 }

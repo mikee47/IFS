@@ -93,21 +93,17 @@ public:
 	Stat writeStat;
 	Stat eraseStat;
 
-	void read(storage_size_t address, const void* buffer, size_t size) override
+	void read(storage_size_t, const void*, size_t size) override
 	{
-		(void)address;
-		(void)buffer;
 		readStat.update(size);
 	}
 
-	void write(storage_size_t address, const void* buffer, size_t size) override
+	void write(storage_size_t, const void*, size_t size) override
 	{
-		(void)address;
-		(void)buffer;
 		writeStat.update(size);
 	}
 
-	void erase(storage_size_t address, size_t size) override
+	void erase(storage_size_t, size_t size) override
 	{
 		eraseStat.update(size);
 	}

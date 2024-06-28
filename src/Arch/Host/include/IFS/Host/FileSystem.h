@@ -70,7 +70,7 @@ public:
 	int flush(FileHandle file) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(FileHandle file) override
+	int fremove(FileHandle) override
 	{
 		return Error::NotImplemented;
 	}

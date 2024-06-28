@@ -55,7 +55,7 @@ namespace IFS::FWFS
  */
 using FileDir = FWFileDesc;
 
-void FileSystem::printObject(const FWObjDesc& od, bool isChild)
+void FileSystem::printObject([[maybe_unused]] const FWObjDesc& od, [[maybe_unused]] bool isChild)
 {
 #if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
