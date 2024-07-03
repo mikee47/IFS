@@ -72,6 +72,9 @@ struct Stat {
 	 */
 	Stat& operator=(const Stat& rhs)
 	{
+		if(this == &rhs) {
+			return *this;
+		}
 		fs = rhs.fs;
 		name.copy(rhs.name);
 		size = rhs.size;
