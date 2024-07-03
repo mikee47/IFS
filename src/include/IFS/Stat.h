@@ -59,9 +59,7 @@ struct Stat {
 	FileAttributes attr{};
 	Compression compression{};
 
-	Stat()
-	{
-	}
+	Stat() = default;
 
 	Stat(char* namebuf, uint16_t bufsize) : name(namebuf, bufsize)
 	{

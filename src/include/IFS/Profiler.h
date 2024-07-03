@@ -30,9 +30,7 @@ namespace IFS
 class IProfiler
 {
 public:
-	virtual ~IProfiler()
-	{
-	}
+	virtual ~IProfiler() = default;
 
 	/**
 	 * @name Called AFTER reading a block of data

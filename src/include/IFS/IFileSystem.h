@@ -130,9 +130,7 @@ public:
 		volume_size_t freeSpace{0};  ///< Available space, in bytes
 		TimeStamp creationTime{};
 
-		Info()
-		{
-		}
+		Info() = default;
 
 		Info(char* namebuf, unsigned buflen) : name(namebuf, buflen)
 		{
@@ -179,9 +177,7 @@ public:
 	/**
 	 * @brief Filing system implementations should dismount and cleanup here
 	 */
-	virtual ~IFileSystem()
-	{
-	}
+	virtual ~IFileSystem() = default;
 
 	/**
 	 * @brief Mount file system, performing any required initialisation

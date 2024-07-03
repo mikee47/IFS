@@ -32,13 +32,9 @@ namespace IFS::Gdb
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem()
-	{
-	}
+	FileSystem() = default;
 
-	~FileSystem() override
-	{
-	}
+	~FileSystem() override = default;
 
 	int mount() override
 	{

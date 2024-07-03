@@ -37,9 +37,7 @@ namespace IFS::FWFS
 class IBlockEncoder
 {
 public:
-	virtual ~IBlockEncoder()
-	{
-	}
+	virtual ~IBlockEncoder() = default;
 
 	/**
 	 * @Implement this method and return nullptr when all blocks have been encoded.

@@ -46,9 +46,7 @@ struct NameBuffer {
 	uint16_t size{0};	  ///< IN: Size of buffer
 	uint16_t length{0};	///< OUT: length of name
 
-	NameBuffer()
-	{
-	}
+	NameBuffer() = default;
 
 	NameBuffer(char* buffer, uint16_t size, uint16_t length = 0) : buffer(buffer), size(size), length(length)
 	{

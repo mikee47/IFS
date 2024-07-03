@@ -38,9 +38,7 @@ public:
 	{
 	}
 
-	~FileSystem() override
-	{
-	}
+	~FileSystem() override = default;
 
 	int mount() override;
 
