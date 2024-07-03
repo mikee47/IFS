@@ -24,9 +24,7 @@
 
 #include "../IFileSystem.h"
 
-namespace IFS
-{
-namespace Gdb
+namespace IFS::Gdb
 {
 /**
  * @brief IFS implementation of Host filing system
@@ -34,13 +32,9 @@ namespace Gdb
 class FileSystem : public IFileSystem
 {
 public:
-	FileSystem()
-	{
-	}
+	FileSystem() = default;
 
-	~FileSystem() override
-	{
-	}
+	~FileSystem() override = default;
 
 	int mount() override
 	{
@@ -50,45 +44,45 @@ public:
 	// IFileSystem methods
 	int getinfo(Info& info) override;
 	String getErrorString(int err) override;
-	int opendir(const char* path, DirHandle& dir) override
+	int opendir(const char*, DirHandle&) override
 	{
 		return Error::NotSupported;
 	}
-	int rewinddir(DirHandle dir) override
+	int rewinddir(DirHandle) override
 	{
 		return Error::NotSupported;
 	}
-	int readdir(DirHandle dir, Stat& stat) override
+	int readdir(DirHandle, Stat&) override
 	{
 		return Error::NotSupported;
 	}
-	int closedir(DirHandle dir) override
+	int closedir(DirHandle) override
 	{
 		return Error::NotSupported;
 	}
-	int mkdir(const char* path) override
+	int mkdir(const char*) override
 	{
 		return Error::NotSupported;
 	}
 	int stat(const char* path, Stat* stat) override;
 	int fstat(FileHandle file, Stat* stat) override;
-	int fsetxattr(FileHandle file, AttributeTag tag, const void* data, size_t size) override
+	int fsetxattr(FileHandle, AttributeTag, const void*, size_t) override
 	{
 		return Error::NotSupported;
 	}
-	int fgetxattr(FileHandle file, AttributeTag tag, void* buffer, size_t size) override
+	int fgetxattr(FileHandle, AttributeTag, void*, size_t) override
 	{
 		return Error::NotSupported;
 	}
-	int fenumxattr(FileHandle file, AttributeEnumCallback callback, void* buffer, size_t bufsize) override
+	int fenumxattr(FileHandle, AttributeEnumCallback, void*, size_t) override
 	{
 		return Error::NotSupported;
 	}
-	int setxattr(const char* path, AttributeTag tag, const void* data, size_t size) override
+	int setxattr(const char*, AttributeTag, const void*, size_t) override
 	{
 		return Error::NotSupported;
 	}
-	int getxattr(const char* path, AttributeTag tag, void* buffer, size_t size) override
+	int getxattr(const char*, AttributeTag, void*, size_t) override
 	{
 		return Error::NotSupported;
 	}
@@ -99,17 +93,17 @@ public:
 	file_offset_t lseek(FileHandle file, file_offset_t offset, SeekOrigin origin) override;
 	int eof(FileHandle file) override;
 	file_offset_t tell(FileHandle file) override;
-	int ftruncate(FileHandle file, file_size_t new_size) override
+	int ftruncate(FileHandle, file_size_t) override
 	{
 		return Error::NotSupported;
 	}
-	int flush(FileHandle file) override
+	int flush(FileHandle) override
 	{
 		return Error::NotSupported;
 	}
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(FileHandle file) override
+	int fremove(FileHandle) override
 	{
 		return Error::NotImplemented;
 	}
@@ -123,5 +117,4 @@ public:
 	}
 };
 
-} // namespace Gdb
-} // namespace IFS
+} // namespace IFS::Gdb

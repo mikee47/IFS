@@ -41,6 +41,10 @@ enum ControlCode : uint16_t {
 	 */
 	FCNTL_GET_MD5_HASH = 1,
 	/**
+	 * @brief Set volume label
+	*/
+	FCNTL_SET_VOLUME_LABEL = 2,
+	/**
 	 * @brief Start of user-defined codes
 	 *
 	 * Codes before this are reserved for system use

@@ -21,9 +21,7 @@
 
 #include <Data/Stream/DataSourceStream.h>
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /**
  * @brief Virtual base class to support (file) data encryption and compression
@@ -39,9 +37,7 @@ namespace FWFS
 class IBlockEncoder
 {
 public:
-	virtual ~IBlockEncoder()
-	{
-	}
+	virtual ~IBlockEncoder() = default;
 
 	/**
 	 * @Implement this method and return nullptr when all blocks have been encoded.
@@ -56,9 +52,8 @@ public:
 class BasicEncoder : public IBlockEncoder
 {
 public:
-	BasicEncoder(IDataSourceStream* stream)
+	BasicEncoder(IDataSourceStream* stream) : stream(stream)
 	{
-		this->stream.reset(stream);
 	}
 
 	IDataSourceStream* getNextStream() override
@@ -77,5 +72,4 @@ protected:
 	bool done{false};
 };
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

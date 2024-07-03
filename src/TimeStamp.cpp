@@ -18,20 +18,22 @@
  ****/
 
 #include "include/IFS/TimeStamp.h"
+#include <DateTime.h>
 
 namespace IFS
 {
 String TimeStamp::toString(const char* dtsep) const
 {
-	time_t t = mValue;
-	struct tm* tm = localtime(&t);
-	if(tm == nullptr) {
-		return nullptr;
+	time_t value = mValue;
+	if(sizeof(time_t) == 4 && mValue > INT32_MAX) {
+		value = INT32_MAX;
 	}
-	char buffer[64];
-	m_snprintf(buffer, sizeof(buffer), _F("%02u/%02u/%04u%s%02u:%02u:%02u"), tm->tm_mday, tm->tm_mon + 1,
-			   1900 + tm->tm_year, dtsep ?: " ", tm->tm_hour, tm->tm_min, tm->tm_sec);
-	return buffer;
+	DateTime dt(value);
+	String s;
+	s += dt.format(_F("%d/%m/%Y"));
+	s += dtsep ?: "T";
+	s += dt.format(_F("%H:%M:%S"));
+	return s;
 }
 
 } // namespace IFS

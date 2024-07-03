@@ -181,7 +181,7 @@ if __name__ == "__main__":
     for target, source in cfg.sourceMap():
         if logfile:
             logfile.write(">> '{}' -> '{}'\n".format(target, source))
-        createFsObject(img.root(), target, os.path.expandvars(source))
+        createFsObject(img.root(), target, util.fixpath(os.path.expandvars(source)))
 
     # create mount point objects
     for target, store in cfg.mountPoints():

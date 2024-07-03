@@ -22,19 +22,17 @@
 #include <Data/Stream/MemoryDataStream.h>
 #include "../include/IFS/FWFS/Object.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /**
  * @brief Class to manage writing object data into a stream
  */
-class ObjectBuffer : public MemoryDataStream
+class ObjectBuffer
 {
 public:
 	void write(const void* data, size_t size)
 	{
-		auto n = MemoryDataStream::write(static_cast<const uint8_t*>(data), size);
+		auto n = mem.write(static_cast<const uint8_t*>(data), size);
 		(void)n;
 		assert(n == size);
 	}
@@ -58,7 +56,7 @@ public:
 	{
 		size_t headerSize = hdr.contentOffset() + extra;
 		if(bodySize != 0) {
-			ensureCapacity(getSize() + headerSize + bodySize);
+			mem.ensureCapacity(mem.getSize() + headerSize + bodySize);
 		}
 		write(&hdr, headerSize);
 	}
@@ -102,13 +100,25 @@ public:
 
 	void fixupSize()
 	{
-		auto objptr = getStreamPointer();
+		auto objptr = mem.getStreamPointer();
 		Object hdr;
 		memcpy(&hdr, objptr, 4);
-		hdr.setContentSize(available() - hdr.contentOffset());
+		hdr.setContentSize(mem.available() - hdr.contentOffset());
 		memcpy(const_cast<char*>(objptr), &hdr, 4);
 	}
+
+	void clear()
+	{
+		mem.clear();
+	}
+
+	operator IDataSourceStream*()
+	{
+		return &mem;
+	}
+
+private:
+	MemoryDataStream mem;
 };
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

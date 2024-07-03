@@ -20,9 +20,7 @@
 #include <IFS/FWFS/ArchiveStream.h>
 #include <Data/Stream/IFS/FileStream.h>
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 constexpr size_t maxInlineSize{255};
 
@@ -47,7 +45,7 @@ bool ArchiveStream::fillBuffers()
 {
 	auto gotoEnd = [&]() {
 		buffer.write(FWFILESYS_END_MARKER);
-		queueStream(&buffer, State::end);
+		queueStream(buffer, State::end);
 	};
 
 	switch(state) {
@@ -56,7 +54,7 @@ bool ArchiveStream::fillBuffers()
 			volumeInfo.creationTime = fsGetTimeUTC();
 		}
 		buffer.write(FWFILESYS_START_MARKER);
-		queueStream(&buffer, State::start);
+		queueStream(buffer, State::start);
 		break;
 
 	case State::start:
@@ -309,7 +307,7 @@ bool ArchiveStream::readFileEntry(const Stat& stat)
 			// Default behaviour
 			auto stream = new FileStream(fs);
 			stream->attach(file, stat.size);
-			encoder.reset(new BasicEncoder(stream));
+			encoder = std::make_unique<BasicEncoder>(stream);
 		}
 		sendDataHeader();
 	}
@@ -334,7 +332,7 @@ void ArchiveStream::sendDataHeader()
 
 	buffer.clear();
 	auto type = buffer.writeDataHeader(size);
-	queueStream(&buffer, State::dataHeader);
+	queueStream(buffer, State::dataHeader);
 
 	// Add reference to file header
 	auto& entry = directories[level];
@@ -357,7 +355,7 @@ void ArchiveStream::sendFileHeader()
 	encoder.reset();
 	auto& entry = directories[level];
 	entry.content->fixupSize();
-	queueStream(entry.content.get(), State::fileHeader);
+	queueStream(*entry.content, State::fileHeader);
 
 	// Add reference to parent directory
 	auto& parent = directories[level - 1];
@@ -445,7 +443,7 @@ void ArchiveStream::closeDirectory()
 	currentPath.setLength(currentPath.length() - dir.namelen);
 
 	dir.content->fixupSize();
-	queueStream(dir.content.get(), State::dirHeader);
+	queueStream(*dir.content, State::dirHeader);
 
 	// Add entry for this directory to parent
 	if(level > 0) {
@@ -475,8 +473,7 @@ void ArchiveStream::getVolume()
 	hdr.data8.setContentSize(sizeof(uint32_t));
 	buffer.write(hdr, sizeof(uint32_t), 0);
 
-	queueStream(&buffer, State::volumeHeader);
+	queueStream(buffer, State::volumeHeader);
 }
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

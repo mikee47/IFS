@@ -24,9 +24,7 @@
 
 #include <IFS/IFileSystem.h>
 
-namespace IFS
-{
-namespace Host
+namespace IFS::Host
 {
 struct os_stat_t;
 
@@ -40,9 +38,7 @@ public:
 	{
 	}
 
-	~FileSystem() override
-	{
-	}
+	~FileSystem() override = default;
 
 	int mount() override;
 
@@ -72,7 +68,7 @@ public:
 	int flush(FileHandle file) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
-	int fremove(FileHandle file) override
+	int fremove(FileHandle) override
 	{
 		return Error::NotImplemented;
 	}
@@ -92,5 +88,4 @@ private:
 	bool mounted;
 };
 
-} // namespace Host
-} // namespace IFS
+} // namespace IFS::Host

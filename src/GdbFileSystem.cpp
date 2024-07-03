@@ -23,9 +23,7 @@
 #include <IFS/Host/Util.h>
 #include <gdb/gdb_syscall.h>
 
-namespace IFS
-{
-namespace Gdb
+namespace IFS::Gdb
 {
 namespace
 {
@@ -42,7 +40,7 @@ void fillStat(IFileSystem* fs, const gdb_stat_t& s, Stat& stat)
 
 } // namespace
 
-int FileSystem::getinfo(Info& info)
+int FileSystem::getinfo(Info&)
 {
 	return Error::NotImplemented;
 }
@@ -150,5 +148,4 @@ int FileSystem::remove(const char* path)
 	return (res >= 0) ? res : IFS::Host::syserr();
 }
 
-} // namespace Gdb
-} // namespace IFS
+} // namespace IFS::Gdb

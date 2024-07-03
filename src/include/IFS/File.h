@@ -255,25 +255,25 @@ public:
 		return check(fs->setcompression(handle, compression));
 	}
 
-	template <typename... ParamTypes> bool setAttribute(AttributeTag tag, ParamTypes... params)
+	template <typename... ParamTypes> bool setAttribute(AttributeTag tag, const ParamTypes&... params)
 	{
 		GET_FS(false);
 		return check(fs->setAttribute(handle, tag, params...));
 	}
 
-	template <typename... ParamTypes> int getAttribute(AttributeTag tag, ParamTypes... params)
+	template <typename... ParamTypes> int getAttribute(AttributeTag tag, const ParamTypes&... params)
 	{
 		GET_FS(lastError);
 		return check(fs->getAttribute(handle, tag, params...));
 	}
 
-	template <typename... ParamTypes> bool setUserAttribute(uint8_t tagValue, ParamTypes... params)
+	template <typename... ParamTypes> bool setUserAttribute(uint8_t tagValue, const ParamTypes&... params)
 	{
 		GET_FS(false);
 		return check(fs->setAttribute(handle, getUserAttributeTag(tagValue), params...));
 	}
 
-	template <typename... ParamTypes> int getUserAttribute(uint8_t tagValue, ParamTypes... params)
+	template <typename... ParamTypes> int getUserAttribute(uint8_t tagValue, const ParamTypes&... params)
 	{
 		GET_FS(lastError);
 		return check(fs->getUserAttribute(handle, tagValue, params...));
@@ -291,7 +291,7 @@ public:
 		return check(fs->removeUserAttribute(handle, tagValue));
 	}
 
-	int enumAttributes(AttributeEnumCallback callback, void* buffer, size_t bufsize)
+	int enumAttributes(const AttributeEnumCallback& callback, void* buffer, size_t bufsize)
 	{
 		GET_FS(lastError);
 		int res = fs->fenumxattr(handle, callback, buffer, bufsize);
@@ -333,7 +333,7 @@ public:
 	 * @param callback
 	 * @retval int Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(size_t size, ReadContentCallback callback)
+	file_offset_t readContent(size_t size, const ReadContentCallback& callback)
 	{
 		GET_FS(lastError);
 		auto res = fs->readContent(handle, size, callback);
@@ -346,7 +346,7 @@ public:
 	 * @param callback
 	 * @retval file_offset_t Number of bytes processed, or error code
 	 */
-	file_offset_t readContent(ReadContentCallback callback)
+	file_offset_t readContent(const ReadContentCallback& callback)
 	{
 		GET_FS(lastError);
 		auto res = fs->readContent(handle, callback);
@@ -383,6 +383,14 @@ public:
 	{
 		auto res = handle;
 		handle = -1;
+		return res;
+	}
+
+	int getExtents(Storage::Partition* part, Extent* list, uint16_t extcount)
+	{
+		GET_FS(lastError);
+		int res = fs->fgetextents(handle, part, list, extcount);
+		check(res);
 		return res;
 	}
 

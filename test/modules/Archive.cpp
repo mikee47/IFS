@@ -48,7 +48,7 @@ public:
 			buffer[i] ^= 0xAA;
 		}
 
-		stream.reset(new LimitedMemoryStream(buffer, size, size, false));
+		stream = std::make_unique<LimitedMemoryStream>(buffer, size, size, false);
 		return stream.get();
 	}
 

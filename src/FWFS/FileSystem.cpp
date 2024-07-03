@@ -27,9 +27,7 @@
 #include <Platform/Timers.h>
 #endif
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /*
  * Macros to perform standard checks
@@ -57,7 +55,7 @@ namespace FWFS
  */
 using FileDir = FWFileDesc;
 
-void FileSystem::printObject(const FWObjDesc& od, bool isChild)
+void FileSystem::printObject([[maybe_unused]] const FWObjDesc& od, [[maybe_unused]] bool isChild)
 {
 #if DEBUG_VERBOSE_LEVEL >= DBG
 	char name[260];
@@ -111,9 +109,8 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 	stat.mtime = entry.obj.data16.named.mtime;
 	stat.acl = rootACL;
 
-	int res;
 	FWObjDesc child;
-	while((res = readChildObjectHeader(entry, child)) >= 0) {
+	while(readChildObjectHeader(entry, child) >= 0) {
 		if(child.obj.isNamed()) {
 			child.next();
 			continue;
@@ -122,7 +119,7 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 		if(child.obj.isData()) {
 			if(child.obj.isRef()) {
 				FWObjDesc od;
-				res = getChildObject(entry, child, od);
+				int res = getChildObject(entry, child, od);
 				if(res < 0) {
 					return res;
 				}
@@ -171,6 +168,42 @@ int FileSystem::fillStat(Stat& stat, const FWObjDesc& entry)
 	checkStat(stat);
 
 	return readObjectName(entry, stat.name);
+}
+
+int FileSystem::fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount)
+{
+	GET_FD()
+
+	if(fd.isMountPoint()) {
+		return fd.fileSystem->fgetextents(fd.file, part, list, extcount);
+	}
+
+	if(part) {
+		*part = partition;
+	}
+	auto odFile = fd.odFile;
+	uint16_t extIndex{0};
+	FWObjDesc child;
+	int res;
+	while((res = readChildObjectHeader(odFile, child)) >= 0) {
+		if(child.obj.isData()) {
+			FWObjDesc odData;
+			res = getChildObject(odFile, child, odData);
+			if(res < 0) {
+				return res;
+			}
+
+			Extent ext{odData.contentOffset(), odData.obj.contentSize()};
+			if(list && extIndex < extcount) {
+				list[extIndex] = ext;
+			}
+			++extIndex;
+		}
+
+		child.next();
+	}
+
+	return (res == Error::EndOfObjects) ? extIndex : res;
 }
 
 int FileSystem::findUnusedDescriptor()
@@ -316,7 +349,7 @@ int FileSystem::mount()
 		return Error::BadFileSystem;
 	}
 
-	unsigned objectCount = 0;
+	[[maybe_unused]] unsigned objectCount = 0;
 	FWObjDesc odVolume{};
 	FWObjDesc od{FWFS_BASE_OFFSET};
 	int res;
@@ -750,12 +783,11 @@ int FileSystem::findObjectByPath(const char*& path, FWObjDesc& od)
 int FileSystem::getObjectDataSize(FWObjDesc& od, uint32_t& dataSize)
 {
 	dataSize = 0;
-	int res;
 	FWObjDesc child;
-	while((res = readChildObjectHeader(od, child)) >= 0) {
+	while(readChildObjectHeader(od, child) >= 0) {
 		if(child.obj.isData()) {
 			FWObjDesc odData;
-			res = getChildObject(od, child, odData);
+			int res = getChildObject(od, child, odData);
 			if(res < 0) {
 				return res;
 			}
@@ -937,7 +969,7 @@ int FileSystem::getMd5Hash(FWFileDesc& fd, void* buffer, size_t bufSize)
 		return res;
 	}
 
-	if(child.obj.contentSize() != md5HashSize) {
+	if(child.obj.isRef() || child.obj.contentSize() != md5HashSize) {
 		return Error::BadObject;
 	}
 	FWObjDesc od;
@@ -1047,10 +1079,9 @@ int FileSystem::fenumxattr(FileHandle file, AttributeEnumCallback callback, void
 		return callback(e);
 	};
 
-	int res;
 	FWObjDesc child;
 	bool cont{true};
-	while(cont && (res = readChildObjectHeader(fd.odFile, child)) >= 0) {
+	while(cont && readChildObjectHeader(fd.odFile, child) >= 0) {
 		switch(child.obj.type()) {
 		case Object::Type::ObjAttr: {
 			Object::Attributes objattr = child.obj.data8.objectAttributes.attr;
@@ -1191,5 +1222,4 @@ int FileSystem::fremove(FileHandle file)
 	return Error::ReadOnly;
 }
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

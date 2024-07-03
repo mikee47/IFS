@@ -56,7 +56,7 @@ public:
 		Operation operation;
 		const String& path;
 		int errorCode;
-		AttributeTag attr;
+		AttributeTag attr{};
 
 		ErrorInfo(FileSystem& fileSys, Operation operation, const String& path, int errorCode)
 			: fileSys(fileSys), operation(operation), path(path), errorCode(errorCode)

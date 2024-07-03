@@ -19,8 +19,6 @@
  *
  ****/
 
-#define _POSIX_C_SOURCE 200112L
-
 #include <IFS/Host/FileSystem.h>
 #include <IFS/Host/Util.h>
 #include <IFS/Util.h>
@@ -65,6 +63,9 @@ namespace Host
 #ifdef __WIN32
 struct os_stat_t : public ::_stati64 {
 };
+#elif defined(__APPLE__)
+struct os_stat_t : public ::stat {
+};
 #else
 struct os_stat_t : public ::stat64 {
 };
@@ -88,7 +89,7 @@ const char* extendedAttributePrefix{"user.ifs."};
 
 int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 {
-#if defined(__MACOS)
+#if defined(__APPLE__)
 	int res = ::fsetxattr(file, name, value, size, 0, 0);
 #else
 	int res = ::fsetxattr(file, name, value, size, 0);
@@ -98,7 +99,7 @@ int setXAttr(FileHandle file, const char* name, const void* value, size_t size)
 
 int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 {
-#if defined(__MACOS)
+#if defined(__APPLE__)
 	auto len = ::fgetxattr(file, name, value, size, 0, 0);
 #else
 	auto len = ::fgetxattr(file, name, value, size);
@@ -108,7 +109,7 @@ int getXAttr(FileHandle file, const char* name, void* value, size_t size)
 
 int listXAttr(FileHandle file, char* namebuf, size_t size)
 {
-#if defined(__MACOS)
+#if defined(__APPLE__)
 	auto len = ::flistxattr(file, namebuf, size, 0);
 #else
 	auto len = ::flistxattr(file, namebuf, size);
@@ -191,8 +192,10 @@ int settime(const char* path, TimeStamp mtime)
 	_utimbuf times{mtime, mtime};
 	int res = _utime(path, &times);
 #else
-	struct utimbuf times[]{mtime, mtime};
-	int res = ::utime(path, times);
+	struct utimbuf times {
+		mtime, mtime
+	};
+	int res = ::utime(path, &times);
 #endif
 	return (res >= 0) ? res : syserr();
 }
@@ -216,7 +219,7 @@ int FileSystem::mount()
 	int res = ::stat(rootpath.c_str(), &s);
 	if(res < 0) {
 		res = syserr();
-		debug_e("[FS] Mount '%s' failed, %s", rootpath.c_str(), getErrorString(res));
+		debug_e("[FS] Mount '%s' failed, %s", rootpath.c_str(), getErrorString(res).c_str());
 		return res;
 	}
 	if(!S_ISDIR(s.st_mode)) {
@@ -360,7 +363,11 @@ int FileSystem::stat(const char* path, Stat* stat)
 	String fullpath = resolvePath(path);
 
 	os_stat_t s;
+#ifdef __APPLE__
+	int res = ::stat(fullpath.c_str(), &s);
+#else
 	int res = ::stat64(fullpath.c_str(), &s);
+#endif
 	if(res < 0) {
 		return syserr();
 	}
@@ -384,7 +391,11 @@ int FileSystem::fstat(FileHandle file, Stat* stat)
 	CHECK_MOUNTED()
 
 	os_stat_t s;
+#ifdef __APPLE__
+	int res = ::fstat(file, &s);
+#else
 	int res = ::fstat64(file, &s);
+#endif
 	if(res < 0) {
 		return syserr();
 	}
@@ -608,7 +619,11 @@ file_offset_t FileSystem::lseek(FileHandle file, file_offset_t offset, SeekOrigi
 {
 	CHECK_MOUNTED()
 
+#ifdef __APPLE__
+	auto res = ::lseek(file, offset, uint8_t(origin));
+#else
 	auto res = ::lseek64(file, offset, uint8_t(origin));
+#endif
 	if(res < 0) {
 		return syserr();
 	}
@@ -632,7 +647,11 @@ int FileSystem::eof(FileHandle file)
 	}
 
 	os_stat_t stat;
+#ifdef __APPLE__
+	int err = ::fstat(file, &stat);
+#else
 	int err = ::fstat64(file, &stat);
+#endif
 	if(err < 0) {
 		return syserr();
 	}
@@ -649,7 +668,11 @@ int FileSystem::ftruncate(FileHandle file, file_size_t new_size)
 {
 	CHECK_MOUNTED()
 
+#ifdef __APPLE__
+	int res = ::ftruncate(file, new_size);
+#else
 	int res = ::ftruncate64(file, new_size);
+#endif
 	return (res >= 0) ? res : syserr();
 }
 

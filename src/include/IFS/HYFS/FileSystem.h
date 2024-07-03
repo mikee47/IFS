@@ -48,9 +48,7 @@
 #include "WVector.h"
 #endif
 
-namespace IFS
-{
-namespace HYFS
+namespace IFS::HYFS
 {
 class FileSystem : public IFileSystem
 {
@@ -92,6 +90,7 @@ public:
 	file_offset_t tell(FileHandle file) override;
 	int ftruncate(FileHandle file, file_size_t new_size) override;
 	int flush(FileHandle file) override;
+	int fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
 	int fremove(FileHandle file) override;
@@ -111,6 +110,4 @@ private:
 	bool mounted{false};
 };
 
-} // namespace HYFS
-
-} // namespace IFS
+} // namespace IFS::HYFS

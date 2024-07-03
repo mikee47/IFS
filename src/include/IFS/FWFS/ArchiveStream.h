@@ -24,9 +24,7 @@
 #include "ObjectBuffer.h"
 #include "BlockEncoder.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 /**
  * @brief Supports direct streaming into FWFS archive format
@@ -106,7 +104,7 @@ public:
 		/**
 		 * @brief Set an additional user attribute
 		 */
-		template <typename... ParamTypes> int setUserAttribute(uint8_t tagValue, ParamTypes... params)
+		template <typename... ParamTypes> int setUserAttribute(uint8_t tagValue, const ParamTypes&... params)
 		{
 			return setAttribute(getUserAttributeTag(tagValue), params...);
 		}
@@ -125,10 +123,12 @@ public:
 	/**
 	 * @brief Construct an archive stream
 	 * @param fileSystem The filesystem to read
+	 * @param volumeInfo Information about volume to store in the stream
 	 * @param rootPath Where to root the generated filesystem
 	 * @param flags
 	 */
-	ArchiveStream(FileSystem* fileSystem, VolumeInfo volumeInfo, String rootPath = nullptr, Flags flags = 0)
+	ArchiveStream(FileSystem* fileSystem, const VolumeInfo& volumeInfo, const String& rootPath = nullptr,
+				  Flags flags = 0)
 		: FsBase(fileSystem), currentPath(rootPath), volumeInfo(volumeInfo), flags(flags)
 	{
 	}
@@ -235,7 +235,7 @@ private:
 
 		void createContent()
 		{
-			content.reset(new ObjectBuffer);
+			content = std::make_unique<ObjectBuffer>();
 		}
 
 		int addAttribute(AttributeTag tag, const void* data, size_t size);
@@ -271,5 +271,4 @@ private:
 	State state{};
 };
 
-} // namespace FWFS
-} // namespace IFS
+} // namespace IFS::FWFS

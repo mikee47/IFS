@@ -25,9 +25,7 @@
 #include "../IFileSystem.h"
 #include "Object.h"
 
-namespace IFS
-{
-namespace FWFS
+namespace IFS::FWFS
 {
 // File handles start at this value
 #ifndef FWFS_HANDLE_MIN
@@ -127,6 +125,7 @@ public:
 	file_offset_t tell(FileHandle file) override;
 	int ftruncate(FileHandle file, file_size_t new_size) override;
 	int flush(FileHandle file) override;
+	int fgetextents(FileHandle file, Storage::Partition* part, Extent* list, uint16_t extcount) override;
 	int rename(const char* oldpath, const char* newpath) override;
 	int remove(const char* path) override;
 	int fremove(FileHandle file) override;
@@ -253,6 +252,4 @@ protected:
 	BitSet<uint8_t, Flag> flags;
 };
 
-} // namespace FWFS
-
-} // namespace IFS
+} // namespace IFS::FWFS

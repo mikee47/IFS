@@ -59,9 +59,7 @@ struct Stat {
 	FileAttributes attr{};
 	Compression compression{};
 
-	Stat()
-	{
-	}
+	Stat() = default;
 
 	Stat(char* namebuf, uint16_t bufsize) : name(namebuf, bufsize)
 	{
@@ -74,6 +72,9 @@ struct Stat {
 	 */
 	Stat& operator=(const Stat& rhs)
 	{
+		if(this == &rhs) {
+			return *this;
+		}
 		fs = rhs.fs;
 		name.copy(rhs.name);
 		size = rhs.size;

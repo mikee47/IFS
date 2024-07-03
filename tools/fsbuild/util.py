@@ -2,10 +2,16 @@
 # General filesystem utilities
 #
 
-import sys, os, io, gzip
+import sys, os, io, gzip, platform
 
 def _BV(x):
     return 1 << x
+
+def fixpath(path):
+    """Paths in Windows can get a little weird """
+    if path[0] == '/' and platform.system() == 'Windows':
+        return path[1] + ':' + path[2:]
+    return path
 
 def ospath(path):
     """Ensure a path contains valid OS path separators"""

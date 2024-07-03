@@ -29,9 +29,10 @@ namespace IFS
 /**
  * @brief Manage IFS timestamps stored as an unsigned 32-bit value
  *
- * A signed 32-bit value containing seconds will overflow in about 136 years.
- * time_t starts at 1970.
+ * An unsigned 32-bit value containing seconds will overflow in about 136 years.
+ * time_t starts 1 Jan 1970 (Unix epoch).
  *
+ * Times are stored in UTC (GMT).
  **/
 struct TimeStamp {
 	uint32_t mValue;
@@ -48,14 +49,9 @@ struct TimeStamp {
 	}
 
 	/**
-	 * @brief Convert time to local time for display
+	 * @brief Convert time to string for display
 	 */
 	String toString(const char* dtsep = " ") const;
-
-	explicit operator String() const
-	{
-		return toString();
-	}
 };
 
 /**

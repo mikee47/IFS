@@ -40,7 +40,7 @@ public:
 	{
 		auto file = fileSys.open(filename, OpenFlag::Read);
 		if(file >= 0) {
-			device.reset(new Storage::FileDevice(filename, fileSys, file));
+			device = std::make_unique<Storage::FileDevice>(filename, fileSys, file);
 			partition = device->editablePartitions().add(F("archive"), Storage::Partition::SubType::Data::fwfs, 0U,
 														 device->getSize(), 0);
 		}
