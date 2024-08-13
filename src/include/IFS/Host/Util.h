@@ -34,10 +34,7 @@ namespace IFS::Host
 /**
  * @brief Get IFS error code for the current system errno
  */
-inline int syserr()
-{
-	return Error::fromSystem(-errno);
-}
+int syserr();
 
 /**
  * @brief Get corresponding host flags for given IFS flags

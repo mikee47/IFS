@@ -69,6 +69,32 @@ int mapFlags(OpenFlags flags)
 	return ret;
 }
 
+int syserr()
+{
+	switch(errno) {
+	case EPERM:
+	case EACCES:
+		return Error::Denied;
+	case ENOMEM:
+		return Error::NoMem;
+	case ENOENT:
+		return Error::NotFound;
+	case ENFILE:
+	case EMFILE:
+		return Error::OutOfFileDescs;
+	case EFBIG:
+		return Error::TooBig;
+	case ENOSPC:
+		return Error::NoSpace;
+	case EROFS:
+		return Error::ReadOnly;
+	case EINVAL:
+		return Error::BadParam;
+	default:
+		return Error::fromSystem(-errno);
+	}
+}
+
 String getErrorString(int err)
 {
 	if(Error::isSystem(err)) {
