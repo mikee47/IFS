@@ -72,6 +72,8 @@ int mapFlags(OpenFlags flags)
 int syserr()
 {
 	switch(errno) {
+	case EEXIST:
+		return Error::Exists;
 	case EPERM:
 	case EACCES:
 		return Error::Denied;

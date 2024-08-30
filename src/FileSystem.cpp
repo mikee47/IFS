@@ -174,7 +174,7 @@ int FileSystem::makedirs(const char* path)
 	while((i = s.indexOf('/', i)) > 0) {
 		s[i] = '\0';
 		int err = mkdir(s.c_str());
-		if(err < 0) {
+		if(err < 0 && err != Error::Exists) {
 			return err;
 		}
 		s[i++] = '/';
