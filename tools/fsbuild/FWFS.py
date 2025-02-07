@@ -344,7 +344,11 @@ class NamedObject(Object16):
     def path(self):
         s = self.parent().path() + self.parent().pathsep() + self.name
         return s
-   
+
+    @property
+    def encoded_name(self):
+        return self.name.encode('utf-8')
+
     def findChild(self, name):
         for obj in self.__children:
             if obj.isNamed() and obj.name == name:
@@ -396,12 +400,12 @@ class NamedObject(Object16):
 
     def contentSize(self):
         # temporary: children are all references
-        return 5 + len(self.name) + self.childTableSize()
+        return 5 + len(self.encoded_name) + self.childTableSize()
         
     # Fetch the content - must be called after object indices have been assigned
     def content(self):
-        s = struct.pack("<BL", len(self.name), round(self.mtime))
-        s += self.name.encode()
+        s = struct.pack("<BL", len(self.encoded_name), round(self.mtime))
+        s += self.encoded_name
         s += self.childTable()
         return s
 
