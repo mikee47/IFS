@@ -13,15 +13,16 @@ class ErrorTest : public TestGroup
 public:
 	ErrorTest() : TestGroup(_F("Errors"))
 	{
-		int err = IFS::Error::fromSystem(-EINVAL);
-		String s = IFS::Host::getErrorString(err);
-		Serial.print("EINVAL: ");
-		Serial.println(s);
-		CHECK(s == F("Invalid argument"));
 	}
 
 	void execute() override
 	{
+#ifdef ARCH_HOST
+		int err = IFS::Error::fromSystem(-EINVAL);
+		String s = IFS::Host::getErrorString(err);
+		Serial << _F("EINVAL: ") << s << endl;
+		CHECK(s == F("Invalid argument"));
+#endif
 	}
 };
 
