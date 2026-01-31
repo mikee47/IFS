@@ -125,6 +125,7 @@ def addDirectory(parent, name, sourcePath):
         dirObj = img.root()
     else:
         dirObj = FWFS.Directory(parent, name)
+    dirObj.mtime = os.path.getmtime(sourcePath)
 
     cfg.applyRules(dirObj)
 
