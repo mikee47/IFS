@@ -411,8 +411,6 @@ int FileSystem::mount()
 
 int FileSystem::getinfo(Info& info)
 {
-	int res{FS_OK};
-
 	info.clear();
 	info.type = Type::FWFS;
 	info.maxNameLength = 255;
@@ -421,21 +419,30 @@ int FileSystem::getinfo(Info& info)
 	info.partition = partition;
 	info.volumeSize = partition.size();
 
-	if(isMounted()) {
-		FWObjDesc odVolume;
-		res = findObject(volume, odVolume);
-		if(res >= 0) {
-			info.creationTime = odVolume.obj.data16.named.mtime;
-			readObjectName(odVolume, info.name);
-			FWObjDesc od;
-			if(findChildObjectHeader(odVolume, od, Object::Type::ID32) == FS_OK) {
-				info.volumeID = od.obj.data8.id32.value;
-			}
-		}
-		info.attr |= Attribute::Mounted;
+	if(!isMounted()) {
+		return FS_OK;
 	}
 
-	return res;
+	info.attr |= Attribute::Mounted;
+
+	if(info.basicOnly) {
+		return FS_OK;
+	}
+
+	FWObjDesc odVolume;
+	int res = findObject(volume, odVolume);
+	if(res < 0) {
+		return res;
+	}
+
+	info.creationTime = odVolume.obj.data16.named.mtime;
+	readObjectName(odVolume, info.name);
+	FWObjDesc od;
+	if(findChildObjectHeader(odVolume, od, Object::Type::ID32) == FS_OK) {
+		info.volumeID = od.obj.data8.id32.value;
+	}
+
+	return FS_OK;
 }
 
 int FileSystem::readObjectHeader(FWObjDesc& od)

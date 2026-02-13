@@ -30,6 +30,7 @@ size_t Stat::printTo(Print& p) const
 	}
 
 	FileSystem::Info info;
+	info.basicOnly = true;
 	fs->getinfo(info);
 
 	size_t n{0};

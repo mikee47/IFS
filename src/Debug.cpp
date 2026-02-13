@@ -20,6 +20,7 @@
 #include "include/IFS/Debug.h"
 #include <IFS/File.h>
 #include <IFS/Directory.h>
+#include <Platform/WDT.h>
 
 namespace IFS::Debug
 {
@@ -75,15 +76,17 @@ int listDirectory(Print& out, FileSystem& fs, const String& path, Options option
 
 	while(dir.next()) {
 		out.println(dir.stat());
+		if(!options[Option::attributes]) {
+			continue;
+		}
 		String filename = path;
 		filename += '/';
 		filename += dir.stat().name.c_str();
-		if(options[Option::attributes]) {
-			printAttrInfo(out, fs, filename);
-		}
+		printAttrInfo(out, fs, filename);
 	}
 
 	if(options[Option::recurse]) {
+		WDT.alive();
 		dir.rewind();
 		while(dir.next()) {
 			if(dir.stat().attr[FileAttribute::Directory]) {

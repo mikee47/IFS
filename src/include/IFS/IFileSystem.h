@@ -130,6 +130,13 @@ public:
 		volume_size_t freeSpace{0};  ///< Available space, in bytes
 		TimeStamp creationTime{};
 
+		/**
+		 * @brief Set to return only basic information before calling `FileSystem::getinfo()`.
+		 * Information such as freeSpace, ID or volume name may be excluded as it can involve
+		 * resource-intensive file system traversal in some implementations.
+		 */
+		bool basicOnly{false};
+
 		Info() = default;
 
 		Info(char* namebuf, unsigned buflen) : name(namebuf, buflen)

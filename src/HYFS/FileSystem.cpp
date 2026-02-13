@@ -168,11 +168,13 @@ int FileSystem::getinfo(Info& info)
 {
 	Info ffsinfo;
 	ffsinfo.name = info.name;
+	ffsinfo.basicOnly = info.basicOnly;
 	ffs->getinfo(ffsinfo);
 	Info fwinfo;
 	if(info.name.length == 0) {
 		fwinfo.name = info.name;
 	}
+	fwinfo.basicOnly = info.basicOnly;
 	fwfs->getinfo(fwinfo);
 
 	info.type = Type::Hybrid;
