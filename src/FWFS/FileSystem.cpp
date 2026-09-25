@@ -644,6 +644,9 @@ int FileSystem::opendir(const char* path, DirHandle& dir)
 	}
 
 	auto fd = new FileDir{od};
+	if(!fd) {
+		return Error::NoMem;
+	}
 
 	if(od.obj.isMountPoint()) {
 		res = resolveMountPoint(od, fd->fileSystem);
